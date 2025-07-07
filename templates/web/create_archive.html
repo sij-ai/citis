@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+
+{% block title %}Create Archive - Citis{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Create New Archive
+                    </h1>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" id="create-archive-form">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="url" class="form-label">
+                                <i class="bi bi-link-45deg me-2"></i>
+                                URL to Archive
+                            </label>
+                            <input type="url" 
+                                   class="form-control form-control-lg" 
+                                   id="url" 
+                                   name="url" 
+                                   placeholder="https://example.com/article"
+                                   value="{{ form.url.value|default:'' }}"
+                                   required>
+                            <div class="form-text">
+                                Enter the complete URL including http:// or https://
+                            </div>
+                            {% if form.url.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.url.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="text_fragment" class="form-label">
+                                <i class="bi bi-quote me-2"></i>
+                                Text Fragment (Optional)
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="text_fragment" 
+                                   name="text_fragment" 
+                                   placeholder="Important quote or text to highlight"
+                                   value="{{ form.text_fragment.value|default:'' }}">
+                            <div class="form-text">
+                                Specify a text fragment to highlight in the archived page
+                            </div>
+                            {% if form.text_fragment.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.text_fragment.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="archive_method" class="form-label">
+                                <i class="bi bi-gear me-2"></i>
+                                Archive Method
+                            </label>
+                            <select class="form-select" id="archive_method" name="archive_method">
+                                <option value="singlefile" {% if form.archive_method.value == 'singlefile' %}selected{% endif %}>
+                                    SingleFile - Complete page with embedded resources
+                                </option>
+                                <option value="archivebox" {% if form.archive_method.value == 'archivebox' %}selected{% endif %}>
+                                    ArchiveBox - Multiple formats (HTML, PDF, screenshot)
+                                </option>
+                            </select>
+                            <div class="form-text">
+                                Choose how you want the page to be archived
+                            </div>
+                            {% if form.archive_method.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.archive_method.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Usage Information -->
+                        <div class="alert alert-info">
+                            <div class="row align-items-center">
+                                <div class="col">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <div>
+                                            <strong>Usage This Month:</strong> 
+                                            {{ monthly_usage }} of {{ monthly_limit }} archives
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="progress" style="width: 100px;">
+                                        <div class="progress-bar" 
+                                             role="progressbar" 
+                                             style="width: {{ usage_percentage }}%"
+                                             aria-valuenow="{{ usage_percentage }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if monthly_usage >= monthly_limit %}
+                            <div class="mt-2">
+                                <small class="text-danger">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    You've reached your monthly limit. 
+                                    <a href="{% url 'web:pricing' %}" class="text-decoration-none">Upgrade to Premium</a> 
+                                    for unlimited archives.
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" 
+                                    class="btn btn-primary btn-lg"
+                                    {% if monthly_usage >= monthly_limit %}disabled{% endif %}>
+                                <i class="bi bi-archive me-2"></i>
+                                Create Archive
+                            </button>
+                            <a href="{% url 'web:dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>
+                                Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-question-circle me-2"></i>
+                        How It Works
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-1-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Enter URL</h6>
+                                    <p class="text-muted mb-0">
+                                        Paste the URL of the webpage you want to archive permanently.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-2-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Choose Method</h6>
+                                    <p class="text-muted mb-0">
+                                        Select how you want the page archived (SingleFile or ArchiveBox).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-warning text-white d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-3-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Get Shortcode</h6>
+                                    <p class="text-muted mb-0">
+                                        Receive a permanent shortcode to access your archived content.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-4-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6>Share & Cite</h6>
+                                    <p class="text-muted mb-0">
+                                        Use the shortcode URL in your research, articles, or documentation.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('create-archive-form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function(e) {
+        // Disable submit button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Creating Archive...';
+        
+        // Re-enable after 30 seconds (in case of network issues)
+        setTimeout(function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-archive me-2"></i>Create Archive';
+        }, 30000);
+    });
+    
+    // URL validation
+    const urlInput = document.getElementById('url');
+    urlInput.addEventListener('input', function() {
+        const url = this.value;
+        if (url && !url.match(/^https?:\/\/.+/)) {
+            this.setCustomValidity('Please enter a valid URL starting with http:// or https://');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+});
+</script>
+{% endblock %} 

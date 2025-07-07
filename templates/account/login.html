@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Sign In - Citis{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card auth-card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="h4 text-gray-900 mb-0">Welcome Back</h2>
+                            <p class="text-muted small">Sign in to your Citis account</p>
+                        </div>
+
+                        <form method="post" action="{% url 'account_login' %}">
+                            {% csrf_token %}
+                            
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="mb-3">
+                                <label for="{{ form.login.id_for_label }}" class="form-label">
+                                    Email Address
+                                </label>
+                                <input type="email" 
+                                       class="form-control{% if form.login.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.login.id_for_label }}" 
+                                       name="{{ form.login.html_name }}" 
+                                       value="{{ form.login.value|default:'' }}" 
+                                       placeholder="Enter your email"
+                                       required>
+                                {% if form.login.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.login.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="{{ form.password.id_for_label }}" class="form-label">
+                                    Password
+                                </label>
+                                <input type="password" 
+                                       class="form-control{% if form.password.errors %} is-invalid{% endif %}" 
+                                       id="{{ form.password.id_for_label }}" 
+                                       name="{{ form.password.html_name }}" 
+                                       placeholder="Enter your password"
+                                       required>
+                                {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.password.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" 
+                                       class="form-check-input" 
+                                       id="{{ form.remember.id_for_label }}" 
+                                       name="{{ form.remember.html_name }}"
+                                       {% if form.remember.value %}checked{% endif %}>
+                                <label class="form-check-label" for="{{ form.remember.id_for_label }}">
+                                    Remember me
+                                </label>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Sign In</button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'account_reset_password' %}" class="text-decoration-none">
+                                Forgot your password?
+                            </a>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                Don't have an account? 
+                                <a href="{% url 'account_signup' %}" class="text-decoration-none">
+                                    Sign up here
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

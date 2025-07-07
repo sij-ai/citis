@@ -1,0 +1,331 @@
+"""
+Web interface views for the citis application.
+
+These views handle the user-facing web interface including marketing pages
+and the authenticated user dashboard.
+"""
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_http_methods
+from django.contrib import messages
+from django.conf import settings
+from django.db.models import Count, Q
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.core.paginator import Paginator
+
+from archive.models import Shortcode, Visit, ApiKey
+from core.utils import generate_api_key
+
+
+User = get_user_model()
+
+
+def landing_page(request):
+    """
+    Landing page for the application.
+    
+    Shows marketing content and site statistics.
+    """
+    # Get some basic statistics for the landing page
+    total_archives = Shortcode.objects.count()
+    total_users = User.objects.count()
+    total_visits = Visit.objects.count()
+    
+    context = {
+        'site_stats': {
+            'total_archives': total_archives,
+            'total_users': total_users,
+            'total_visits': total_visits,
+        }
+    }
+    
+    return render(request, 'web/landing.html', context)
+
+
+def pricing_page(request):
+    """
+    Pricing page showing available plans.
+    """
+    return render(request, 'web/pricing.html')
+
+
+def about_page(request):
+    """
+    About page with information about the service.
+    """
+    return render(request, 'web/about.html')
+
+
+@login_required
+def dashboard(request):
+    """
+    Main dashboard for authenticated users.
+    
+    Shows user statistics, recent archives, and API key management.
+    """
+    user = request.user
+    
+    # Get user's shortcodes and statistics
+    user_shortcodes = Shortcode.objects.filter(creator_user=user)
+    recent_shortcodes = user_shortcodes.order_by('-created_at')[:5]
+    
+    # Calculate user statistics
+    total_shortcodes = user_shortcodes.count()
+    total_visits = Visit.objects.filter(shortcode__creator_user=user).count()
+    
+    # Get user's API keys
+    user_api_keys = ApiKey.objects.filter(user=user)
+    api_keys_count = user_api_keys.count()
+    
+    # Calculate monthly usage (current month)
+    current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_usage = user_shortcodes.filter(created_at__gte=current_month).count()
+    
+    # Add visit counts to shortcodes
+    for shortcode in recent_shortcodes:
+        shortcode.visit_count = Visit.objects.filter(shortcode=shortcode).count()
+    
+    # Prepare chart data (last 30 days)
+    chart_data = None
+    if total_shortcodes > 0:
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=29)
+        
+        # Get daily counts for the last 30 days
+        daily_counts = []
+        labels = []
+        
+        for i in range(30):
+            date = start_date + timedelta(days=i)
+            count = user_shortcodes.filter(created_at__date=date).count()
+            daily_counts.append(count)
+            labels.append(date.strftime('%m/%d'))
+        
+        import json
+        chart_data = {
+            'labels': json.dumps(labels),
+            'data': json.dumps(daily_counts)
+        }
+    
+    user_stats = {
+        'total_shortcodes': total_shortcodes,
+        'total_visits': total_visits,
+        'api_keys_count': api_keys_count,
+        'monthly_usage': monthly_usage,
+        'chart_data': chart_data,
+    }
+    
+    context = {
+        'user_stats': user_stats,
+        'recent_shortcodes': recent_shortcodes,
+        'user_api_keys': user_api_keys,
+    }
+    
+    return render(request, 'web/dashboard.html', context)
+
+
+@login_required
+def shortcode_list(request):
+    """
+    List view for user's shortcodes with pagination and filtering.
+    """
+    user = request.user
+    shortcodes = Shortcode.objects.filter(creator_user=user).order_by('-created_at')
+    
+    # Add search functionality
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        shortcodes = shortcodes.filter(
+            Q(url__icontains=search_query) | 
+            Q(shortcode__icontains=search_query) |
+            Q(text_fragment__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(shortcodes, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Add visit counts
+    for shortcode in page_obj:
+        shortcode.visit_count = Visit.objects.filter(shortcode=shortcode).count()
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'web/shortcode_list.html', context)
+
+
+@login_required
+def shortcode_detail(request, shortcode):
+    """
+    Detail view for a specific shortcode.
+    """
+    shortcode_obj = get_object_or_404(Shortcode, shortcode=shortcode, creator_user=request.user)
+    
+    # Get visit statistics
+    visits = Visit.objects.filter(shortcode=shortcode_obj).order_by('-visited_at')
+    visit_count = visits.count()
+    
+    # Get recent visits (last 10)
+    recent_visits = visits[:10]
+    
+    # Get daily visit counts for the last 30 days
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=29)
+    
+    daily_visits = []
+    labels = []
+    
+    for i in range(30):
+        date = start_date + timedelta(days=i)
+        count = visits.filter(visited_at__date=date).count()
+        daily_visits.append(count)
+        labels.append(date.strftime('%m/%d'))
+    
+    import json
+    chart_data = {
+        'labels': json.dumps(labels),
+        'data': json.dumps(daily_visits)
+    }
+    
+    context = {
+        'shortcode': shortcode_obj,
+        'visit_count': visit_count,
+        'recent_visits': recent_visits,
+        'chart_data': chart_data,
+    }
+    
+    return render(request, 'web/shortcode_detail.html', context)
+
+
+@login_required
+def create_archive(request):
+    """
+    Create a new archive page with form.
+    """
+    if request.method == 'POST':
+        url = request.POST.get('url', '').strip()
+        text_fragment = request.POST.get('text_fragment', '').strip()
+        
+        if not url:
+            messages.error(request, 'URL is required.')
+            return render(request, 'web/create_archive.html')
+        
+        # Check monthly limits for free users
+        if not request.user.is_premium:
+            current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            monthly_count = Shortcode.objects.filter(
+                creator_user=request.user,
+                created_at__gte=current_month
+            ).count()
+            
+            if monthly_count >= request.user.monthly_shortcode_limit:
+                messages.error(request, 'Monthly archive limit reached. Upgrade to Premium for unlimited archives.')
+                return render(request, 'web/create_archive.html')
+        
+        try:
+            # Create the shortcode (this would normally trigger archiving)
+            shortcode = Shortcode.objects.create(
+                url=url,
+                text_fragment=text_fragment,
+                creator_user=request.user,
+                archive_method=request.user.default_archive_method,
+                # Note: In a real implementation, you'd call the archiving service here
+            )
+            
+            messages.success(request, f'Archive created successfully! Shortcode: {shortcode.shortcode}')
+            return redirect('web:shortcode_detail', shortcode=shortcode.shortcode)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating archive: {str(e)}')
+            return render(request, 'web/create_archive.html')
+    
+    return render(request, 'web/create_archive.html')
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_api_key(request):
+    """
+    HTMX endpoint to create a new API key.
+    """
+    try:
+        api_key = ApiKey.objects.create(
+            user=request.user,
+            key=generate_api_key(),
+            name=f"API Key {ApiKey.objects.filter(user=request.user).count() + 1}",
+            max_uses_total=1000 if not request.user.is_premium else None,
+        )
+        
+        # Return the new API key as HTML for HTMX
+        context = {'api_key': api_key}
+        return render(request, 'web/partials/api_key_card.html', context)
+        
+    except Exception as e:
+        return HttpResponse(f'Error creating API key: {str(e)}', status=400)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_api_key(request, api_key_id):
+    """
+    HTMX endpoint to delete an API key.
+    """
+    try:
+        api_key = get_object_or_404(ApiKey, id=api_key_id, user=request.user)
+        api_key.delete()
+        return HttpResponse('', status=200)
+        
+    except Exception as e:
+        return HttpResponse(f'Error deleting API key: {str(e)}', status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_api_key(request, api_key_id):
+    """
+    HTMX endpoint to update an API key.
+    """
+    try:
+        api_key = get_object_or_404(ApiKey, id=api_key_id, user=request.user)
+        
+        name = request.POST.get('name', '').strip()
+        if name:
+            api_key.name = name
+            api_key.save()
+        
+        # Return the updated API key as HTML for HTMX
+        context = {'api_key': api_key}
+        return render(request, 'web/partials/api_key_card.html', context)
+        
+    except Exception as e:
+        return HttpResponse(f'Error updating API key: {str(e)}', status=400)
+
+
+# Utility view for text fragment highlighting
+def highlight_text(request):
+    """
+    Utility endpoint for text fragment highlighting.
+    Used by the overlay JavaScript.
+    """
+    text_fragment = request.GET.get('text_fragment', '')
+    
+    if not text_fragment:
+        return JsonResponse({'error': 'No text fragment provided'}, status=400)
+    
+    # Clean the text fragment
+    from core.utils import clean_text_fragment
+    cleaned_fragment = clean_text_fragment(text_fragment)
+    
+    return JsonResponse({
+        'original': text_fragment,
+        'cleaned': cleaned_fragment,
+        'valid': bool(cleaned_fragment)
+    })

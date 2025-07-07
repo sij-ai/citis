@@ -1,0 +1,51 @@
+<div class="card api-key-form" id="api-key-form-{{ api_key.id|default:'new' }}">
+    <div class="card-body">
+        <form hx-post="{% if api_key.id %}{% url 'web:update_api_key' api_key.id %}{% else %}{% url 'web:create_api_key' %}{% endif %}"
+              hx-target="#api-key-form-{{ api_key.id|default:'new' }}"
+              hx-swap="outerHTML">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="name" class="form-label">API Key Name</label>
+                <input type="text" 
+                       class="form-control" 
+                       id="name" 
+                       name="name" 
+                       value="{{ api_key.name|default:'' }}"
+                       placeholder="My API Key"
+                       required>
+            </div>
+            
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" 
+                           type="checkbox" 
+                           id="is_active" 
+                           name="is_active" 
+                           {% if api_key.is_active|default:True %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                        Active
+                    </label>
+                </div>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    {% if api_key.id %}
+                    <i class="bi bi-check-circle me-2"></i>Update
+                    {% else %}
+                    <i class="bi bi-plus-circle me-2"></i>Create
+                    {% endif %}
+                </button>
+                <button type="button" 
+                        class="btn btn-outline-secondary"
+                        hx-get="{% url 'web:dashboard' %}"
+                        hx-target="#api-key-form-{{ api_key.id|default:'new' }}"
+                        hx-swap="outerHTML"
+                        hx-select="#api-keys-section .api-key-card:last-child">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div> 

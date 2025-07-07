@@ -1,0 +1,30 @@
+# Django
+*.log
+*.pyc
+__pycache__/
+db.sqlite3
+local_settings.py
+media/
+staticfiles/
+
+# Environment variables
+.env
+.venv
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+archives/
+logs/
+deepcite.db
+config.yaml

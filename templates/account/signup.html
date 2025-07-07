@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Sign Up - Citis{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card auth-card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="h4 text-gray-900 mb-0">Create Account</h2>
+                            <p class="text-muted small">Join Citis for permanent web archiving</p>
+                        </div>
+
+                        <form method="post" action="{% url 'account_signup' %}">
+                            {% csrf_token %}
+                            
+                            {% if redirect_field_value %}
+                            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                            {% endif %}
+                            
+                            <div class="mb-3">
+                                <label for="id_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="id_email" name="email" 
+                                       placeholder="Enter your email" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_password1" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="id_password1" name="password1" 
+                                       placeholder="Create a password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_password2" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="id_password2" name="password2" 
+                                       placeholder="Confirm your password" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100 mb-3">Create Account</button>
+                            
+                            <div class="text-center">
+                                <small class="text-muted">
+                                    By signing up, you agree to our terms of service and privacy policy.
+                                </small>
+                            </div>
+                        </form>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <p class="text-muted mb-0">
+                                Already have an account?
+                                <a href="{% url 'account_login' %}" class="text-primary text-decoration-none">
+                                    Sign in here
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

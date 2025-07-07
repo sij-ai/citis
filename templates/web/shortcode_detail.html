@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}{{ shortcode.shortcode }} - Archive Details - Citis{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'web:dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'web:shortcode_list' %}">Archives</a></li>
+                    <li class="breadcrumb-item active">{{ shortcode.shortcode }}</li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h1 class="h3 mb-2">Archive Details</h1>
+                    <div class="d-flex align-items-center gap-3">
+                        <code class="fs-5">{{ shortcode.shortcode }}</code>
+                        <button class="btn btn-outline-secondary btn-sm" 
+                                onclick="copyToClipboard('{{ shortcode.shortcode }}')"
+                                title="Copy shortcode">
+                            <i class="bi bi-clipboard me-1"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <a href="/{{ shortcode.shortcode }}" 
+                       target="_blank"
+                       class="btn btn-primary">
+                        <i class="bi bi-box-arrow-up-right me-2"></i>
+                        View Archive
+                    </a>
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" 
+                            data-bs-toggle="dropdown">
+                        <span class="visually-hidden">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/{{ shortcode.shortcode }}.pdf" target="_blank">
+                            <i class="bi bi-file-pdf me-2"></i>Download PDF
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item" onclick="copyArchiveUrl('{{ shortcode.shortcode }}')">
+                            <i class="bi bi-link-45deg me-2"></i>Copy Archive URL
+                        </button></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Archive Information -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Archive Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Original URL</label>
+                            <div class="input-group">
+                                <input type="text" 
+                                       class="form-control" 
+                                       value="{{ shortcode.url }}" 
+                                       readonly>
+                                <button class="btn btn-outline-secondary" 
+                                        onclick="copyToClipboard('{{ shortcode.url }}')"
+                                        title="Copy URL">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Archive Method</label>
+                            <div class="form-control bg-light">
+                                <span class="badge bg-primary me-2">{{ shortcode.get_archive_method_display }}</span>
+                                {% if shortcode.is_archived %}
+                                <span class="badge bg-success">Archived</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Created</label>
+                            <div class="form-control bg-light">
+                                {{ shortcode.created_at|date:"F d, Y \a\t g:i A" }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Total Views</label>
+                            <div class="form-control bg-light">
+                                <span class="fw-bold">{{ visit_count }}</span> view{{ visit_count|pluralize }}
+                            </div>
+                        </div>
+                        
+                        {% if shortcode.text_fragment %}
+                        <div class="col-12">
+                            <label class="form-label text-muted">Text Fragment</label>
+                            <div class="alert alert-info">
+                                <i class="bi bi-quote me-2"></i>
+                                "{{ shortcode.text_fragment }}"
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Quick Stats
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="display-6 text-primary">{{ visit_count }}</div>
+                                <small class="text-muted">Total Views</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <div class="display-6 text-success">
+                                    {{ recent_visits|length }}
+                                </div>
+                                <small class="text-muted">Recent Views</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analytics Chart -->
+    {% if chart_data %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        View Activity (Last 30 Days)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="visit-chart" style="height: 300px;">
+                        <!-- Chart will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recent Views -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Recent Views
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_visits %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>IP Address</th>
+                                    <th>Browser</th>
+                                    <th>Location</th>
+                                    <th>Referrer</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit in recent_visits %}
+                                <tr>
+                                    <td class="text-nowrap">
+                                        <div>{{ visit.visited_at|date:"M d, Y" }}</div>
+                                        <small class="text-muted">{{ visit.visited_at|date:"g:i A" }}</small>
+                                    </td>
+                                    <td>
+                                        <code class="small">{{ visit.ip_address|default:"—" }}</code>
+                                    </td>
+                                    <td>
+                                        {% if visit.user_agent %}
+                                        <div class="text-truncate" style="max-width: 200px;" title="{{ visit.user_agent }}">
+                                            {{ visit.user_agent|truncatechars:50 }}
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if visit.country %}
+                                        <span class="badge bg-light text-dark">{{ visit.country }}</span>
+                                        {% else %}
+                                        <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if visit.referer %}
+                                        <div class="text-truncate" style="max-width: 250px;">
+                                            <a href="{{ visit.referer }}" 
+                                               target="_blank" 
+                                               class="text-decoration-none"
+                                               title="{{ visit.referer }}">
+                                                {{ visit.referer|truncatechars:40 }}
+                                            </a>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">Direct</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if visit_count > recent_visits|length %}
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            Showing {{ recent_visits|length }} of {{ visit_count }} total views
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-eye-slash text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="mt-3">No Views Yet</h5>
+                        <p class="text-muted">This archive hasn't been viewed by anyone yet.</p>
+                        <button class="btn btn-outline-primary" onclick="copyArchiveUrl('{{ shortcode.shortcode }}')">
+                            <i class="bi bi-share me-2"></i>
+                            Share Archive
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Copy to Clipboard Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="copy-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-clipboard-check text-success me-2"></i>
+            <strong class="me-auto">Copied!</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            Copied to clipboard successfully.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js for visit analytics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showCopyToast();
+        });
+    } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+        showCopyToast();
+    }
+}
+
+function copyArchiveUrl(shortcode) {
+    const url = `${window.location.origin}/${shortcode}`;
+    copyToClipboard(url);
+}
+
+function showCopyToast() {
+    const toast = new bootstrap.Toast(document.getElementById('copy-toast'));
+    toast.show();
+}
+
+// Initialize chart if data is available
+{% if chart_data %}
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('visit-chart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.labels|safe }},
+            datasets: [{
+                label: 'Daily Views',
+                data: {{ chart_data.data|safe }},
+                borderColor: 'rgb(37, 99, 235)',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+{% endif %}
+</script>
+{% endblock %} 
