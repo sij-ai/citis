@@ -1,70 +1,39 @@
 # Django Core
-Django==5.2.4
-djangorestframework==3.15.2
-django-cors-headers==4.5.0
+Django>=5.0
+gunicorn
+djangorestframework
+django-cors-headers
 
-# Authentication & Authorization
-django-allauth==65.0.2
-djangorestframework-simplejwt==5.3.0
+# Authentication
+django-allauth
 
-# Database & ORM
-psycopg2-binary==2.9.11  # PostgreSQL adapter
-django-extensions==3.2.3
+# Database
+psycopg2-binary
+dj-database-url # For parsing DATABASE_URL from .env
+django-environ  # For managing environment variables
 
-# Forms & Frontend Integration
-django-crispy-forms==2.3
-crispy-bootstrap5==2024.10
-django-widget-tweaks==1.5.0
+# Frontend & Forms
+django-crispy-forms
+crispy-tailwind
+django-htmx
 
-# Modern Frontend Tooling
-django-htmx==1.19.0
+# Billing
+dj-stripe
 
-# Billing & Subscriptions
-dj-stripe==2.9.0
-stripe==11.7.0
-
-# API Documentation
-drf-spectacular==0.27.2
-
-# Environment Management
-python-decouple==3.8
-django-environ==0.11.2
-
-# Utilities
-django-model-utils==5.0.0
-django-taggit==6.0.0
-pillow==11.1.0
-celery==5.4.0
-redis==5.2.1
-
-# HTTP & Async Support
-httpx==0.28.1
-requests==2.32.3
-
-# Content Processing (from original FastAPI project)
-beautifulsoup4==4.12.3
-lxml==5.2.1
-PyYAML==6.0.1
-markdown==3.6
-pymdown-extensions==10.8.1
-
-# Image & File Processing
-qrcode[pil]==7.4.2
-
-# Time & Date Utilities
-humanize==4.9.0
+# Utilities from original project
+beautifulsoup4
+lxml
+PyYAML
+markdown
+pymdown-extensions
+geoip2
+httpx
 
 # Development & Testing
-django-debug-toolbar==4.4.6
-factory-boy==3.3.1
-pytest==8.3.4
-pytest-django==4.9.0
-pytest-cov==6.0.0
+pytest
+pytest-django
+django-debug-toolbar
 
 # Production
-gunicorn==23.0.0
-whitenoise==6.8.2
-sentry-sdk==2.19.2
-
-# Optional: GeoIP support
-geoip2==4.8.1 
+whitenoise
+drf-spectacular

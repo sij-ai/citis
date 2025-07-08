@@ -36,7 +36,7 @@ from .serializers import (
 
 class AddArchiveView(APIView):
     """Create a new archive and shortcode"""
-    permission_classes = [IsAuthenticatedWithApiKey]
+    permission_classes = [IsMasterOrCreatorApiKey]
 
     def post(self, request):
         """Archive a URL and create a shortcode"""
@@ -50,37 +50,49 @@ class AddArchiveView(APIView):
 
         # Generate shortcode if not provided
         if custom_shortcode:
+            if Shortcode.objects.filter(shortcode=custom_shortcode).exists():
+                return Response(
+                    {"error": f"Shortcode '{custom_shortcode}' already exists."},
+                    status=status.HTTP_409_CONFLICT
+                )
             shortcode = custom_shortcode
         else:
             # Generate unique shortcode
-            while True:
+            for _ in range(10): # Max 10 attempts
                 shortcode = generate_shortcode(settings.SHORTCODE_LENGTH)
                 if not Shortcode.objects.filter(shortcode=shortcode).exists():
                     break
+            else:
+                return Response(
+                    {"error": "Could not generate a unique shortcode. Please try again."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
-        # Get client IP and API key info
+        # Get client IP and API key info from request attributes set by permission class
         client_ip = get_client_ip(request)
         api_key = getattr(request, 'api_key', None)
-        creator_user = api_key.user if api_key else None
+        creator_user = api_key.user if api_key else getattr(request, 'user', None)
 
         # Determine archive method based on settings and API key preferences
         archive_method = settings.ARCHIVE_MODE
-        if hasattr(creator_user, 'default_archive_method') and creator_user.default_archive_method:
-            archive_method = creator_user.default_archive_method
+        if hasattr(creator_user, 'settings') and creator_user.settings.default_archive_method:
+            archive_method = creator_user.settings.default_archive_method
 
         # Perform archiving
         try:
             timestamp = datetime.now(timezone.utc)
             managers = get_archive_managers()
             
-            if archive_method == "singlefile" and "singlefile" in managers:
-                archive_result = asyncio.run(managers["singlefile"].archive_url(url, timestamp))
-            elif archive_method == "archivebox" and "archivebox" in managers:
-                archive_result = asyncio.run(managers["archivebox"].archive_url(url, timestamp))
+            # Select the appropriate manager, with fallback
+            manager_to_use = None
+            if archive_method in managers:
+                manager_to_use = managers[archive_method]
             elif "singlefile" in managers:
-                # Fallback to singlefile if preferred method not available
-                archive_result = asyncio.run(managers["singlefile"].archive_url(url, timestamp))
+                manager_to_use = managers["singlefile"]
                 archive_method = "singlefile"
+            
+            if manager_to_use:
+                archive_result = asyncio.run(manager_to_use.archive_url(url, timestamp))
             else:
                 return Response(
                     {"error": f"No archive method available for mode: {archive_method}"},
@@ -111,7 +123,7 @@ class AddArchiveView(APIView):
         )
 
         # Format response
-        base_url = f"{request.scheme}://{request.get_host()}"
+        base_url = settings.SERVER_BASE_URL
         if settings.SERVER_URL_PREFIX:
             shortcode_url = f"{base_url}/{settings.SERVER_URL_PREFIX}/{shortcode}"
         else:
@@ -134,10 +146,7 @@ class ShortcodeDetailView(APIView):
 
     def get_object(self, shortcode):
         """Get shortcode object or raise 404"""
-        try:
-            return Shortcode.objects.get(shortcode=shortcode)
-        except Shortcode.DoesNotExist:
-            raise Http404
+        return get_object_or_404(Shortcode, shortcode=shortcode)
 
     def get(self, request, shortcode):
         """Get shortcode details"""
@@ -152,7 +161,7 @@ class ShortcodeDetailView(APIView):
         shortcode_obj = self.get_object(shortcode)
         self.check_object_permissions(request, shortcode_obj)
         
-        serializer = UpdateShortcodeRequestSerializer(shortcode_obj, data=request.data, partial=True)
+        serializer = UpdateShortcodeRequestSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -160,23 +169,18 @@ class ShortcodeDetailView(APIView):
         updated_fields = []
         for field, value in serializer.validated_data.items():
             if field == 'creator_key':
-                # Handle creator_key specially
-                if value:
-                    try:
-                        api_key = ApiKey.objects.get(key=value)
-                        shortcode_obj.creator_api_key = api_key
-                        shortcode_obj.creator_user = api_key.user
-                        updated_fields.extend(['creator_api_key', 'creator_user'])
-                    except ApiKey.DoesNotExist:
-                        return Response(
-                            {"error": "Invalid creator API key"},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
+                try:
+                    api_key = ApiKey.objects.get(key=value)
+                    shortcode_obj.creator_api_key = api_key
+                    shortcode_obj.creator_user = api_key.user
+                    updated_fields.extend(['creator_api_key', 'creator_user'])
+                except ApiKey.DoesNotExist:
+                    return Response({"error": "Invalid creator API key"}, status=status.HTTP_400_BAD_REQUEST)
             else:
                 setattr(shortcode_obj, field, value)
                 updated_fields.append(field)
 
-        shortcode_obj.save()
+        shortcode_obj.save(update_fields=updated_fields)
 
         response_data = {
             "message": "Shortcode updated successfully",
@@ -193,7 +197,7 @@ class ShortcodeDetailView(APIView):
         self.check_object_permissions(request, shortcode_obj)
         
         shortcode_obj.delete()
-        return Response({"message": "Shortcode deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ListShortcodesView(APIView):
@@ -202,23 +206,19 @@ class ListShortcodesView(APIView):
 
     def get(self, request):
         """List shortcodes with appropriate filtering"""
-        limit = min(int(request.GET.get('limit', 100)), 1000)  # Cap at 1000
-        offset = int(request.GET.get('offset', 0))
+        limit = min(int(request.query_params.get('limit', 100)), 1000)
+        offset = int(request.query_params.get('offset', 0))
 
-        # Determine access level and filter
         is_master = getattr(request, 'is_master_key', False)
         api_key = getattr(request, 'api_key', None)
 
         if is_master:
-            # Master key -> return all shortcodes
             queryset = Shortcode.objects.all()
             access_level = "master"
         elif api_key:
-            # Valid API key -> return only shortcodes created by this key
             queryset = Shortcode.objects.filter(creator_api_key=api_key)
             access_level = "creator"
         else:
-            # Public access (if allowed) -> return all shortcodes
             queryset = Shortcode.objects.all()
             access_level = "public"
 
@@ -241,17 +241,13 @@ class AnalyticsView(APIView):
 
     def get_object(self, shortcode):
         """Get shortcode object or raise 404"""
-        try:
-            return Shortcode.objects.get(shortcode=shortcode)
-        except Shortcode.DoesNotExist:
-            raise Http404
+        return get_object_or_404(Shortcode, shortcode=shortcode)
 
     def get(self, request, shortcode):
         """Get analytics data for a shortcode"""
         shortcode_obj = self.get_object(shortcode)
         self.check_object_permissions(request, shortcode_obj)
 
-        # Get visits
         visits = Visit.objects.filter(shortcode=shortcode_obj).order_by('-visited_at')
         
         response_data = {
@@ -283,7 +279,6 @@ class APIKeyCreateView(APIView):
         max_uses_total = serializer.validated_data.get('max_uses_total')
         max_uses_per_day = serializer.validated_data.get('max_uses_per_day')
 
-        # Get or create user account
         from django.contrib.auth import get_user_model
         User = get_user_model()
         user, created = User.objects.get_or_create(
@@ -291,29 +286,16 @@ class APIKeyCreateView(APIView):
             defaults={'email': f"{account}@example.com"}
         )
 
-        # Generate API key
-        new_api_key = generate_api_key()
-
-        # Create API key record
+        new_api_key_value = generate_api_key()
         api_key = ApiKey.objects.create(
-            key=new_api_key,
-            name=account,
-            description=description,
-            user=user,
-            max_uses_total=max_uses_total,
-            max_uses_per_day=max_uses_per_day,
-            is_active=True
+            key=new_api_key_value, name=account, description=description,
+            user=user, max_uses_total=max_uses_total, max_uses_per_day=max_uses_per_day
         )
 
         response_data = {
-            "api_key": new_api_key,
-            "account": account,
-            "description": description,
-            "max_uses_total": max_uses_total,
-            "max_uses_per_day": max_uses_per_day,
-            "is_active": True
+            "api_key": new_api_key_value, "account": account, "description": description,
+            "max_uses_total": max_uses_total, "max_uses_per_day": max_uses_per_day, "is_active": True
         }
-
         response_serializer = CreateAPIKeyResponseSerializer(response_data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
@@ -324,22 +306,13 @@ class APIKeyUpdateView(APIView):
 
     def put(self, request, api_key):
         """Update an existing API key"""
-        try:
-            api_key_obj = ApiKey.objects.get(key=api_key)
-        except ApiKey.DoesNotExist:
-            return Response(
-                {"error": "API key not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
+        api_key_obj = get_object_or_404(ApiKey, key=api_key)
         serializer = UpdateAPIKeyRequestSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # Update fields
         for field, value in serializer.validated_data.items():
             setattr(api_key_obj, field, value)
-
         api_key_obj.save()
 
         return Response({"message": "API key updated successfully"})
@@ -350,25 +323,24 @@ class APIKeyUpdateView(APIView):
 @permission_classes([IsMasterApiKey])
 def clear_cache(request):
     """Clear all caches"""
-    # TODO: Implement cache clearing when cache is set up
-    return Response({"message": "All caches cleared"})
+    # This is a placeholder; implement actual cache clearing if using Django's cache framework.
+    return Response({"message": "Cache clearing not implemented yet."})
 
 
 @api_view(['GET'])
+@permission_classes([]) # Public endpoint
 def health_check(request):
     """Health check endpoint"""
     return Response({"status": "healthy"})
 
 
 @api_view(['GET'])
+@permission_classes([]) # Public endpoint
 def get_info(request):
     """API info endpoint"""
     return Response({
         "service": "citis archive server",
         "archive_mode": settings.ARCHIVE_MODE,
-        "prefix": settings.SERVER_URL_PREFIX if settings.SERVER_URL_PREFIX else None
+        "prefix": settings.SERVER_URL_PREFIX or None
     })
 
-
-# Import required for the generate_api_key function
-from core.utils import generate_api_key 
