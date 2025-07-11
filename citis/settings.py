@@ -153,7 +153,7 @@ LOGOUT_REDIRECT_URL = '/'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'core.authentication.ApiKeyAuthentication',  # <-- THIS IS THE FIX
+        'core.authentication.ApiKeyAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -273,12 +273,24 @@ LOGGING = {
 # CITIS-SPECIFIC SETTINGS
 # =============================================================================
 
+# Server Configuration
 SERVER_BASE_URL = os.getenv('SERVER_BASE_URL', 'http://localhost:8000')
 SERVER_URL_PREFIX = os.getenv('SERVER_URL_PREFIX', '')
 MASTER_API_KEY = os.getenv('MASTER_API_KEY')
+
+# Archive Configuration
 ARCHIVE_MODE = os.getenv('ARCHIVE_MODE', 'singlefile')
 SHORTCODE_LENGTH = int(os.getenv('SHORTCODE_LENGTH', 8))
 TIMEDIFF_WARNING_THRESHOLD = int(os.getenv('TIMEDIFF_WARNING_THRESHOLD', 7200))
+
+# SingleFile Configuration
 SINGLEFILE_EXECUTABLE_PATH = os.getenv('SINGLEFILE_EXECUTABLE_PATH', 'single-file')
 SINGLEFILE_DATA_PATH = os.getenv('SINGLEFILE_DATA_PATH', str(BASE_DIR / 'archives'))
+SINGLEFILE_TIMEOUT = int(os.getenv('SINGLEFILE_TIMEOUT', 60))
+SINGLEFILE_GENERATE_SCREENSHOT = os.getenv('SINGLEFILE_GENERATE_SCREENSHOT', 'False').lower() == 'true'
+SINGLEFILE_GENERATE_PDF = os.getenv('SINGLEFILE_GENERATE_PDF', 'False').lower() == 'true'
+SINGLEFILE_SCREENSHOT_WIDTH = int(os.getenv('SINGLEFILE_SCREENSHOT_WIDTH', 1920))
+SINGLEFILE_SCREENSHOT_HEIGHT = int(os.getenv('SINGLEFILE_SCREENSHOT_HEIGHT', 1080))
+
+# GeoIP Configuration
 GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
