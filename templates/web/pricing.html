@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Pricing - Citis{% endblock %}
+{% block title %}Pricing - cit.is{% endblock %}
 
 {% block content %}
 <div class="container my-5">
     <div class="row">
         <div class="col-lg-8 mx-auto text-center mb-5">
-            <h1 class="display-4 fw-bold mb-4">Simple, Transparent Pricing</h1>
-            <p class="lead text-muted">
+            <h1 class="display-4 fw-bold mb-4 text-bone">Simple, Transparent Pricing</h1>
+            <p class="lead text-subtle">
                 Choose the plan that fits your archiving needs. Start free and upgrade as you grow.
             </p>
         </div>
@@ -16,36 +16,36 @@
     <div class="row g-4 mb-5">
         <!-- Free Plan -->
         <div class="col-lg-4">
-            <div class="card h-100 border-0 shadow-sm">
+            <div class="card h-100 border-0">
                 <div class="card-body d-flex flex-column p-4">
                     <div class="text-center mb-4">
-                        <h3 class="h5 text-muted mb-1">Free</h3>
-                        <div class="display-4 fw-bold">$0</div>
-                        <div class="text-muted">per month</div>
+                        <h3 class="h5 text-subtle mb-1">Free</h3>
+                        <div class="display-4 fw-bold text-bone">$0</div>
+                        <div class="text-subtle">per month</div>
                     </div>
                     
                     <ul class="list-unstyled mb-4">
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            10 archives per month
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">10 archives per month</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Permanent storage
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Permanent storage</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Basic analytics
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Basic analytics</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Community support
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Community support</span>
                         </li>
-                        <li class="mb-2 text-muted">
+                        <li class="mb-2 text-subtle">
                             <i class="bi bi-x-circle me-2"></i>
                             API access
                         </li>
-                        <li class="mb-2 text-muted">
+                        <li class="mb-2 text-subtle">
                             <i class="bi bi-x-circle me-2"></i>
                             Custom domains
                         </li>
@@ -62,41 +62,41 @@
         
         <!-- Premium Plan -->
         <div class="col-lg-4">
-            <div class="card h-100 border-primary shadow-lg position-relative">
+            <div class="card h-100 border-cyan position-relative premium-card">
                 <div class="position-absolute top-0 start-50 translate-middle">
-                    <span class="badge bg-primary rounded-pill px-3 py-2">Most Popular</span>
+                    <span class="badge bg-cyan text-dark rounded-pill px-3 py-2" style="background-color: var(--accent-cyan); color: var(--bg-primary);">Most Popular</span>
                 </div>
                 <div class="card-body d-flex flex-column p-4">
                     <div class="text-center mb-4">
-                        <h3 class="h5 text-muted mb-1">Premium</h3>
-                        <div class="display-4 fw-bold text-primary">$19</div>
-                        <div class="text-muted">per month</div>
+                        <h3 class="h5 text-subtle mb-1">Premium</h3>
+                        <div class="display-4 fw-bold text-cyan">$19</div>
+                        <div class="text-subtle">per month</div>
                     </div>
                     
                     <ul class="list-unstyled mb-4">
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            1,000 archives per month
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">1,000 archives per month</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Permanent storage
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Permanent storage</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Advanced analytics
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Advanced analytics</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Priority support
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Priority support</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            API access
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">API access</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Custom domains
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Custom domains</span>
                         </li>
                     </ul>
                     
@@ -111,46 +111,46 @@
         
         <!-- Enterprise Plan -->
         <div class="col-lg-4">
-            <div class="card h-100 border-0 shadow-sm">
+            <div class="card h-100 border-0">
                 <div class="card-body d-flex flex-column p-4">
                     <div class="text-center mb-4">
-                        <h3 class="h5 text-muted mb-1">Enterprise</h3>
-                        <div class="display-4 fw-bold">Custom</div>
-                        <div class="text-muted">contact us</div>
+                        <h3 class="h5 text-subtle mb-1">Enterprise</h3>
+                        <div class="display-4 fw-bold text-bone">Custom</div>
+                        <div class="text-subtle">contact us</div>
                     </div>
                     
                     <ul class="list-unstyled mb-4">
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Unlimited archives
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Unlimited archives</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Permanent storage
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Permanent storage</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Advanced analytics
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Advanced analytics</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Dedicated support
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Dedicated support</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            API access
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">API access</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Custom domains
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">Custom domains</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            SLA guarantee
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">SLA guarantee</span>
                         </li>
                         <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            On-premise options
+                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
+                            <span class="text-dimmed">On-premise options</span>
                         </li>
                     </ul>
                     
@@ -167,7 +167,7 @@
     <!-- FAQ Section -->
     <div class="row">
         <div class="col-lg-8 mx-auto">
-            <h2 class="text-center mb-4">Frequently Asked Questions</h2>
+            <h2 class="text-center mb-4 text-bone">Frequently Asked Questions</h2>
             
             <div class="accordion" id="pricingFAQ">
                 <div class="accordion-item">
@@ -241,10 +241,10 @@
     <!-- CTA Section -->
     <div class="row mt-5">
         <div class="col-lg-8 mx-auto text-center">
-            <div class="bg-light p-5 rounded-3">
-                <h3 class="mb-3">Ready to get started?</h3>
-                <p class="text-muted mb-4">
-                    Join thousands of professionals who trust Citis for permanent web archiving
+            <div class="cta-container p-5 rounded-3">
+                <h3 class="mb-3 text-bone">Ready to get started?</h3>
+                <p class="text-subtle mb-4">
+                    Join thousands of professionals who trust cit.is for permanent web archiving
                 </p>
                 <div class="d-flex gap-3 justify-content-center">
                     <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg">

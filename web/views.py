@@ -210,33 +210,45 @@ def create_archive(request):
     """
     Create a new archive page with form.
     """
+    user = request.user
+    
+    # Calculate usage information for display
+    current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    monthly_usage = Shortcode.objects.filter(
+        creator_user=user,
+        created_at__gte=current_month
+    ).count()
+    
+    monthly_limit = user.monthly_shortcode_limit
+    usage_percentage = min((monthly_usage / monthly_limit) * 100, 100) if monthly_limit > 0 else 0
+    
+    context = {
+        'monthly_usage': monthly_usage,
+        'monthly_limit': monthly_limit,
+        'usage_percentage': usage_percentage,
+    }
+    
     if request.method == 'POST':
         url = request.POST.get('url', '').strip()
         text_fragment = request.POST.get('text_fragment', '').strip()
         
         if not url:
             messages.error(request, 'URL is required.')
-            return render(request, 'web/create_archive.html')
+            return render(request, 'web/create_archive.html', context)
         
         # Check monthly limits for free users
-        if not request.user.is_premium:
-            current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            monthly_count = Shortcode.objects.filter(
-                creator_user=request.user,
-                created_at__gte=current_month
-            ).count()
-            
-            if monthly_count >= request.user.monthly_shortcode_limit:
+        if not user.is_premium:
+            if monthly_usage >= monthly_limit:
                 messages.error(request, 'Monthly archive limit reached. Upgrade to Premium for unlimited archives.')
-                return render(request, 'web/create_archive.html')
+                return render(request, 'web/create_archive.html', context)
         
         try:
             # Create the shortcode (this would normally trigger archiving)
             shortcode = Shortcode.objects.create(
                 url=url,
                 text_fragment=text_fragment,
-                creator_user=request.user,
-                archive_method=request.user.default_archive_method,
+                creator_user=user,
+                archive_method=user.default_archive_method,
                 # Note: In a real implementation, you'd call the archiving service here
             )
             
@@ -245,9 +257,9 @@ def create_archive(request):
             
         except Exception as e:
             messages.error(request, f'Error creating archive: {str(e)}')
-            return render(request, 'web/create_archive.html')
+            return render(request, 'web/create_archive.html', context)
     
-    return render(request, 'web/create_archive.html')
+    return render(request, 'web/create_archive.html', context)
 
 
 @login_required

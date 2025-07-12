@@ -3,139 +3,425 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>{% block title %}Citis - Permanent Web Archiving{% endblock %}</title>
+    <title>{% block title %}cit.is - Permanent Web Archiving{% endblock %}</title>
     
-    <!-- Bootstrap 5 CSS -->
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS (for grid and components only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     
-    <!-- Custom CSS -->
+    <!-- Shared Pages CSS -->
+    <link href="/static/pages.css" rel="stylesheet">
+    
+    <!-- Custom Atmospheric Styling -->
     <style>
         :root {
-            --primary-color: #2563eb;
-            --secondary-color: #1e40af;
-            --accent-color: #3b82f6;
-            --success-color: #059669;
-            --warning-color: #d97706;
-            --danger-color: #dc2626;
-            --light-bg: #f8fafc;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --bg-primary: #1A2A2E;
+            --bg-secondary: #243439;
+            --bg-tertiary: #2E4045;
+            --text-bone: #FFF5EB;
+            --text-dimmed: #E8DDD0;
+            --text-subtle: #839496;
+            --accent-cyan: #4ECDC4;
+            --accent-teal: #45B7B8;
+            --accent-hover: #6BCCC7;
+            --border-subtle: #3A4A4F;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+        
+        * {
+            box-sizing: border-box;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--light-bg);
+            font-family: 'Helvetica Neue', 'Helvetica', 'Arial', 'Futura Neue', 'Futura', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-dimmed);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Monospace font for specific elements */
+        code, pre, .font-mono, .navbar-brand {
+            font-family: 'Roboto', 'Menlo', 'Monaco', monospace;
+        }
+        
+        /* Enhanced animated background motes - always visible */
+        .background-motes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1; /* Above background, below content */
+            overflow: hidden;
+        }
+        
+        .mote {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: var(--text-subtle);
+            animation: drift 35s infinite linear;
+            opacity: 0.15;
+        }
+        
+        .mote:nth-child(odd) {
+            animation-duration: 40s;
+            opacity: 0.12;
+        }
+        
+        .mote:nth-child(3n) {
+            animation-duration: 45s;
+            opacity: 0.1;
+        }
+        
+        .mote:nth-child(4n) {
+            animation-duration: 30s;
+            opacity: 0.18;
+        }
+        
+        @keyframes drift {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.15;
+            }
+            90% {
+                opacity: 0.15;
+            }
+            100% {
+                transform: translateY(-10vh) translateX(30px);
+                opacity: 0;
+            }
+        }
+        
+        /* Ensure content is above motes */
+        .navbar, .container, main, footer {
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* CSS Pixel Art Logo Option */
+        .pixel-logo {
+            width: 12px;
+            height: 16px;
+            display: inline-block;
+            position: relative;
+            margin-right: 8px;
+            /* This creates a simple pixel art "C" - you can customize this */
+            background: var(--text-bone);
+            box-shadow: 
+                1px 0 0 var(--text-bone),
+                2px 0 0 var(--text-bone),
+                0 1px 0 var(--text-bone),
+                0 2px 0 var(--text-bone),
+                0 3px 0 var(--text-bone),
+                0 4px 0 var(--text-bone),
+                0 5px 0 var(--text-bone),
+                0 6px 0 var(--text-bone),
+                1px 7px 0 var(--text-bone),
+                2px 7px 0 var(--text-bone);
+            /* Add more box-shadow entries to create your pixel art */
+        }
+        
+        /* Navigation - no separate background for minimalism */
+        .navbar {
+            background: transparent !important; /* Minimal, let motes show through */
+            border-bottom: 1px solid var(--border-subtle);
+            backdrop-filter: blur(5px); /* Subtle background blur */
         }
         
         .navbar-brand {
-            font-weight: 700;
-            color: var(--primary-color) !important;
-            font-size: 1.5rem;
+            color: var(--text-bone) !important;
+            font-weight: 400;
+            font-size: 1.25rem;
+            text-shadow: 0 0 10px rgba(255, 245, 235, 0.3);
+            letter-spacing: -0.5px;
+        }
+        
+        .navbar-brand:hover {
+            color: var(--accent-cyan) !important;
+        }
+        
+        .nav-link {
+            color: var(--text-dimmed) !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+            letter-spacing: 0.5px;
+            white-space: nowrap; /* Prevent wrapping */
+        }
+        
+        .nav-link:hover {
+            color: var(--accent-hover) !important;
+            text-shadow: 0 0 8px rgba(78, 205, 196, 0.4);
+        }
+        
+        /* Fix navbar collapse behavior - use a smaller breakpoint */
+        @media (max-width: 991px) {
+            .navbar-collapse {
+                background: rgba(26, 42, 46, 0.95);
+                border-radius: 6px;
+                margin-top: 0.5rem;
+                padding: 1rem;
+                border: 1px solid var(--border-subtle);
+            }
+        }
+        
+        /* Buttons */
+        .btn {
+            border-radius: 4px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
         }
         
         .btn-primary {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            font-weight: 500;
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+            font-weight: bold;
         }
         
         .btn-primary:hover {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-        
-        .card {
-            box-shadow: var(--card-shadow);
-            border: none;
-            border-radius: 12px;
-        }
-        
-        .form-control:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
-        }
-        
-        .dashboard-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: var(--card-shadow);
-            margin-bottom: 1.5rem;
-        }
-        
-        .stat-card {
-            text-align: center;
-            padding: 2rem 1rem;
-        }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-        
-        .stat-label {
-            color: #6b7280;
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .navbar {
-            background: white !important;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .footer {
-            background-color: #f8f9fa;
-            padding: 3rem 0 2rem 0;
-            margin-top: 4rem;
-            border-top: 1px solid #e5e7eb;
-        }
-        
-        main {
-            min-height: calc(100vh - 200px);
-        }
-        
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .auth-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
         }
         
         .btn-outline-primary {
-            color: var(--primary-color);
-            border-color: var(--primary-color);
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            background: transparent;
         }
         
         .btn-outline-primary:hover {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
         }
         
-        .alert {
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border-color: var(--border-subtle);
+            color: var(--text-dimmed);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border-subtle);
+            color: var(--text-bone);
+        }
+        
+        /* Cards and containers */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
             border-radius: 8px;
-            border: none;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            color: var(--text-dimmed);
         }
         
+        .card-header {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-bone);
+            font-weight: 600;
+        }
+        
+        .card-body {
+            color: var(--text-dimmed);
+        }
+        
+        .card-title {
+            color: var(--text-bone);
+        }
+        
+        /* Forms */
+        .form-control {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-dimmed);
+            font-family: inherit;
+        }
+        
+        .form-control:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+            color: var(--text-bone);
+        }
+        
+        .form-control::placeholder {
+            color: var(--text-subtle);
+        }
+        
+        .form-label {
+            color: var(--text-bone);
+            font-weight: 500;
+        }
+        
+        .form-text {
+            color: var(--text-subtle);
+        }
+        
+        /* Tables */
         .table {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: var(--card-shadow);
+            color: var(--text-dimmed);
+            background: var(--bg-secondary);
         }
         
+        .table th {
+            color: var(--text-bone);
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--bg-tertiary);
+        }
+        
+        .table td {
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        
+        .table-hover tbody tr:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-bone);
+        }
+        
+        /* Links */
+        a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        a:hover {
+            color: var(--accent-hover);
+            text-shadow: 0 0 8px rgba(78, 205, 196, 0.4);
+        }
+        
+        /* Alerts */
+        .alert {
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+        }
+        
+        .alert-info {
+            background: rgba(78, 205, 196, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--text-bone);
+        }
+        
+        .alert-success {
+            background: rgba(46, 213, 115, 0.1);
+            border-color: #2ed573;
+            color: var(--text-bone);
+        }
+        
+        .alert-warning {
+            background: rgba(255, 183, 77, 0.1);
+            border-color: #ffb74d;
+            color: var(--text-bone);
+        }
+        
+        .alert-danger {
+            background: rgba(255, 107, 107, 0.1);
+            border-color: #ff6b6b;
+            color: var(--text-bone);
+        }
+        
+        /* Dropdowns */
+        .dropdown-menu {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+        
+        .dropdown-item {
+            color: var(--text-dimmed);
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-bone);
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-subtle);
+            margin-top: 4rem;
+        }
+        
+        /* Auth pages */
+        .auth-container {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+        }
+        
+        .auth-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 8px 24px var(--shadow-color);
+        }
+        
+        /* Utility classes */
+        .text-bone {
+            color: var(--text-bone) !important;
+        }
+        
+        .text-subtle {
+            color: var(--text-subtle) !important;
+        }
+        
+        .text-cyan {
+            color: var(--accent-cyan) !important;
+        }
+        
+        /* Code elements */
+        code {
+            background: var(--bg-tertiary);
+            color: var(--accent-cyan);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Roboto', 'Menlo', 'Monaco', monospace;
+        }
+        
+        /* Badges */
+        .badge {
+            font-family: inherit;
+        }
+        
+        .badge.bg-primary {
+            background: var(--accent-cyan) !important;
+            color: var(--bg-primary);
+        }
+        
+        .badge.bg-secondary {
+            background: var(--bg-tertiary) !important;
+            color: var(--text-dimmed);
+        }
+        
+        .badge.bg-success {
+            background: #2ed573 !important;
+            color: var(--bg-primary);
+        }
+        
+        /* HTMX indicators */
         .htmx-indicator {
             opacity: 0;
             transition: opacity 500ms ease-in;
@@ -148,41 +434,87 @@
         .htmx-request.htmx-indicator {
             opacity: 1;
         }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+        }
     </style>
     
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <!-- Enhanced animated background motes -->
+    <div class="background-motes">
+        <div class="mote" style="left: 5%; animation-delay: 0s;"></div>
+        <div class="mote" style="left: 12%; animation-delay: 2s;"></div>
+        <div class="mote" style="left: 18%; animation-delay: 4s;"></div>
+        <div class="mote" style="left: 25%; animation-delay: 6s;"></div>
+        <div class="mote" style="left: 32%; animation-delay: 8s;"></div>
+        <div class="mote" style="left: 38%; animation-delay: 10s;"></div>
+        <div class="mote" style="left: 45%; animation-delay: 12s;"></div>
+        <div class="mote" style="left: 52%; animation-delay: 14s;"></div>
+        <div class="mote" style="left: 58%; animation-delay: 16s;"></div>
+        <div class="mote" style="left: 65%; animation-delay: 18s;"></div>
+        <div class="mote" style="left: 72%; animation-delay: 20s;"></div>
+        <div class="mote" style="left: 78%; animation-delay: 22s;"></div>
+        <div class="mote" style="left: 85%; animation-delay: 24s;"></div>
+        <div class="mote" style="left: 92%; animation-delay: 26s;"></div>
+        <div class="mote" style="left: 8%; animation-delay: 28s;"></div>
+        <div class="mote" style="left: 15%; animation-delay: 30s;"></div>
+        <div class="mote" style="left: 22%; animation-delay: 32s;"></div>
+        <div class="mote" style="left: 28%; animation-delay: 34s;"></div>
+        <div class="mote" style="left: 35%; animation-delay: 36s;"></div>
+        <div class="mote" style="left: 42%; animation-delay: 38s;"></div>
+        <div class="mote" style="left: 48%; animation-delay: 40s;"></div>
+        <div class="mote" style="left: 55%; animation-delay: 42s;"></div>
+        <div class="mote" style="left: 62%; animation-delay: 44s;"></div>
+        <div class="mote" style="left: 68%; animation-delay: 46s;"></div>
+        <div class="mote" style="left: 75%; animation-delay: 48s;"></div>
+        <div class="mote" style="left: 82%; animation-delay: 50s;"></div>
+        <div class="mote" style="left: 88%; animation-delay: 52s;"></div>
+        <div class="mote" style="left: 95%; animation-delay: 54s;"></div>
+    </div>
+
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light">
+    <nav class="navbar navbar-expand-xl"> <!-- Changed from navbar-expand-lg to navbar-expand-xl for later collapse -->
         <div class="container">
             <a class="navbar-brand" href="/">
+                <!-- Option 1: Keep the Bootstrap icon -->
                 <i class="bi bi-archive"></i>
-                <strong>Citis</strong>
+                <!-- Option 2: Use CSS pixel art (uncomment to try) -->
+                <!-- <span class="pixel-logo"></span> -->
+                <strong>cit.is</strong>
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border-color: var(--border-subtle);">
+                <span class="navbar-toggler-icon" style="background-image: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 30 30%27%3e%3cpath stroke=%27%23E8DDD0%27 stroke-linecap=%27round%27 stroke-miterlimit=%2710%27 stroke-width=%272%27 d=%27M4 7h22M4 15h22M4 23h22%27/%3e%3c/svg%3e');"></span>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">Home</a>
+                        <a class="nav-link" href="/">HOME</a>
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:dashboard' %}">Dashboard</a>
+                        <a class="nav-link" href="{% url 'web:dashboard' %}">DASHBOARD</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:create_archive' %}">Create Archive</a>
+                        <a class="nav-link" href="{% url 'web:create_archive' %}">CREATE ARCHIVE</a>
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:pricing' %}">Pricing</a>
+                        <a class="nav-link" href="{% url 'web:pricing' %}">PRICING</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:about' %}">About</a>
+                        <a class="nav-link" href="{% url 'web:about' %}">ABOUT</a>
                     </li>
                 </ul>
                 
@@ -194,19 +526,19 @@
                             {{ user.get_full_display_name|default:user.email }}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><h6 class="dropdown-header">Account</h6></li>
+                            <li><h6 class="dropdown-header text-bone">Account</h6></li>
                             <li><a class="dropdown-item" href="/accounts/email/"><i class="bi bi-envelope me-2"></i>Email Settings</a></li>
                             <li><a class="dropdown-item" href="/accounts/password/change/"><i class="bi bi-lock me-2"></i>Change Password</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li><hr class="dropdown-divider" style="border-color: var(--border-subtle);"></li>
                             <li><a class="dropdown-item" href="/accounts/logout/"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="/accounts/login/">Login</a>
+                        <a class="nav-link" href="/accounts/login/">LOGIN</a>
                     </li>
                     <li class="nav-item">
-                        <a class="btn btn-primary ms-2" href="/accounts/signup/">Sign Up</a>
+                        <a class="btn btn-primary ms-2" href="/accounts/signup/">SIGN UP</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -221,7 +553,7 @@
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                 {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" style="filter: invert(1);"></button>
             </div>
             {% endfor %}
         </div>
@@ -236,42 +568,42 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-archive text-primary me-2"></i>
-                        <span class="fw-bold">Citis</span>
+                        <i class="bi bi-archive text-cyan me-2"></i>
+                        <span class="fw-bold text-bone font-mono">cit.is</span>
                     </div>
-                    <p class="text-muted mb-0">
+                    <p class="text-subtle mb-0">
                         Permanent web archiving and citation for reliable research and documentation.
                     </p>
                 </div>
                 <div class="col-md-6">
                     <div class="row">
                         <div class="col-6">
-                            <h6 class="fw-bold mb-3">Product</h6>
+                            <h6 class="fw-bold mb-3 text-bone">Product</h6>
                             <ul class="list-unstyled">
-                                <li><a href="{% url 'web:pricing' %}" class="text-muted text-decoration-none">Pricing</a></li>
-                                <li><a href="/api/docs/" class="text-muted text-decoration-none">API Docs</a></li>
-                                <li><a href="{% url 'web:about' %}" class="text-muted text-decoration-none">About</a></li>
+                                <li><a href="{% url 'web:pricing' %}" class="text-subtle text-decoration-none">Pricing</a></li>
+                                <li><a href="/api/docs/" class="text-subtle text-decoration-none">API Docs</a></li>
+                                <li><a href="{% url 'web:about' %}" class="text-subtle text-decoration-none">About</a></li>
                             </ul>
                         </div>
                         <div class="col-6">
-                            <h6 class="fw-bold mb-3">Support</h6>
+                            <h6 class="fw-bold mb-3 text-bone">Support</h6>
                             <ul class="list-unstyled">
-                                <li><a href="/admin/" class="text-muted text-decoration-none">Admin</a></li>
-                                <li><a href="mailto:support@citis.app" class="text-muted text-decoration-none">Contact</a></li>
+                                <li><a href="/admin/" class="text-subtle text-decoration-none">Admin</a></li>
+                                <li><a href="mailto:support@cit.is" class="text-subtle text-decoration-none">Contact</a></li>
                             </ul>
                         </div>
                     </div>
                 </div>
             </div>
-            <hr class="my-4">
+            <hr class="my-4" style="border-color: var(--border-subtle);">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <p class="text-muted mb-0">
-                        &copy; {% now "Y" %} Citis. All rights reserved.
+                    <p class="text-subtle mb-0">
+                        &copy; {% now "Y" %} cit.is. All rights reserved.
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <span class="text-muted">Built with Django & Bootstrap</span>
+                    <span class="text-subtle">Clarity through Atmosphere</span>
                 </div>
             </div>
         </div>

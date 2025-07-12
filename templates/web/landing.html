@@ -1,22 +1,30 @@
 {% extends "base.html" %}
 
-{% block title %}Citis - Permanent Web Archiving{% endblock %}
+{% block title %}cit.is - Permanent Web Archiving{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
 <section class="hero-section py-5">
     <div class="container">
-        <div class="row align-items-center min-vh-100 py-5">
-            <div class="col-lg-6">
-                <h1 class="display-4 fw-bold mb-4">
+        <div class="row justify-content-center min-vh-100 py-5">
+            <div class="col-lg-8 col-xl-6 text-center">
+                <!-- Pixel Art Logo - Centered on page -->
+                <div class="mb-5">
+                    <img src="/static/citis-pixelart.png" 
+                         alt="cit.is Logo" 
+                         class="hero-logo"
+                         style="image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; width: auto; height: 96px;">
+                </div>
+                
+                <h1 class="hero-title mb-4">
                     Permanent Web Archiving
-                    <span class="text-primary">for Everyone</span>
+                    <span class="text-cyan">for Everyone</span>
                 </h1>
-                <p class="lead mb-4">
-                    Create permanent, citable archives of web content that will never disappear. 
+                <p class="lead mb-4 hero-subtitle">
+                    Create permanent, citable archives of web content that will never disappear. <br>
                     Perfect for researchers, journalists, and anyone who needs reliable citations.
                 </p>
-                <div class="d-flex gap-3 mb-4">
+                <div class="d-flex gap-3 mb-4 justify-content-center">
                     <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg">
                         Get Started Free
                     </a>
@@ -24,16 +32,16 @@
                         Learn More
                     </a>
                 </div>
-                <div class="d-flex align-items-center text-muted">
-                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <div class="d-flex align-items-center text-subtle justify-content-center">
+                    <i class="bi bi-check-circle-fill text-cyan me-2"></i>
                     <span>Free forever plan available</span>
                 </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="text-center">
-                    <div class="card shadow-lg border-0">
+                
+                <!-- Demo Form -->
+                <div class="mt-5">
+                    <div class="card shadow-lg border-0 demo-card mx-auto" style="max-width: 500px;">
                         <div class="card-body p-4">
-                            <h5 class="card-title mb-3">Try it now</h5>
+                            <h5 class="card-title mb-3 text-bone">Try it now</h5>
                             <form method="post" action="{% url 'web:create_archive' %}" class="demo-form">
                                 {% csrf_token %}
                                 <div class="input-group input-group-lg">
@@ -46,7 +54,7 @@
                                     </button>
                                 </div>
                             </form>
-                            <small class="text-muted mt-2 d-block">
+                            <small class="text-subtle mt-2 d-block">
                                 No signup required for first archive
                             </small>
                         </div>
@@ -58,64 +66,64 @@
 </section>
 
 <!-- Features Section -->
-<section class="features-section py-5 bg-light">
+<section class="features-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Why Choose Citis?</h2>
-                <p class="lead text-muted">
+                <h2 class="display-5 fw-bold mb-3 text-bone">Why Choose cit.is?</h2>
+                <p class="lead text-subtle">
                     Professional web archiving with the reliability and features you need
                 </p>
             </div>
         </div>
         <div class="row g-4">
             <div class="col-md-6 col-lg-3">
-                <div class="feature-card card h-100 border-0 shadow-sm">
+                <div class="feature-card card h-100 border-0">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon text-primary mb-3">
+                        <div class="feature-icon text-cyan mb-3">
                             <i class="bi bi-shield-check" style="font-size: 3rem;"></i>
                         </div>
-                        <h5 class="card-title">Permanent Storage</h5>
-                        <p class="card-text text-muted">
+                        <h5 class="card-title text-bone">Permanent Storage</h5>
+                        <p class="card-text text-subtle">
                             Your archives are stored permanently with multiple redundancy layers
                         </p>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-3">
-                <div class="feature-card card h-100 border-0 shadow-sm">
+                <div class="feature-card card h-100 border-0">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon text-primary mb-3">
+                        <div class="feature-icon text-cyan mb-3">
                             <i class="bi bi-lightning-charge" style="font-size: 3rem;"></i>
                         </div>
-                        <h5 class="card-title">Fast Archiving</h5>
-                        <p class="card-text text-muted">
+                        <h5 class="card-title text-bone">Fast Archiving</h5>
+                        <p class="card-text text-subtle">
                             Complete page archives in seconds, including media and styles
                         </p>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-3">
-                <div class="feature-card card h-100 border-0 shadow-sm">
+                <div class="feature-card card h-100 border-0">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon text-primary mb-3">
+                        <div class="feature-icon text-cyan mb-3">
                             <i class="bi bi-code-slash" style="font-size: 3rem;"></i>
                         </div>
-                        <h5 class="card-title">Developer API</h5>
-                        <p class="card-text text-muted">
+                        <h5 class="card-title text-bone">Developer API</h5>
+                        <p class="card-text text-subtle">
                             Integrate archiving into your workflow with our RESTful API
                         </p>
                     </div>
                 </div>
             </div>
             <div class="col-md-6 col-lg-3">
-                <div class="feature-card card h-100 border-0 shadow-sm">
+                <div class="feature-card card h-100 border-0">
                     <div class="card-body text-center p-4">
-                        <div class="feature-icon text-primary mb-3">
+                        <div class="feature-icon text-cyan mb-3">
                             <i class="bi bi-graph-up" style="font-size: 3rem;"></i>
                         </div>
-                        <h5 class="card-title">Analytics</h5>
-                        <p class="card-text text-muted">
+                        <h5 class="card-title text-bone">Analytics</h5>
+                        <p class="card-text text-subtle">
                             Track views, citations, and usage of your archived content
                         </p>
                     </div>
@@ -130,35 +138,35 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">Trusted by Professionals</h2>
-                <p class="lead text-muted">
-                    Join thousands of researchers, journalists, and organizations using Citis
+                <h2 class="display-5 fw-bold mb-3 text-bone">Trusted by Professionals</h2>
+                <p class="lead text-subtle">
+                    Join thousands of researchers, journalists, and organizations using cit.is
                 </p>
             </div>
         </div>
         <div class="row g-4">
             <div class="col-md-3">
                 <div class="text-center">
-                    <div class="stat-number display-4 fw-bold text-primary">{{ site_stats.total_archives|default:"10K+" }}</div>
-                    <div class="stat-label text-muted">Archives Created</div>
+                    <div class="stat-number display-4 fw-bold text-cyan">{{ site_stats.total_archives|default:"10K+" }}</div>
+                    <div class="stat-label text-subtle">Archives Created</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="text-center">
-                    <div class="stat-number display-4 fw-bold text-primary">{{ site_stats.total_users|default:"500+" }}</div>
-                    <div class="stat-label text-muted">Active Users</div>
+                    <div class="stat-number display-4 fw-bold text-cyan">{{ site_stats.total_users|default:"500+" }}</div>
+                    <div class="stat-label text-subtle">Active Users</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="text-center">
-                    <div class="stat-number display-4 fw-bold text-primary">{{ site_stats.uptime|default:"99.9%" }}</div>
-                    <div class="stat-label text-muted">Uptime</div>
+                    <div class="stat-number display-4 fw-bold text-cyan">{{ site_stats.uptime|default:"99.9%" }}</div>
+                    <div class="stat-label text-subtle">Uptime</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="text-center">
-                    <div class="stat-number display-4 fw-bold text-primary">{{ site_stats.countries|default:"50+" }}</div>
-                    <div class="stat-label text-muted">Countries</div>
+                    <div class="stat-number display-4 fw-bold text-cyan">{{ site_stats.countries|default:"50+" }}</div>
+                    <div class="stat-label text-subtle">Countries</div>
                 </div>
             </div>
         </div>
@@ -166,12 +174,12 @@
 </section>
 
 <!-- How It Works Section -->
-<section class="how-it-works-section py-5 bg-light">
+<section class="how-it-works-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center mb-5">
-                <h2 class="display-5 fw-bold mb-3">How It Works</h2>
-                <p class="lead text-muted">
+                <h2 class="display-5 fw-bold mb-3 text-bone">How It Works</h2>
+                <p class="lead text-subtle">
                     Simple, reliable web archiving in three easy steps
                 </p>
             </div>
@@ -180,11 +188,11 @@
             <div class="col-md-4">
                 <div class="text-center">
                     <div class="step-number mx-auto mb-3 d-flex align-items-center justify-content-center 
-                                bg-primary text-white rounded-circle" style="width: 60px; height: 60px;">
+                                bg-cyan text-dark rounded-circle" style="width: 60px; height: 60px; background-color: var(--accent-cyan); color: var(--bg-primary);">
                         <span class="fw-bold">1</span>
                     </div>
-                    <h5 class="mb-3">Submit URL</h5>
-                    <p class="text-muted">
+                    <h5 class="mb-3 text-bone">Submit URL</h5>
+                    <p class="text-subtle">
                         Enter the URL you want to archive. We support all major websites and content types.
                     </p>
                 </div>
@@ -192,11 +200,11 @@
             <div class="col-md-4">
                 <div class="text-center">
                     <div class="step-number mx-auto mb-3 d-flex align-items-center justify-content-center 
-                                bg-primary text-white rounded-circle" style="width: 60px; height: 60px;">
+                                bg-cyan text-dark rounded-circle" style="width: 60px; height: 60px; background-color: var(--accent-cyan); color: var(--bg-primary);">
                         <span class="fw-bold">2</span>
                     </div>
-                    <h5 class="mb-3">We Archive</h5>
-                    <p class="text-muted">
+                    <h5 class="mb-3 text-bone">We Archive</h5>
+                    <p class="text-subtle">
                         Our system captures the complete page including images, CSS, and JavaScript.
                     </p>
                 </div>
@@ -204,11 +212,11 @@
             <div class="col-md-4">
                 <div class="text-center">
                     <div class="step-number mx-auto mb-3 d-flex align-items-center justify-content-center 
-                                bg-primary text-white rounded-circle" style="width: 60px; height: 60px;">
+                                bg-cyan text-dark rounded-circle" style="width: 60px; height: 60px; background-color: var(--accent-cyan); color: var(--bg-primary);">
                         <span class="fw-bold">3</span>
                     </div>
-                    <h5 class="mb-3">Get Permanent Link</h5>
-                    <p class="text-muted">
+                    <h5 class="mb-3 text-bone">Get Permanent Link</h5>
+                    <p class="text-subtle">
                         Receive a permanent, citable link that will never break or disappear.
                     </p>
                 </div>
@@ -218,59 +226,27 @@
 </section>
 
 <!-- CTA Section -->
-<section class="cta-section py-5 bg-primary text-white">
+<section class="cta-section py-5">
     <div class="container">
         <div class="row">
             <div class="col-lg-8 mx-auto text-center">
-                <h2 class="display-5 fw-bold mb-4">Ready to Start Archiving?</h2>
-                <p class="lead mb-4">
-                    Join thousands of professionals who trust Citis for permanent web archiving
+                <h2 class="display-5 fw-bold mb-4 text-bone">Ready to Start Archiving?</h2>
+                <p class="lead mb-4 text-dimmed">
+                    Join thousands of professionals who trust cit.is for permanent web archiving
                 </p>
                 <div class="d-flex gap-3 justify-content-center">
-                    <a href="{% url 'account_signup' %}" class="btn btn-light btn-lg">
+                    <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg">
                         Start Free Account
                     </a>
-                    <a href="{% url 'web:pricing' %}" class="btn btn-outline-light btn-lg">
+                    <a href="{% url 'web:pricing' %}" class="btn btn-outline-primary btn-lg cta-outline-btn">
                         View Pricing
                     </a>
                 </div>
                 <p class="mt-3 mb-0">
-                    <small>No credit card required • Free forever plan available</small>
+                    <small class="text-subtle">No credit card required • Free forever plan available</small>
                 </p>
             </div>
         </div>
     </div>
 </section>
-
-<!-- Custom Styles -->
-<style>
-.hero-section {
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-}
-
-.feature-card {
-    transition: transform 0.3s ease;
-}
-
-.feature-card:hover {
-    transform: translateY(-5px);
-}
-
-.demo-form {
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-.stats-section {
-    background: white;
-}
-
-.step-number {
-    font-size: 1.5rem;
-}
-
-.cta-section {
-    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-}
-</style>
 {% endblock %} 

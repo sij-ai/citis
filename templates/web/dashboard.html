@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Citis{% endblock %}
+{% block title %}Dashboard - cit.is{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -8,10 +8,10 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h1>Welcome back, {{ user.get_display_name|default:user.email }}</h1>
-                    <p class="text-muted">
+                    <h1 class="text-bone">Welcome back, {{ user.get_display_name|default:user.email }}</h1>
+                    <p class="text-subtle">
                         {% if user.is_premium %}
-                        <i class="bi bi-star-fill text-warning me-1"></i>
+                        <i class="bi bi-star-fill text-cyan me-1"></i>
                         Premium Account
                         {% else %}
                         Free Account
@@ -69,7 +69,7 @@
         <div class="col-lg-8">
             <div class="dashboard-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="h5 mb-0">Recent Archives</h3>
+                    <h3 class="h5 mb-0 text-bone">Recent Archives</h3>
                     <a href="{% url 'web:shortcode_list' %}" class="btn btn-outline-primary btn-sm">
                         View All
                     </a>
@@ -80,11 +80,11 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>URL</th>
-                                <th>Shortcode</th>
-                                <th>Created</th>
-                                <th>Views</th>
-                                <th>Actions</th>
+                                <th class="text-bone">URL</th>
+                                <th class="text-bone">Shortcode</th>
+                                <th class="text-bone">Created</th>
+                                <th class="text-bone">Views</th>
+                                <th class="text-bone">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -101,7 +101,7 @@
                                     <code>{{ shortcode.shortcode }}</code>
                                 </td>
                                 <td>
-                                    <small class="text-muted">
+                                    <small class="text-subtle">
                                         {{ shortcode.created_at|date:"M d, Y" }}
                                     </small>
                                 </td>
@@ -127,9 +127,9 @@
                 </div>
                 {% else %}
                 <div class="text-center py-5">
-                    <i class="bi bi-archive text-muted" style="font-size: 4rem;"></i>
-                    <h4 class="mt-3">No archives yet</h4>
-                    <p class="text-muted">Create your first archive to get started!</p>
+                    <i class="bi bi-archive text-subtle" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-bone">No archives yet</h4>
+                    <p class="text-subtle">Create your first archive to get started!</p>
                     <a href="{% url 'web:create_archive' %}" class="btn btn-primary">
                         <i class="bi bi-plus-circle me-2"></i>
                         Create First Archive
@@ -143,7 +143,7 @@
         <div class="col-lg-4">
             <div class="dashboard-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="h5 mb-0">API Keys</h3>
+                    <h3 class="h5 mb-0 text-bone">API Keys</h3>
                     <button class="btn btn-outline-primary btn-sm" 
                             hx-post="{% url 'web:create_api_key' %}"
                             hx-target="#api-keys-list"
@@ -154,13 +154,13 @@
                 
                 <div id="api-keys-list">
                     {% for api_key in user_api_keys %}
-                    <div class="card mb-2">
+                    <div class="card mb-2 api-key-card">
                         <div class="card-body p-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <h6 class="card-title mb-1">{{ api_key.name|default:"API Key" }}</h6>
+                                    <h6 class="card-title mb-1 text-bone">{{ api_key.name|default:"API Key" }}</h6>
                                     <code class="small">{{ api_key.key|slice:":8" }}...</code>
-                                    <div class="small text-muted mt-1">
+                                    <div class="small text-subtle mt-1">
                                         Usage: {{ api_key.usage_count }}/{{ api_key.usage_limit|default:"∞" }}
                                     </div>
                                 </div>
@@ -192,15 +192,15 @@
                     </div>
                     {% empty %}
                     <div class="text-center py-3">
-                        <i class="bi bi-key text-muted" style="font-size: 2rem;"></i>
-                        <p class="text-muted mt-2 mb-0">No API keys yet</p>
-                        <small class="text-muted">Create one to access the API</small>
+                        <i class="bi bi-key text-subtle" style="font-size: 2rem;"></i>
+                        <p class="text-subtle mt-2 mb-0">No API keys yet</p>
+                        <small class="text-subtle">Create one to access the API</small>
                     </div>
                     {% endfor %}
                 </div>
                 
-                <div class="mt-3 pt-3 border-top">
-                    <small class="text-muted">
+                <div class="mt-3 pt-3 border-top" style="border-color: var(--border-subtle) !important;">
+                    <small class="text-subtle">
                         <i class="bi bi-info-circle me-1"></i>
                         Visit our <a href="/api/docs/">API documentation</a> for integration help.
                     </small>
@@ -214,7 +214,7 @@
     <div class="row mt-4">
         <div class="col-12">
             <div class="dashboard-card">
-                <h3 class="h5 mb-3">Archive Activity</h3>
+                <h3 class="h5 mb-3 text-bone">Archive Activity</h3>
                 <div id="activity-chart" style="height: 300px;">
                     <!-- Chart will be rendered here with Chart.js -->
                 </div>
@@ -228,9 +228,9 @@
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="copy-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="toast-header">
-            <i class="bi bi-clipboard-check text-success me-2"></i>
-            <strong class="me-auto">Copied!</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            <i class="bi bi-clipboard-check text-cyan me-2"></i>
+            <strong class="me-auto text-bone">Copied!</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" style="filter: invert(1);"></button>
         </div>
         <div class="toast-body">
             Text copied to clipboard successfully.
@@ -298,8 +298,8 @@ const activityChart = new Chart(ctx, {
         datasets: [{
             label: 'Archives Created',
             data: chartData.data,
-            borderColor: 'rgb(37, 99, 235)',
-            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            borderColor: 'var(--accent-cyan)',
+            backgroundColor: 'rgba(78, 205, 196, 0.1)',
             tension: 0.1
         }]
     },
@@ -308,7 +308,28 @@ const activityChart = new Chart(ctx, {
         maintainAspectRatio: false,
         scales: {
             y: {
-                beginAtZero: true
+                beginAtZero: true,
+                ticks: {
+                    color: 'var(--text-subtle)'
+                },
+                grid: {
+                    color: 'var(--border-subtle)'
+                }
+            },
+            x: {
+                ticks: {
+                    color: 'var(--text-subtle)'
+                },
+                grid: {
+                    color: 'var(--border-subtle)'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: 'var(--text-bone)'
+                }
             }
         }
     }
