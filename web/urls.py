@@ -22,4 +22,7 @@ urlpatterns = [
     
     # Utility endpoints
     path('highlight/', views.highlight_text, name='highlight_text'),
+    
+    # Shortcode serving - MUST be last to avoid conflicts
+    path('<str:shortcode>', views.shortcode_redirect, name='shortcode_redirect'),
 ] 

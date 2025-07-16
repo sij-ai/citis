@@ -22,7 +22,7 @@ from core.permissions import (
     IsOwnerOrMasterKey, IsPublicOrAuthenticated
 )
 from core.services import get_archive_managers
-from core.utils import generate_shortcode, get_client_ip, clean_text_fragment, parse_ts_str
+from core.utils import generate_shortcode, get_client_ip, clean_text_fragment, parse_ts_str, generate_api_key, validate_shortcode, generate_unique_shortcode
 from .models import Shortcode, Visit, ApiKey
 from .serializers import (
     AddRequestSerializer, AddResponseSerializer, ShortcodeSerializer,
@@ -48,35 +48,42 @@ class AddArchiveView(APIView):
         custom_shortcode = serializer.validated_data.get('shortcode')
         text_fragment = serializer.validated_data.get('text_fragment', '')
 
+        # Get user from API key for shortcode length
+        api_key = getattr(request, 'api_key', None)
+        creator_user = api_key.user if api_key else None
+        
+        # Get user's allowed shortcode length
+        if creator_user:
+            shortcode_length = creator_user.shortcode_length
+        else:
+            shortcode_length = settings.SHORTCODE_LENGTH  # fallback for anonymous users
+
         # Generate shortcode if not provided
         if custom_shortcode:
-            if Shortcode.objects.filter(shortcode=custom_shortcode).exists():
+            # Validate custom shortcode with user's length requirement
+            is_valid, error_message = validate_shortcode(custom_shortcode, shortcode_length)
+            if not is_valid:
                 return Response(
-                    {"error": f"Shortcode '{custom_shortcode}' already exists."},
-                    status=status.HTTP_409_CONFLICT
+                    {"error": error_message},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
             shortcode = custom_shortcode
         else:
-            # Generate unique shortcode
-            for _ in range(10): # Max 10 attempts
-                shortcode = generate_shortcode(settings.SHORTCODE_LENGTH)
-                if not Shortcode.objects.filter(shortcode=shortcode).exists():
-                    break
-            else:
+            # Generate unique shortcode using user's length
+            shortcode = generate_unique_shortcode(shortcode_length)
+            if not shortcode:
                 return Response(
                     {"error": "Could not generate a unique shortcode. Please try again."},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-        # Get client IP and API key info from request attributes set by permission class
+        # Get client IP from request
         client_ip = get_client_ip(request)
-        api_key = getattr(request, 'api_key', None)
-        creator_user = api_key.user if api_key else getattr(request, 'user', None)
 
         # Determine archive method based on settings and API key preferences
         archive_method = settings.ARCHIVE_MODE
-        if hasattr(creator_user, 'settings') and creator_user.settings.default_archive_method:
-            archive_method = creator_user.settings.default_archive_method
+        if hasattr(creator_user, 'default_archive_method'):
+            archive_method = creator_user.default_archive_method
 
         # Perform archiving
         try:
@@ -119,7 +126,7 @@ class AddArchiveView(APIView):
             creator_api_key=api_key,
             creator_ip=client_ip,
             archive_path=archive_result.get("archive_path", ""),
-            archive_timestamp=archive_result.get("timestamp", str(int(timestamp.timestamp())))
+            is_archived=True if archive_result.get("archive_path") else False
         )
 
         # Format response

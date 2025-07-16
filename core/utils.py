@@ -9,8 +9,101 @@ import urllib.parse
 import time
 import random
 import string
+import re
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Set
+
+
+# Base58 character set (excludes I, l, 0, O for clarity)
+BASE58_CHARSET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+# Reserved words that cannot be used as shortcodes
+RESERVED_SHORTCODES = {
+    # Web interface URLs
+    'pricing', 'about', 'dashboard', 'shortcodes', 'create',
+    # Authentication URLs
+    'accounts', 'login', 'logout', 'signup', 'password',
+    # API URLs (without underscores)
+    'api', 'docs', 'schema', 'add', 'analytics', 'keys', 'cache', 'health', 'info',
+    # Admin URLs
+    'admin', 'staff',
+    # Static/media URLs
+    'static', 'media', 'favicon',
+    # Common system words
+    'www', 'mail', 'ftp', 'blog', 'shop', 'store', 'help', 'support',
+    'contact', 'info', 'news', 'legal', 'privacy', 'terms', 'cookies',
+    # Technical endpoints
+    'health', 'status', 'robots', 'sitemap', 'manifest',
+    # Potential future features
+    'analytics', 'stats', 'export', 'import', 'backup', 'restore',
+}
+
+
+def is_valid_base58(text: str) -> bool:
+    """Check if text contains only Base58 characters."""
+    if not text:
+        return False
+    return all(c in BASE58_CHARSET for c in text)
+
+
+def is_reserved_shortcode(shortcode: str) -> bool:
+    """Check if shortcode is in the reserved words list."""
+    return shortcode.lower() in RESERVED_SHORTCODES
+
+
+def validate_shortcode_format(shortcode: str, required_length: int) -> tuple[bool, str]:
+    """
+    Validate shortcode format against requirements.
+    
+    Returns (is_valid, error_message)
+    """
+    if not shortcode:
+        return False, "Shortcode cannot be empty"
+    
+    if len(shortcode) != required_length:
+        return False, f"Shortcode must be exactly {required_length} characters long"
+    
+    if not is_valid_base58(shortcode):
+        return False, "Shortcode contains invalid characters. Only alphanumeric characters allowed (excluding I, l, 0, O)"
+    
+    if is_reserved_shortcode(shortcode):
+        return False, f"'{shortcode}' is a reserved word and cannot be used as a shortcode"
+    
+    return True, ""
+
+
+def validate_shortcode_collision(shortcode: str) -> tuple[bool, str]:
+    """
+    Check if shortcode collides with existing shortcodes.
+    
+    Returns (is_available, error_message)
+    """
+    # Import here to avoid circular imports
+    from archive.models import Shortcode
+    
+    if Shortcode.objects.filter(shortcode=shortcode).exists():
+        return False, f"Shortcode '{shortcode}' is already taken"
+    
+    return True, ""
+
+
+def validate_shortcode(shortcode: str, required_length: int) -> tuple[bool, str]:
+    """
+    Complete shortcode validation including format and collision checks.
+    
+    Returns (is_valid, error_message)
+    """
+    # Check format first
+    is_valid_format, format_error = validate_shortcode_format(shortcode, required_length)
+    if not is_valid_format:
+        return False, format_error
+    
+    # Check for collisions
+    is_available, collision_error = validate_shortcode_collision(shortcode)
+    if not is_available:
+        return False, collision_error
+    
+    return True, ""
 
 
 def clean_text_fragment(text_fragment: str) -> str:
@@ -66,9 +159,25 @@ class TTLCache:
 
 
 def generate_shortcode(length: int) -> str:
-    """Generate a random Base-62 shortcode"""
-    charset = string.ascii_letters + string.digits  # a-z, A-Z, 0-9
-    return ''.join(random.choice(charset) for _ in range(length))
+    """Generate a random Base58 shortcode"""
+    return ''.join(random.choice(BASE58_CHARSET) for _ in range(length))
+
+
+def generate_unique_shortcode(length: int, max_attempts: int = 100) -> Optional[str]:
+    """
+    Generate a unique Base58 shortcode that doesn't collide with existing ones or reserved words.
+    
+    Returns None if unable to generate after max_attempts.
+    """
+    for _ in range(max_attempts):
+        candidate = generate_shortcode(length)
+        
+        # Check if it's valid (not reserved and not taken)
+        is_valid, _ = validate_shortcode(candidate, length)
+        if is_valid:
+            return candidate
+    
+    return None
 
 
 def generate_api_key() -> str:

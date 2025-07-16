@@ -1,10 +1,10 @@
-# Citis - Permanent Web Archiving SaaS
+# cit.is - Permanent Web Archiving SaaS
 
-Citis is a Django-based SaaS application for permanent web archiving and citation. It provides reliable, long-term preservation of web content with permanent shortcodes for academic and professional citation purposes.
+cit.is is a Django-based SaaS application for permanent web archiving and citation. It provides reliable, long-term preservation of web content with permanent shortcodes for academic and professional citation purposes.
 
 ## What It Does
 
-Citis competes with services like Perma.cc by offering:
+cit.is competes with services like Perma.cc by offering:
 
 - **Permanent Web Archiving**: Creates immutable snapshots of web pages using SingleFile technology
 - **Permanent Citations**: Generates short, permanent URLs for reliable referencing
@@ -25,9 +25,9 @@ citis/
 ├── analytics/              # Visit tracking and analytics
 ├── core/                   # Shared utilities and base functionality
 ├── web/                    # Web UI and dashboard templates
-├── manage.py              # Django management script
-├── requirements.txt       # Python dependencies
-└── README.md             # This file
+├── manage.py               # Django management script
+├── requirements.txt        # Python dependencies
+└── README.md               # This file
 ```
 
 ### Django Apps Overview
@@ -263,12 +263,12 @@ Data validation and serialization using Django REST Framework serializers:
 
 #### Views (`*/views.py`)
 API endpoint logic using DRF APIView classes:
-- **`AddArchiveView`**: POST endpoint for creating new archives (`/_add`)
-- **`ListShortcodesView`**: GET endpoint for listing shortcodes with filtering (`/_shortcodes`)
-- **`ShortcodeDetailView`**: GET/PUT/DELETE for individual shortcode management (`/_shortcodes/{shortcode}`)
-- **`AnalyticsView`**: GET endpoint for detailed visit analytics (`/_analytics/{shortcode}`)
-- **`APIKeyCreateView`**: POST endpoint for API key generation (`/_api/keys`)
-- **`APIKeyUpdateView`**: PUT endpoint for API key management (`/_api/keys/{key}`)
+- **`AddArchiveView`**: POST endpoint for creating new archives (`/add`)
+- **`ListShortcodesView`**: GET endpoint for listing shortcodes with filtering (`/shortcodes`)
+- **`ShortcodeDetailView`**: GET/PUT/DELETE for individual shortcode management (`/shortcodes/{shortcode}`)
+- **`AnalyticsView`**: GET endpoint for detailed visit analytics (`/analytics/{shortcode}`)
+- **`APIKeyCreateView`**: POST endpoint for API key generation (`/api/keys`)
+- **`APIKeyUpdateView`**: PUT endpoint for API key management (`/api/keys/{key}`)
 
 #### Permissions (`core/permissions.py`)
 Custom DRF permission classes for fine-grained access control:
@@ -280,10 +280,10 @@ Custom DRF permission classes for fine-grained access control:
 
 #### URL Routing (`*/urls.py`)
 RESTful URL patterns with consistent naming:
-- Archive management: `/_add`, `/_shortcodes`, `/_shortcodes/{shortcode}`
-- Analytics: `/_analytics/{shortcode}`
-- API keys: `/_api/keys`, `/_api/keys/{key}`
-- Admin: `/_health`, `/_info`, `/_cache/clear`
+- Archive management: `/add`, `/shortcodes`, `/shortcodes/{shortcode}`
+- Analytics: `/analytics/{shortcode}`
+- API keys: `/api/keys`, `/api/keys/{key}`
+- Admin: `/health`, `/info`, `/cache/clear`
 
 ### API Features
 
@@ -340,7 +340,7 @@ The DRF implementation maintains full compatibility with the original FastAPI en
 
 #### Create Archive
 ```bash
-curl -X POST "http://localhost:8000/api/v1/_add" \
+curl -X POST "http://localhost:8000/api/v1/add" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -d '{
@@ -351,13 +351,13 @@ curl -X POST "http://localhost:8000/api/v1/_add" \
 
 #### List Shortcodes
 ```bash
-curl "http://localhost:8000/api/v1/_shortcodes?limit=10&offset=0" \
+curl "http://localhost:8000/api/v1/shortcodes?limit=10&offset=0" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 #### Get Analytics
 ```bash
-curl "http://localhost:8000/api/v1/_analytics/abc123" \
+curl "http://localhost:8000/api/v1/analytics/abc123" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -455,7 +455,7 @@ The application uses a custom user model (`accounts.CustomUser`) with additional
 - **first_name** / **last_name**: Optional personal information
 - **is_active** / **is_staff** / **is_superuser**: Standard Django permissions
 
-#### Citis-Specific Fields
+#### cit.is-Specific Fields
 - **default_archive_method**: User's preferred archiving method
 - **is_premium**: Premium subscription status
 - **monthly_shortcode_limit**: Monthly usage limit for shortcode creation
@@ -513,7 +513,7 @@ Planned authentication features include:
 
 ## Admin Interface
 
-Citis includes a comprehensive Django admin interface for system administration and data management. The admin panel provides powerful tools for managing all aspects of the application.
+cit.is includes a comprehensive Django admin interface for system administration and data management. The admin panel provides powerful tools for managing all aspects of the application.
 
 ### Accessing the Admin Interface
 

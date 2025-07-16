@@ -168,7 +168,7 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = 'tailwind'
 CRISPY_TEMPLATE_PACK = 'tailwind'
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Citis Archive API',
+    'TITLE': 'cit.is Archive API',
     'DESCRIPTION': 'API for permanent web archiving and citation management',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
@@ -276,6 +276,7 @@ LOGGING = {
 # Server Configuration
 SERVER_BASE_URL = os.getenv('SERVER_BASE_URL', 'http://localhost:8000')
 SERVER_URL_PREFIX = os.getenv('SERVER_URL_PREFIX', '')
+SERVER_REQUIRE_API_KEY = os.getenv('SERVER_REQUIRE_API_KEY', 'True').lower() in ['true', '1', 'yes']
 MASTER_API_KEY = os.getenv('MASTER_API_KEY')
 
 # Archive Configuration

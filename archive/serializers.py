@@ -20,9 +20,26 @@ class AddRequestSerializer(serializers.Serializer):
     text_fragment = serializers.CharField(max_length=1000, required=False, allow_blank=True)
 
     def validate_shortcode(self, value):
-        """Validate that shortcode is unique if provided"""
-        if value and Shortcode.objects.filter(shortcode=value).exists():
+        """Validate that shortcode meets all requirements"""
+        if not value:
+            return value  # Empty/None is fine - will be auto-generated
+        
+        # We need the request context to get the user's shortcode length
+        # For now, we'll validate basic format and let the view handle user-specific validation
+        from core.utils import is_valid_base58, is_reserved_shortcode
+        
+        if not is_valid_base58(value):
+            raise serializers.ValidationError(
+                "Shortcode contains invalid characters. Only alphanumeric characters allowed (excluding I, l, 0, O)"
+            )
+        
+        if is_reserved_shortcode(value):
+            raise serializers.ValidationError(f"'{value}' is a reserved word and cannot be used as a shortcode")
+        
+        # Basic collision check (detailed validation happens in view with user context)
+        if Shortcode.objects.filter(shortcode=value).exists():
             raise serializers.ValidationError("Shortcode already exists")
+        
         return value
 
 

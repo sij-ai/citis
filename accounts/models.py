@@ -52,6 +52,11 @@ class CustomUser(AbstractUser):
         help_text="Maximum number of shortcodes per month for this user"
     )
     
+    shortcode_length = models.PositiveIntegerField(
+        default=6,
+        help_text="Length of shortcodes this user is allowed to create"
+    )
+    
     class Meta:
         db_table = 'accounts_customuser'
         verbose_name = 'User'

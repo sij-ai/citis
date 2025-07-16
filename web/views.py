@@ -8,7 +8,7 @@ and the authenticated user dashboard.
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.conf import settings
@@ -16,9 +16,10 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
+from pathlib import Path
 
 from archive.models import Shortcode, Visit, ApiKey
-from core.utils import generate_api_key
+from core.utils import generate_api_key, get_client_ip
 
 
 User = get_user_model()
@@ -341,3 +342,51 @@ def highlight_text(request):
         'cleaned': cleaned_fragment,
         'valid': bool(cleaned_fragment)
     })
+
+
+def shortcode_redirect(request, shortcode):
+    """
+    Serve archived content for a given shortcode.
+    This is the main view that handles /{shortcode} URLs.
+    """
+    # Look up the shortcode
+    try:
+        shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
+    except Shortcode.DoesNotExist:
+        raise Http404(f"Shortcode '{shortcode}' not found")
+    
+    # Record the visit for analytics
+    visit = Visit.objects.create(
+        shortcode=shortcode_obj,
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        referer=request.META.get('HTTP_REFERER', ''),
+        # TODO: Add geolocation data if available
+    )
+    
+    # For now, redirect to the original URL
+    # TODO: Serve the archived content instead
+    if shortcode_obj.archive_path:
+        try:
+            # Try to serve the archived content
+            archive_path = Path(shortcode_obj.archive_path)
+            singlefile_path = archive_path / "singlefile.html"
+            
+            if singlefile_path.exists():
+                with open(singlefile_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                # TODO: Add overlay banner here
+                # For now, serve the raw content
+                response = HttpResponse(content, content_type='text/html')
+                response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
+                return response
+            else:
+                # Archive file not found, redirect to original
+                return redirect(shortcode_obj.url)
+        except Exception as e:
+            # Error reading archive, redirect to original
+            return redirect(shortcode_obj.url)
+    else:
+        # No archive path, redirect to original URL
+        return redirect(shortcode_obj.url)

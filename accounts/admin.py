@@ -45,7 +45,7 @@ class CustomUserAdmin(UserAdmin):
     
     # Customize the fieldsets for the user detail page
     fieldsets = UserAdmin.fieldsets + (
-        ('Citis Settings', {
+        ('cit.is Settings', {
             'fields': (
                 'display_name', 'default_archive_method', 'is_premium', 
                 'monthly_shortcode_limit', 'created_at'
@@ -56,7 +56,7 @@ class CustomUserAdmin(UserAdmin):
     
     # Customize the fieldsets for adding new users
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Citis Settings', {
+        ('cit.is Settings', {
             'fields': (
                 'display_name', 'default_archive_method', 'is_premium',
                 'monthly_shortcode_limit'
@@ -108,6 +108,6 @@ CustomUserAdmin.inlines = [ApiKeyInline]
 admin.site.register(CustomUser, CustomUserAdmin)
 
 # Customize the admin site header and title
-admin.site.site_header = 'Citis Administration'
-admin.site.site_title = 'Citis Admin'
-admin.site.index_title = 'Welcome to Citis Administration'
+admin.site.site_header = 'cit.is Administration'
+admin.site.site_title = 'cit.is Admin'
+admin.site.index_title = 'Welcome to cit.is Administration'
