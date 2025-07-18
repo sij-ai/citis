@@ -396,8 +396,32 @@ def shortcode_redirect(request, shortcode):
                 with open(singlefile_path, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 
-                # TODO: Add overlay banner here
-                # For now, serve the raw content
+                # Inject overlay banner
+                try:
+                    from core.overlay import inject_overlay
+                    from datetime import datetime, timezone
+                    
+                    # Get visits for analytics
+                    visits = shortcode_obj.visits.all().order_by('-visited_at')
+                    
+                    # Determine archive date from file modification time or creation time
+                    archive_dt = datetime.fromtimestamp(singlefile_path.stat().st_mtime, tz=timezone.utc)
+                    
+                    # Inject the overlay
+                    content = inject_overlay(
+                        html_content=content,
+                        shortcode_obj=shortcode_obj,
+                        archive_dt=archive_dt,
+                        requested_dt=None,  # We don't have a specific request time for this case
+                        visits=visits
+                    )
+                    
+                except Exception as e:
+                    # Log overlay injection error but don't break page serving
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error injecting overlay for {shortcode}: {e}", exc_info=True)
+                
                 response = HttpResponse(content, content_type='text/html')
                 response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
                 return response
@@ -410,3 +434,34 @@ def shortcode_redirect(request, shortcode):
     else:
         # No archive path, redirect to original URL
         return redirect(shortcode_obj.url)
+
+
+def shortcode_favicon(request, shortcode):
+    """
+    Serve favicon for a given shortcode.
+    This handles URLs like /{shortcode}.favicon.ico
+    """
+    # Remove .favicon.ico suffix to get the actual shortcode
+    if shortcode.endswith('.favicon.ico'):
+        shortcode = shortcode[:-12]  # Remove .favicon.ico
+    
+    try:
+        shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
+    except Shortcode.DoesNotExist:
+        raise Http404(f"Shortcode '{shortcode}' not found")
+    
+    if shortcode_obj.archive_path:
+        archive_path = Path(shortcode_obj.archive_path)
+        favicon_path = archive_path / "favicon.ico"
+        
+        if favicon_path.exists():
+            try:
+                with open(favicon_path, 'rb') as f:
+                    response = HttpResponse(f.read(), content_type='image/x-icon')
+                    response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
+                    return response
+            except Exception as e:
+                raise Http404("Favicon not accessible")
+    
+    # No favicon found
+    raise Http404("Favicon not found")

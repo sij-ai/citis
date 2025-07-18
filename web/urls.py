@@ -33,6 +33,9 @@ urlpatterns = [
     # dj-stripe webhook endpoint (replaces our custom webhook)
     path('stripe/', include('djstripe.urls', namespace='djstripe')),
     
+    # Favicon serving for shortcodes
+    path('<str:shortcode>.favicon.ico', views.shortcode_favicon, name='shortcode_favicon'),
+    
     # Shortcode serving - MUST be last to avoid conflicts
     path('<str:shortcode>', views.shortcode_redirect, name='shortcode_redirect'),
 ] 

@@ -335,6 +335,25 @@ ARCHIVE_MODE = os.getenv('ARCHIVE_MODE', 'singlefile')
 SHORTCODE_LENGTH = int(os.getenv('SHORTCODE_LENGTH', 8))
 TIMEDIFF_WARNING_THRESHOLD = int(os.getenv('TIMEDIFF_WARNING_THRESHOLD', 7200))
 
+# Overlay Configuration
+OVERLAY_STYLE_BACKGROUND_COLOR = os.getenv('OVERLAY_STYLE_BACKGROUND_COLOR', '#000000')
+OVERLAY_STYLE_LINK_COLOR = os.getenv('OVERLAY_STYLE_LINK_COLOR', '#ffe100')
+OVERLAY_STYLE_ACCENT_COLOR = os.getenv('OVERLAY_STYLE_ACCENT_COLOR', '#ffe100')
+OVERLAY_STYLE_ICON = os.getenv('OVERLAY_STYLE_ICON', '')
+OVERLAY_STYLE_COPY_GRAPHIC = os.getenv('OVERLAY_STYLE_COPY_GRAPHIC', '📋')
+OVERLAY_SERVER_DOMAIN = os.getenv('OVERLAY_SERVER_DOMAIN', '')
+
+# Derived server domain for overlay display
+if not OVERLAY_SERVER_DOMAIN:
+    from urllib.parse import urlparse
+    parsed = urlparse(SERVER_BASE_URL)
+    OVERLAY_SERVER_DOMAIN = parsed.netloc or 'localhost'
+
+# ArchiveBox Configuration (for overlay links)
+ARCHIVEBOX_EXPOSE_URL = os.getenv('ARCHIVEBOX_EXPOSE_URL', 'False').lower() == 'true'
+ARCHIVEBOX_BASE_URL = os.getenv('ARCHIVEBOX_BASE_URL', '')
+ARCHIVEBOX_DATA_PATH = os.getenv('ARCHIVEBOX_DATA_PATH', '')
+
 # SingleFile Configuration
 SINGLEFILE_EXECUTABLE_PATH = os.getenv('SINGLEFILE_EXECUTABLE_PATH', 'single-file')
 SINGLEFILE_DATA_PATH = os.getenv('SINGLEFILE_DATA_PATH', str(BASE_DIR / 'archives'))
