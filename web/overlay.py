@@ -384,9 +384,11 @@ def create_favicon_tag(soup: BeautifulSoup, shortcode: Shortcode, archive_dt: da
     
     if shortcode.archive_method == 'singlefile':
         archive_base_path = Path(settings.SINGLEFILE_DATA_PATH)
-        favicon_path = archive_base_path / shortcode.shortcode / "favicon.ico"
+        # Use archive_path from the shortcode object, which is the specific timestamped folder
+        favicon_path = Path(shortcode.archive_path) / "favicon.ico"
         if favicon_path.exists():
             prefix = f"/{settings.SERVER_URL_PREFIX}" if settings.SERVER_URL_PREFIX else ""
+            # The URL should point to the favicon serving endpoint
             favicon_link.attrs['href'] = f"{prefix}/{shortcode.shortcode}/favicon.ico"
         else:
             return

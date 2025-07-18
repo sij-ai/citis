@@ -17,6 +17,8 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from pathlib import Path
+from asgiref.sync import sync_to_async
+from datetime import timezone as dt_timezone
 
 from archive.models import Shortcode, Visit, ApiKey
 from core.utils import generate_api_key, get_client_ip
@@ -26,6 +28,22 @@ import asyncio
 
 
 User = get_user_model()
+
+
+@sync_to_async
+def get_shortcode_or_404(shortcode_pk):
+    """Asynchronously gets a Shortcode object or raises Http404."""
+    return get_object_or_404(Shortcode, pk=shortcode_pk)
+
+@sync_to_async
+def create_visit_async(shortcode_obj, request):
+    """Asynchronously creates a Visit object."""
+    return Visit.objects.create(
+        shortcode=shortcode_obj,
+        ip_address=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        referer=request.META.get('HTTP_REFERER', ''),
+    )
 
 
 def landing_page(request):
@@ -368,15 +386,10 @@ async def shortcode_redirect(request, shortcode):
     """
     Redirect to the archived page for a given shortcode, injecting an overlay.
     """
-    shortcode_obj = get_object_or_404(Shortcode, pk=shortcode)
+    shortcode_obj = await get_shortcode_or_404(shortcode)
 
     # Track the visit
-    visit = Visit.objects.create(
-        shortcode=shortcode_obj,
-        ip_address=request.META.get('REMOTE_ADDR'),
-        user_agent=request.META.get('HTTP_USER_AGENT', ''),
-        referer=request.META.get('HTTP_REFERER', ''),
-    )
+    visit = await create_visit_async(shortcode_obj, request)
     # Trigger async task for analytics processing
     # from archive.tasks import update_visit_analytics_task
     # update_visit_analytics_task.delay(visit.id)
@@ -395,8 +408,9 @@ async def shortcode_redirect(request, shortcode):
     requested_dt = None
     if ts_str:
         try:
-            requested_dt = timezone.datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-        except ValueError:
+            # Timestamps from query params might be floats
+            requested_dt = datetime.fromtimestamp(float(ts_str), tz=dt_timezone.utc)
+        except (ValueError, TypeError):
             pass # Ignore invalid timestamp
 
     # Find the most relevant archive
@@ -406,16 +420,17 @@ async def shortcode_redirect(request, shortcode):
 
     # Select the best match based on timestamp
     if requested_dt:
-        # Find the archive closest to the requested timestamp
-        best_archive = min(archives, key=lambda a: abs(a['timestamp'] - requested_dt))
+        # Find the archive closest to the requested timestamp (compare unix timestamps)
+        best_archive = min(archives, key=lambda a: abs(float(a['timestamp']) - requested_dt.timestamp()))
     else:
         # Default to the most recent archive
-        best_archive = max(archives, key=lambda a: a['timestamp'])
+        best_archive = max(archives, key=lambda a: float(a['timestamp']))
     
-    actual_dt = best_archive['timestamp']
+    # Convert the string unix timestamp of the chosen archive to a datetime object
+    actual_dt = datetime.fromtimestamp(float(best_archive['timestamp']), tz=dt_timezone.utc)
 
-    # Get archive content
-    html_content = await manager.get_archive_content(str(int(actual_dt.timestamp())))
+    # Get archive content by passing the entire archive details dictionary
+    html_content = await manager.get_archive_content(best_archive)
     
     if html_content:
         # Inject the overlay
@@ -431,9 +446,13 @@ def serve_favicon(request, shortcode):
     """
     shortcode_obj = get_object_or_404(Shortcode, pk=shortcode)
     
+    # Ensure the archive path exists on the object
+    if not shortcode_obj.archive_path:
+        raise Http404("Favicon not found (archive path not set).")
+
     if shortcode_obj.archive_method == 'singlefile':
-        archive_base_path = Path(settings.SINGLEFILE_DATA_PATH)
-        favicon_path = archive_base_path / shortcode_obj.shortcode / "favicon.ico"
+        # The archive_path field points to the correct, timestamped directory
+        favicon_path = Path(shortcode_obj.archive_path) / "favicon.ico"
         
         if favicon_path.exists():
             return FileResponse(open(favicon_path, 'rb'), content_type='image/x-icon')

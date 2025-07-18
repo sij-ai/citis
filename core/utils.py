@@ -5,215 +5,162 @@ These utilities handle common tasks like text fragment processing,
 caching, shortcode generation, and client IP extraction.
 """
 
-import urllib.parse
-import time
+import base64
+import hashlib
+from datetime import datetime
+from typing import Optional, Any
 import random
-import string
 import re
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any, Set
+import string
+from urllib.parse import unquote
+from django.utils import timezone
+from django.conf import settings
 
 
-# Base58 character set (excludes I, l, 0, O for clarity)
-BASE58_CHARSET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
-# Reserved words that cannot be used as shortcodes
-RESERVED_SHORTCODES = {
-    # Web interface URLs
-    'pricing', 'about', 'dashboard', 'shortcodes', 'create',
-    # Authentication URLs
-    'accounts', 'login', 'logout', 'signup', 'password',
-    # API URLs (without underscores)
-    'api', 'docs', 'schema', 'add', 'analytics', 'keys', 'cache', 'health', 'info',
-    # Admin URLs
-    'admin', 'staff',
-    # Static/media URLs
-    'static', 'media', 'favicon',
-    # Common system words
-    'www', 'mail', 'ftp', 'blog', 'shop', 'store', 'help', 'support',
-    'contact', 'info', 'news', 'legal', 'privacy', 'terms', 'cookies',
-    # Technical endpoints
-    'health', 'status', 'robots', 'sitemap', 'manifest',
-    # Potential future features
-    'analytics', 'stats', 'export', 'import', 'backup', 'restore',
-}
+def get_client_ip(request: Any) -> Optional[str]:
+    """
+    Get client IP from request, handling proxy headers.
+    """
+    # Check for X-Forwarded-For header
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        # The header can contain a comma-separated list of IPs.
+        # The client's IP is typically the first one.
+        return x_forwarded_for.split(",")[0].strip()
+    
+    # Check for X-Real-IP header
+    x_real_ip = request.META.get("HTTP_X_REAL_IP")
+    if x_real_ip:
+        return x_real_ip.strip()
+    
+    # Final fallback - Django's remote IP
+    return request.META.get("REMOTE_ADDR")
 
 
 def is_valid_base58(text: str) -> bool:
-    """Check if text contains only Base58 characters."""
-    if not text:
-        return False
-    return all(c in BASE58_CHARSET for c in text)
+    """Check if a string is valid Base58."""
+    # Base58 alphabet used by Flickr and others
+    base58_chars = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+    return all(c in base58_chars for c in text)
 
 
-def is_reserved_shortcode(shortcode: str) -> bool:
-    """Check if shortcode is in the reserved words list."""
-    return shortcode.lower() in RESERVED_SHORTCODES
+def is_reserved_shortcode(text: str) -> bool:
+    """Check if a shortcode is a reserved word."""
+    # Common web paths to avoid conflicts
+    reserved_words = {
+        "admin", "api", "static", "media", "dashboard", "login", "logout",
+        "signup", "pricing", "about", "contact", "terms", "privacy",
+        "settings", "profile", "accounts", "billing", "docs", "help"
+    }
+    return text.lower() in reserved_words
 
 
-def validate_shortcode_format(shortcode: str, required_length: int) -> tuple[bool, str]:
+def clean_text_fragment(text_fragment: Optional[str]) -> str:
+    """Clean and validate a text fragment."""
+    if not text_fragment:
+        return ""
+    
+    # Remove URL fragment prefix if present
+    if text_fragment.startswith('#:~:text='):
+        text_fragment = text_fragment[9:]
+    
+    # URL decode
+    decoded = unquote(text_fragment)
+    
+    # Basic sanitization
+    # Remove potentially harmful characters, but allow common punctuation
+    sanitized = re.sub(r'[^\w\s.,!?-]', '', decoded)
+    
+    return sanitized.strip()
+
+
+def parse_ts_str(ts_str: Optional[str]) -> Optional[datetime]:
+    """Parse a timestamp string into a timezone-aware datetime object."""
+    if not ts_str:
+        return None
+    try:
+        # Handle Unix timestamps (integer or float)
+        if ts_str.isdigit() or ('.' in ts_str and all(c.isdigit() or c == '.' for c in ts_str)):
+            return datetime.fromtimestamp(float(ts_str), tz=timezone.utc)
+        
+        # Handle ISO 8601 format
+        # The 'Z' suffix is not always handled correctly, so we replace it
+        if ts_str.endswith('Z'):
+            ts_str = ts_str[:-1] + '+00:00'
+        return datetime.fromisoformat(ts_str)
+    
+    except (ValueError, TypeError):
+        return None
+
+
+def generate_api_key() -> str:
+    """Generate a secure random API key."""
+    return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
+
+
+def generate_shortcode(length: int) -> str:
+    """Generate a random shortcode of a given length."""
+    # Base58 alphabet is human-readable and avoids ambiguous characters
+    charset = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+    return ''.join(random.choice(charset) for _ in range(length))
+
+
+def generate_unique_shortcode(length: int, max_attempts: int = 10) -> Optional[str]:
     """
-    Validate shortcode format against requirements.
+    Generate a unique shortcode that doesn't already exist in the database.
     
-    Returns (is_valid, error_message)
+    Returns the unique shortcode, or None if it fails after max_attempts.
     """
-    if not shortcode:
-        return False, "Shortcode cannot be empty"
+    from archive.models import Shortcode # Local import to avoid circular dependency
     
-    if len(shortcode) != required_length:
-        return False, f"Shortcode must be exactly {required_length} characters long"
+    for _ in range(max_attempts):
+        candidate = generate_shortcode(length)
+        if not Shortcode.objects.filter(pk=candidate).exists():
+            return candidate
     
-    if not is_valid_base58(shortcode):
-        return False, "Shortcode contains invalid characters. Only alphanumeric characters allowed (excluding I, l, 0, O)"
-    
-    if is_reserved_shortcode(shortcode):
-        return False, f"'{shortcode}' is a reserved word and cannot be used as a shortcode"
-    
-    return True, ""
-
-
-def validate_shortcode_collision(shortcode: str) -> tuple[bool, str]:
-    """
-    Check if shortcode collides with existing shortcodes.
-    
-    Returns (is_available, error_message)
-    """
-    # Import here to avoid circular imports
-    from archive.models import Shortcode
-    
-    if Shortcode.objects.filter(shortcode=shortcode).exists():
-        return False, f"Shortcode '{shortcode}' is already taken"
-    
-    return True, ""
+    return None # Failed to generate a unique shortcode
 
 
 def validate_shortcode(shortcode: str, required_length: int) -> tuple[bool, str]:
     """
-    Complete shortcode validation including format and collision checks.
-    
-    Returns (is_valid, error_message)
+    Validate a custom shortcode against all business rules.
     """
-    # Check format first
-    is_valid_format, format_error = validate_shortcode_format(shortcode, required_length)
-    if not is_valid_format:
-        return False, format_error
+    if len(shortcode) != required_length:
+        return False, f"Shortcode must be exactly {required_length} characters long."
     
-    # Check for collisions
-    is_available, collision_error = validate_shortcode_collision(shortcode)
-    if not is_available:
-        return False, collision_error
+    if not is_valid_base58(shortcode):
+        return False, "Shortcode contains invalid characters. Please use only alphanumeric characters, excluding 0, O, I, and l."
+        
+    if is_reserved_shortcode(shortcode):
+        return False, f"'{shortcode}' is a reserved word and cannot be used."
     
     return True, ""
 
 
-def clean_text_fragment(text_fragment: str) -> str:
-    """Clean and prepare text fragment for display"""
-    if not text_fragment:
-        return ""
-    
-    # Remove the text fragment prefix if present
-    if text_fragment.startswith('#:~:text='):
-        text_fragment = text_fragment[9:]
-    
-    # Properly URL decode the text
-    decoded = urllib.parse.unquote(text_fragment)
-    
-    # Check if it meets minimum display requirements
-    words = decoded.split()
-    if len(decoded) < 15 and len(words) < 3:
-        return ""  # Too short to display
-    
-    return decoded
-
-
-class TTLCache:
-    """Time-to-live cache with maximum entry limit"""
-    
-    def __init__(self, ttl_seconds: int, max_entries: int):
-        self.ttl = ttl_seconds
-        self.max_entries = max_entries
-        self.cache: Dict[str, tuple] = {}
-    
-    def get(self, key: str) -> Optional[Any]:
-        if key in self.cache:
-            value, expiry = self.cache[key]
-            if time.time() < expiry: 
-                return value
-            else: 
-                del self.cache[key]
-        return None
-    
-    def set(self, key: str, value: Any):
-        if len(self.cache) >= self.max_entries:
-            oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k][1])
-            del self.cache[oldest_key]
-        self.cache[key] = (value, time.time() + self.ttl)
-    
-    def clear(self):
-        """Clear all cache entries"""
-        self.cache.clear()
-    
-    def size(self) -> int:
-        """Get current cache size"""
-        return len(self.cache)
-
-
-def generate_shortcode(length: int) -> str:
-    """Generate a random Base58 shortcode"""
-    return ''.join(random.choice(BASE58_CHARSET) for _ in range(length))
-
-
-def generate_unique_shortcode(length: int, max_attempts: int = 100) -> Optional[str]:
+def url_to_safe_filename(url: str) -> str:
     """
-    Generate a unique Base58 shortcode that doesn't collide with existing ones or reserved words.
+    Converts a URL to a string that is safe for use as a filename.
     
-    Returns None if unable to generate after max_attempts.
+    Replaces non-alphanumeric characters with underscores and ensures the
+    filename is not excessively long.
     """
-    for _ in range(max_attempts):
-        candidate = generate_shortcode(length)
-        
-        # Check if it's valid (not reserved and not taken)
-        is_valid, _ = validate_shortcode(candidate, length)
-        if is_valid:
-            return candidate
+    # Remove protocol and www
+    url = re.sub(r'^https?:\/\/(www\.)?', '', url)
     
-    return None
+    # Replace invalid filename characters with underscores
+    safe_name = re.sub(r'[^a-zA-Z0-9\.\-]', '_', url)
+    
+    # Truncate to a reasonable length
+    return safe_name[:100]
 
 
-def generate_api_key() -> str:
-    """Generate a secure API key"""
-    return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(32))
-
-
-def parse_ts_str(ts_str: str) -> datetime:
-    """Parse timestamp string to datetime"""
-    return datetime.strptime(ts_str, "%Y%m%d%H%M").replace(tzinfo=timezone.utc)
-
-
-def get_client_ip(request) -> Optional[str]:
+def generate_csrf_token() -> str:
     """
-    Extract client IP from Django request - optimized for Cloudflare + Caddy setup
-    
-    Args:
-        request: Django HttpRequest object
-        
-    Returns:
-        Client IP address as string or None if not found
+    Generate a secure, URL-safe CSRF token.
     """
-    # Cloudflare always sets this header with the real client IP
-    cf_ip = request.META.get("HTTP_CF_CONNECTING_IP")
-    if cf_ip:
-        return cf_ip
-    
-    # Fallback to other headers (in case CF header is missing)
-    x_real_ip = request.META.get("HTTP_X_REAL_IP")
-    if x_real_ip:
-        return x_real_ip
-    
-    # X-Forwarded-For as last resort
-    x_forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded:
-        return x_forwarded.split(",")[0].strip()
-    
-    # Final fallback - Django's remote IP
-    return request.META.get("REMOTE_ADDR") 
+    # 32 bytes of randomness is recommended for CSRF tokens
+    token_bytes = os.urandom(32)
+    # Base64 encode and make it URL-safe
+    token = base64.urlsafe_b64encode(token_bytes).decode('utf-8')
+    # The result may have padding '=' characters, which we can remove
+    return token.rstrip("=") 
