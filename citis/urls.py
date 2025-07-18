@@ -6,6 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
@@ -26,3 +27,11 @@ urlpatterns = [
     # Frontend Web UI - This must be last to catch the root path
     path('', include('web.urls')),
 ]
+
+# Add URL prefix if configured
+if settings.SERVER_URL_PREFIX:
+    # Wrap all patterns with the prefix
+    prefixed_patterns = [
+        path(f'{settings.SERVER_URL_PREFIX}/', include(urlpatterns)),
+    ]
+    urlpatterns = prefixed_patterns
