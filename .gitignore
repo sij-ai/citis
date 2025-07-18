@@ -28,3 +28,4 @@ archives/
 logs/
 deepcite.db
 config.yaml
+*.bak

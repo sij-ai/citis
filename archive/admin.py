@@ -24,12 +24,12 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Fields to display in the shortcode list
     list_display = (
         'shortcode', 'url_display', 'creator_user', 'created_at', 
-        'archive_method', 'is_archived', 'visit_count', 'view_archive_link'
+        'archive_method', 'visit_count', 'view_archive_link'
     )
     
     # Fields that can be used for filtering
     list_filter = (
-        'archive_method', 'is_archived', 'created_at', 
+        'archive_method', 'created_at', 
         'creator_user', 'creator_api_key'
     )
     
@@ -54,10 +54,10 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Organize fields in fieldsets
     fieldsets = (
         ('Archive Information', {
-            'fields': ('shortcode', 'url', 'is_archived', 'archive_method')
+            'fields': ('shortcode', 'url', 'archive_method')
         }),
         ('Content', {
-            'fields': ('text_fragment', 'archive_path_display'),
+            'fields': ('text_fragment',),
             'classes': ('wide',),
         }),
         ('Creator Information', {

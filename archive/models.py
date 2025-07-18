@@ -198,18 +198,6 @@ class Shortcode(models.Model):
         help_text="Method used to archive this URL"
     )
     
-    # Archive status
-    is_archived = models.BooleanField(
-        default=False,
-        help_text="Whether this URL has been successfully archived"
-    )
-    
-    archive_path = models.CharField(
-        max_length=500,
-        blank=True,
-        help_text="Path to the archived content"
-    )
-    
     class Meta:
         db_table = 'archive_shortcode'
         verbose_name = 'Shortcode'

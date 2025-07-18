@@ -384,12 +384,18 @@ def shortcode_redirect(request, shortcode):
     from archive.tasks import update_visit_analytics_task
     update_visit_analytics_task.delay(visit.pk)
     
-    # For now, redirect to the original URL
-    # TODO: Serve the archived content instead
-    if shortcode_obj.archive_path:
-        try:
-            # Try to serve the archived content
-            archive_path = Path(shortcode_obj.archive_path)
+    # Use SingleFile manager to find archives dynamically
+    from core.services import SingleFileManager
+    singlefile_manager = SingleFileManager()
+    
+    try:
+        # Find archives for this URL
+        archives = singlefile_manager.find_archives_for_url(shortcode_obj.url)
+        
+        if archives:
+            # Use the most recent archive (archives are sorted by timestamp)
+            latest_archive = archives[-1]
+            archive_path = Path(latest_archive['archive_path'])
             singlefile_path = archive_path / "singlefile.html"
             
             if singlefile_path.exists():
@@ -404,8 +410,8 @@ def shortcode_redirect(request, shortcode):
                     # Get visits for analytics
                     visits = shortcode_obj.visits.all().order_by('-visited_at')
                     
-                    # Determine archive date from file modification time or creation time
-                    archive_dt = datetime.fromtimestamp(singlefile_path.stat().st_mtime, tz=timezone.utc)
+                    # Get archive date from the archive timestamp
+                    archive_dt = datetime.fromtimestamp(float(latest_archive['timestamp']), tz=timezone.utc)
                     
                     # Inject the overlay
                     content = inject_overlay(
@@ -425,14 +431,15 @@ def shortcode_redirect(request, shortcode):
                 response = HttpResponse(content, content_type='text/html')
                 response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
                 return response
-            else:
-                # Archive file not found, redirect to original
-                return redirect(shortcode_obj.url)
-        except Exception as e:
-            # Error reading archive, redirect to original
-            return redirect(shortcode_obj.url)
-    else:
-        # No archive path, redirect to original URL
+        
+        # No archives found, redirect to original URL
+        return redirect(shortcode_obj.url)
+        
+    except Exception as e:
+        # Error finding archives, redirect to original
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error finding archives for {shortcode}: {e}", exc_info=True)
         return redirect(shortcode_obj.url)
 
 
