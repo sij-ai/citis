@@ -44,8 +44,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
     
     # Fields that should be read-only
     readonly_fields = (
-        'shortcode', 'created_at', 'creator_ip', 'visit_count_display',
-        'archive_path_display'
+        'shortcode', 'created_at', 'creator_ip', 'visit_count_display'
     )
     
     # Add date hierarchy for easy filtering by creation date
@@ -105,12 +104,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
         )
     view_archive_link.short_description = 'Actions'
     
-    def archive_path_display(self, obj):
-        """Display archive path information"""
-        if obj.archive_path:
-            return format_html('<code>{}</code>', obj.archive_path)
-        return 'Not set'
-    archive_path_display.short_description = 'Archive Path'
+
     
     # Add annotations for efficient querying
     def get_queryset(self, request):
@@ -330,8 +324,8 @@ class ShortcodeInline(admin.TabularInline):
     """
     model = Shortcode
     extra = 0
-    readonly_fields = ('shortcode', 'url', 'created_at', 'is_archived')
-    fields = ('shortcode', 'url', 'created_at', 'is_archived')
+    readonly_fields = ('shortcode', 'url', 'created_at')
+    fields = ('shortcode', 'url', 'created_at')
     
     def has_add_permission(self, request, obj=None):
         """Prevent adding shortcodes through admin"""
