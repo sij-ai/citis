@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Email Management - cit.is{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card auth-card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="h4 text-bone mb-0">Email Addresses</h2>
+                            <p class="text-subtle small">Manage your email addresses</p>
+                        </div>
+
+                        {% if emailaddresses %}
+                            <div class="mb-4">
+                                <h5 class="text-bone">Current Email Addresses:</h5>
+                                {% for emailaddress in emailaddresses %}
+                                    <div class="d-flex justify-content-between align-items-center p-3 border rounded mb-2">
+                                        <div>
+                                            <strong>{{ emailaddress.email }}</strong>
+                                            {% if emailaddress.verified %}
+                                                <span class="badge bg-success ms-2">Verified</span>
+                                            {% else %}
+                                                <span class="badge bg-warning ms-2">Unverified</span>
+                                            {% endif %}
+                                            {% if emailaddress.primary %}
+                                                <span class="badge bg-primary ms-1">Primary</span>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            {% if not emailaddress.verified %}
+                                                <form method="post" action="{% url 'account_email' %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" name="action_send" value="{{ emailaddress.email }}" 
+                                                            class="btn btn-sm btn-outline-primary">Resend Verification</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="text-center">
+                            <a href="{% url 'web:dashboard' %}" class="btn btn-outline-primary">
+                                ← Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

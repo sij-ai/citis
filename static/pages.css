@@ -7,35 +7,41 @@
 .hero-section {
     background: transparent; /* Don't block motes */
     position: relative;
+    padding-top: 3rem; /* Add more top padding */
+    padding-bottom: 2rem; /* Reduce bottom padding since we removed min-vh-100 */
 }
 
 .hero-title {
-    font-size: 2.5rem;
-    font-weight: 600;
-    text-shadow: 0 0 20px rgba(255, 245, 235, 0.2);
+    font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Roboto', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 15px rgba(255, 245, 235, 0.15);
     color: var(--text-bone);
+    line-height: 1.4;
 }
 
 .hero-subtitle {
     color: var(--text-dimmed);
-    font-size: 1.1rem;
+    font-size: 1rem; /* Changed from 1.1rem to 1rem for more understated */
+    line-height: 1.6; /* Better readability */
 }
 
 .hero-logo {
-    filter: drop-shadow(0 0 15px rgba(255, 245, 235, 0.3));
-    margin-bottom: 2rem;
+    filter: drop-shadow(0 0 10px rgba(255, 245, 235, 0.2)); /* Reduced glow */
 }
 
 /* Feature Cards */
 .feature-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease; /* Reduced transition time for more subtle effect */
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle) !important;
 }
 
 .feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px var(--shadow-color);
+    transform: translateY(-3px); /* Reduced hover lift for more understated effect */
+    box-shadow: 0 6px 20px var(--shadow-color); /* Reduced shadow for subtlety */
 }
 
 /* Demo/Form Cards */
@@ -43,6 +49,11 @@
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle) !important;
     box-shadow: 0 8px 25px var(--shadow-color);
+    transition: transform 0.2s ease;
+}
+
+.demo-card:hover {
+    transform: translateY(-2px); /* Subtle hover effect */
 }
 
 .demo-form {
@@ -75,8 +86,10 @@
 }
 
 .step-number {
-    font-size: 1.5rem;
-    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+    font-size: 1.2rem; /* Reduced from 1.5rem for more understated look */
+    box-shadow: 0 3px 12px rgba(78, 205, 196, 0.2); /* Reduced shadow intensity */
+    width: 50px !important; /* Smaller step circles */
+    height: 50px !important;
 }
 
 /* CTA Sections */
@@ -187,27 +200,54 @@
     box-shadow: 0 4px 12px var(--shadow-color);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .hero-logo {
-        height: 72px;
+/* Responsive hero layout adjustments */
+@media (min-width: 992px) {
+    .hero-section {
+        padding-top: 4rem; /* More top padding on larger screens */
+        padding-bottom: 3rem;
     }
     
     .hero-title {
-        font-size: 2rem;
+        font-size: 2rem; /* Slightly larger on desktop */
+    }
+    
+    .hero-subtitle {
+        font-size: 1.1rem; /* Slightly larger on desktop */
+        max-width: none; /* Remove max-width constraint in 2-column layout */
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-section {
+        padding-top: 2rem; /* Less padding on mobile */
+        padding-bottom: 1.5rem;
+    }
+    
+    .hero-logo {
+        height: 60px; /* Changed from 72px to 60px */
+    }
+    
+    .hero-title {
+        font-size: 1.4rem; /* Changed from 2rem to 1.4rem */
     }
     
     .stat-number {
-        font-size: 2.5rem;
+        font-size: 2rem; /* Changed from 2.5rem to 2rem */
     }
 }
 
 @media (max-width: 576px) {
     .hero-title {
-        font-size: 1.75rem;
+        font-size: 1.2rem; /* Changed from 1.75rem to 1.2rem */
     }
     
     .hero-logo {
-        height: 64px;
+        height: 50px; /* Changed from 64px to 50px */
+    }
+    
+    .hero-section {
+        padding-top: 1.5rem;
+        padding-bottom: 1rem;
     }
 } 

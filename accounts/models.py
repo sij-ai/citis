@@ -97,3 +97,20 @@ class CustomUser(AbstractUser):
             return True  # Premium users have unlimited shortcodes
         
         return self.get_monthly_shortcode_count() < self.monthly_shortcode_limit
+    
+    def update_premium_status(self):
+        """Update is_premium based on dj-stripe subscription status."""
+        from djstripe.models import Customer
+        
+        try:
+            customer = Customer.objects.get(subscriber=self)
+            # Check if user has any active subscriptions
+            active_subscriptions = customer.subscriptions.filter(
+                status__in=['active', 'trialing']
+            )
+            self.is_premium = active_subscriptions.exists()
+        except Customer.DoesNotExist:
+            # No Stripe customer means no subscription
+            self.is_premium = False
+        
+        self.save(update_fields=['is_premium'])

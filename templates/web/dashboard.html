@@ -141,11 +141,13 @@
         
         <!-- API Keys Management -->
         <div class="col-lg-4">
+            {% if user.is_premium %}
             <div class="dashboard-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="h5 mb-0 text-bone">API Keys</h3>
                     <button class="btn btn-outline-primary btn-sm" 
                             hx-post="{% url 'web:create_api_key' %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
                             hx-target="#api-keys-list"
                             hx-swap="afterbegin">
                         <i class="bi bi-plus"></i>
@@ -206,6 +208,18 @@
                     </small>
                 </div>
             </div>
+            {% else %}
+            <div class="dashboard-card">
+                <div class="text-center py-4">
+                    <i class="bi bi-lock display-6 text-subtle mb-3"></i>
+                    <h3 class="h5 text-bone mb-2">Premium Feature</h3>
+                    <p class="text-subtle mb-3">API access is available with premium plans.</p>
+                    <a href="{% url 'web:pricing' %}" class="btn btn-outline-primary btn-sm">
+                        Upgrade to Premium
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
     

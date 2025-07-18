@@ -19,6 +19,12 @@ django-htmx
 
 # Billing
 dj-stripe
+stripe
+
+# Background Tasks
+celery[redis]>=5.3.0
+django-celery-beat>=2.5.0  # For periodic tasks
+django-celery-results>=2.5.0  # For result storage
 
 # Utilities from original project
 beautifulsoup4

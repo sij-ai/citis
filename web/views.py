@@ -8,7 +8,7 @@ and the authenticated user dashboard.
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.http import JsonResponse, HttpResponse, Http404
+from django.http import JsonResponse, HttpResponse, Http404, FileResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.conf import settings
@@ -20,6 +20,9 @@ from pathlib import Path
 
 from archive.models import Shortcode, Visit, ApiKey
 from core.utils import generate_api_key, get_client_ip
+from core.services import get_archive_managers
+from .overlay import inject_overlay
+import asyncio
 
 
 User = get_user_model()
@@ -244,16 +247,29 @@ def create_archive(request):
                 return render(request, 'web/create_archive.html', context)
         
         try:
-            # Create the shortcode (this would normally trigger archiving)
+            # Create the shortcode 
             shortcode = Shortcode.objects.create(
                 url=url,
                 text_fragment=text_fragment,
                 creator_user=user,
                 archive_method=user.default_archive_method,
-                # Note: In a real implementation, you'd call the archiving service here
+                # Archive will be triggered by Celery task
             )
             
-            messages.success(request, f'Archive created successfully! Shortcode: {shortcode.shortcode}')
+            # Trigger archiving task asynchronously
+            from archive.tasks import archive_url_task, extract_assets_task
+            
+            # Start archiving task
+            archive_task = archive_url_task.delay(shortcode.pk)
+            
+            # Start asset extraction after a short delay (gives archiving time to start)
+            extract_assets_task.apply_async(args=[shortcode.pk], countdown=30)
+            
+            messages.success(
+                request, 
+                f'Archive created successfully! Shortcode: {shortcode.shortcode}. '
+                f'Archiving is in progress and will complete shortly.'
+            )
             return redirect('web:shortcode_detail', shortcode=shortcode.shortcode)
             
         except Exception as e:
@@ -269,6 +285,10 @@ def create_api_key(request):
     """
     HTMX endpoint to create a new API key.
     """
+    # Check if user has premium access
+    if not request.user.is_premium:
+        return HttpResponse('API key creation requires a premium subscription.', status=403)
+    
     try:
         api_key = ApiKey.objects.create(
             user=request.user,
@@ -344,49 +364,80 @@ def highlight_text(request):
     })
 
 
-def shortcode_redirect(request, shortcode):
+async def shortcode_redirect(request, shortcode):
     """
-    Serve archived content for a given shortcode.
-    This is the main view that handles /{shortcode} URLs.
+    Redirect to the archived page for a given shortcode, injecting an overlay.
     """
-    # Look up the shortcode
-    try:
-        shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
-    except Shortcode.DoesNotExist:
-        raise Http404(f"Shortcode '{shortcode}' not found")
-    
-    # Record the visit for analytics
+    shortcode_obj = get_object_or_404(Shortcode, pk=shortcode)
+
+    # Track the visit
     visit = Visit.objects.create(
         shortcode=shortcode_obj,
-        ip_address=get_client_ip(request),
+        ip_address=request.META.get('REMOTE_ADDR'),
         user_agent=request.META.get('HTTP_USER_AGENT', ''),
         referer=request.META.get('HTTP_REFERER', ''),
-        # TODO: Add geolocation data if available
     )
-    
-    # For now, redirect to the original URL
-    # TODO: Serve the archived content instead
-    if shortcode_obj.archive_path:
-        try:
-            # Try to serve the archived content
-            archive_path = Path(shortcode_obj.archive_path)
-            singlefile_path = archive_path / "singlefile.html"
-            
-            if singlefile_path.exists():
-                with open(singlefile_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-                
-                # TODO: Add overlay banner here
-                # For now, serve the raw content
-                response = HttpResponse(content, content_type='text/html')
-                response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
-                return response
-            else:
-                # Archive file not found, redirect to original
-                return redirect(shortcode_obj.url)
-        except Exception as e:
-            # Error reading archive, redirect to original
-            return redirect(shortcode_obj.url)
+    # Trigger async task for analytics processing
+    # from archive.tasks import update_visit_analytics_task
+    # update_visit_analytics_task.delay(visit.id)
+
+    # Determine the archive manager to use
+    managers = get_archive_managers()
+    if shortcode_obj.archive_method in managers:
+        manager = managers[shortcode_obj.archive_method]
+    elif managers:
+        manager = next(iter(managers.values())) # fallback to first available
     else:
-        # No archive path, redirect to original URL
-        return redirect(shortcode_obj.url)
+        raise Http404("No archive manager is configured.")
+
+    # Get the timestamp from the query parameter or use the creation date
+    ts_str = request.GET.get('ts')
+    requested_dt = None
+    if ts_str:
+        try:
+            requested_dt = timezone.datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+        except ValueError:
+            pass # Ignore invalid timestamp
+
+    # Find the most relevant archive
+    archives = await manager.find_archives_for_url(shortcode_obj.url)
+    if not archives:
+        raise Http404("No archive found for this URL.")
+
+    # Select the best match based on timestamp
+    if requested_dt:
+        # Find the archive closest to the requested timestamp
+        best_archive = min(archives, key=lambda a: abs(a['timestamp'] - requested_dt))
+    else:
+        # Default to the most recent archive
+        best_archive = max(archives, key=lambda a: a['timestamp'])
+    
+    actual_dt = best_archive['timestamp']
+
+    # Get archive content
+    html_content = await manager.get_archive_content(str(int(actual_dt.timestamp())))
+    
+    if html_content:
+        # Inject the overlay
+        html_with_overlay = await inject_overlay(html_content, shortcode_obj, requested_dt, actual_dt)
+        return HttpResponse(html_with_overlay)
+    
+    raise Http404("Could not retrieve archived content.")
+
+
+def serve_favicon(request, shortcode):
+    """
+    Serve the favicon for a given shortcode.
+    """
+    shortcode_obj = get_object_or_404(Shortcode, pk=shortcode)
+    
+    if shortcode_obj.archive_method == 'singlefile':
+        archive_base_path = Path(settings.SINGLEFILE_DATA_PATH)
+        favicon_path = archive_base_path / shortcode_obj.shortcode / "favicon.ico"
+        
+        if favicon_path.exists():
+            return FileResponse(open(favicon_path, 'rb'), content_type='image/x-icon')
+
+    # Fallback for other archive methods or if favicon not found in singlefile
+    # This might involve another lookup or a default favicon
+    raise Http404("Favicon not found.")

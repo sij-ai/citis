@@ -5,3 +5,7 @@ class AccountsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "accounts"
     verbose_name = "User Accounts"
+    
+    def ready(self):
+        """Import signal handlers when the app is ready."""
+        import accounts.signals

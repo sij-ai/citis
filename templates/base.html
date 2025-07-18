@@ -51,7 +51,7 @@
         
         /* Monospace font for specific elements */
         code, pre, .font-mono, .navbar-brand {
-            font-family: 'Roboto', 'Menlo', 'Monaco', monospace;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
         }
         
         /* Enhanced animated background motes - always visible */
@@ -170,8 +170,8 @@
             text-shadow: 0 0 8px rgba(78, 205, 196, 0.4);
         }
         
-        /* Fix navbar collapse behavior - use a smaller breakpoint */
-        @media (max-width: 991px) {
+        /* Fix navbar collapse behavior - only collapse on very small screens */
+        @media (max-width: 768px) {
             .navbar-collapse {
                 background: rgba(26, 42, 46, 0.95);
                 border-radius: 6px;
@@ -442,7 +442,7 @@
             }
             
             .navbar-brand {
-                font-size: 1.1rem;
+                font-size: 1rem;
             }
         }
     </style>
@@ -452,39 +452,114 @@
 <body>
     <!-- Enhanced animated background motes -->
     <div class="background-motes">
-        <div class="mote" style="left: 5%; animation-delay: 0s;"></div>
-        <div class="mote" style="left: 12%; animation-delay: 2s;"></div>
-        <div class="mote" style="left: 18%; animation-delay: 4s;"></div>
-        <div class="mote" style="left: 25%; animation-delay: 6s;"></div>
-        <div class="mote" style="left: 32%; animation-delay: 8s;"></div>
-        <div class="mote" style="left: 38%; animation-delay: 10s;"></div>
-        <div class="mote" style="left: 45%; animation-delay: 12s;"></div>
-        <div class="mote" style="left: 52%; animation-delay: 14s;"></div>
-        <div class="mote" style="left: 58%; animation-delay: 16s;"></div>
-        <div class="mote" style="left: 65%; animation-delay: 18s;"></div>
-        <div class="mote" style="left: 72%; animation-delay: 20s;"></div>
-        <div class="mote" style="left: 78%; animation-delay: 22s;"></div>
-        <div class="mote" style="left: 85%; animation-delay: 24s;"></div>
-        <div class="mote" style="left: 92%; animation-delay: 26s;"></div>
-        <div class="mote" style="left: 8%; animation-delay: 28s;"></div>
-        <div class="mote" style="left: 15%; animation-delay: 30s;"></div>
-        <div class="mote" style="left: 22%; animation-delay: 32s;"></div>
-        <div class="mote" style="left: 28%; animation-delay: 34s;"></div>
-        <div class="mote" style="left: 35%; animation-delay: 36s;"></div>
-        <div class="mote" style="left: 42%; animation-delay: 38s;"></div>
-        <div class="mote" style="left: 48%; animation-delay: 40s;"></div>
-        <div class="mote" style="left: 55%; animation-delay: 42s;"></div>
-        <div class="mote" style="left: 62%; animation-delay: 44s;"></div>
-        <div class="mote" style="left: 68%; animation-delay: 46s;"></div>
-        <div class="mote" style="left: 75%; animation-delay: 48s;"></div>
-        <div class="mote" style="left: 82%; animation-delay: 50s;"></div>
+        <div class="mote" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="mote" style="left: 20%; animation-delay: 2s;"></div>
+        <div class="mote" style="left: 30%; animation-delay: 4s;"></div>
+        <div class="mote" style="left: 40%; animation-delay: 6s;"></div>
+        <div class="mote" style="left: 50%; animation-delay: 8s;"></div>
+        <div class="mote" style="left: 60%; animation-delay: 10s;"></div>
+        <div class="mote" style="left: 70%; animation-delay: 12s;"></div>
+        <div class="mote" style="left: 80%; animation-delay: 14s;"></div>
+        <div class="mote" style="left: 90%; animation-delay: 16s;"></div>
+        <div class="mote" style="left: 15%; animation-delay: 18s;"></div>
+        <div class="mote" style="left: 25%; animation-delay: 20s;"></div>
+        <div class="mote" style="left: 35%; animation-delay: 22s;"></div>
+        <div class="mote" style="left: 45%; animation-delay: 24s;"></div>
+        <div class="mote" style="left: 55%; animation-delay: 26s;"></div>
+        <div class="mote" style="left: 65%; animation-delay: 28s;"></div>
+        <div class="mote" style="left: 75%; animation-delay: 30s;"></div>
+        <div class="mote" style="left: 85%; animation-delay: 32s;"></div>
+        <div class="mote" style="left: 95%; animation-delay: 34s;"></div>
+        <div class="mote" style="left: 5%; animation-delay: 36s;"></div>
+        <div class="mote" style="left: 12%; animation-delay: 38s;"></div>
+        <div class="mote" style="left: 22%; animation-delay: 40s;"></div>
+        <div class="mote" style="left: 32%; animation-delay: 42s;"></div>
+        <div class="mote" style="left: 42%; animation-delay: 44s;"></div>
+        <div class="mote" style="left: 52%; animation-delay: 46s;"></div>
+        <div class="mote" style="left: 62%; animation-delay: 48s;"></div>
+        <div class="mote" style="left: 72%; animation-delay: 50s;"></div>
+        <div class="mote" style="left: 82%; animation-delay: 52s;"></div>
+        <div class="mote" style="left: 92%; animation-delay: 54s;"></div>
+        <div class="mote" style="left: 8%; animation-delay: 56s;"></div>
+        <div class="mote" style="left: 18%; animation-delay: 58s;"></div>
+        <div class="mote" style="left: 28%; animation-delay: 60s;"></div>
+        <div class="mote" style="left: 38%; animation-delay: 62s;"></div>
+        <div class="mote" style="left: 48%; animation-delay: 64s;"></div>
+        <div class="mote" style="left: 58%; animation-delay: 66s;"></div>
+        <div class="mote" style="left: 68%; animation-delay: 68s;"></div>
+        <div class="mote" style="left: 78%; animation-delay: 70s;"></div>
+        <div class="mote" style="left: 88%; animation-delay: 72s;"></div>
+        <div class="mote" style="left: 98%; animation-delay: 74s;"></div>
+        <div class="mote" style="left: 3%; animation-delay: 76s;"></div>
+        <div class="mote" style="left: 13%; animation-delay: 78s;"></div>
+        <div class="mote" style="left: 23%; animation-delay: 80s;"></div>
+        <div class="mote" style="left: 33%; animation-delay: 82s;"></div>
+        <div class="mote" style="left: 43%; animation-delay: 84s;"></div>
+        <div class="mote" style="left: 53%; animation-delay: 86s;"></div>
+        <div class="mote" style="left: 63%; animation-delay: 88s;"></div>
+        <div class="mote" style="left: 73%; animation-delay: 90s;"></div>
+        <div class="mote" style="left: 83%; animation-delay: 92s;"></div>
+        <div class="mote" style="left: 93%; animation-delay: 94s;"></div>
+        <div class="mote" style="left: 7%; animation-delay: 2s;"></div>
+        <div class="mote" style="left: 17%; animation-delay: 4s;"></div>
+        <div class="mote" style="left: 27%; animation-delay: 6s;"></div>
+        <div class="mote" style="left: 37%; animation-delay: 8s;"></div>
+        <div class="mote" style="left: 47%; animation-delay: 10s;"></div>
+        <div class="mote" style="left: 57%; animation-delay: 12s;"></div>
+        <div class="mote" style="left: 67%; animation-delay: 14s;"></div>
+        <div class="mote" style="left: 77%; animation-delay: 16s;"></div>
+        <div class="mote" style="left: 87%; animation-delay: 18s;"></div>
+        <div class="mote" style="left: 97%; animation-delay: 20s;"></div>
+        <div class="mote" style="left: 11%; animation-delay: 22s;"></div>
+        <div class="mote" style="left: 21%; animation-delay: 24s;"></div>
+        <div class="mote" style="left: 31%; animation-delay: 26s;"></div>
+        <div class="mote" style="left: 41%; animation-delay: 28s;"></div>
+        <div class="mote" style="left: 51%; animation-delay: 30s;"></div>
+        <div class="mote" style="left: 61%; animation-delay: 32s;"></div>
+        <div class="mote" style="left: 71%; animation-delay: 34s;"></div>
+        <div class="mote" style="left: 81%; animation-delay: 36s;"></div>
+        <div class="mote" style="left: 91%; animation-delay: 38s;"></div>
+        <div class="mote" style="left: 4%; animation-delay: 40s;"></div>
+        <div class="mote" style="left: 14%; animation-delay: 42s;"></div>
+        <div class="mote" style="left: 24%; animation-delay: 44s;"></div>
+        <div class="mote" style="left: 34%; animation-delay: 46s;"></div>
+        <div class="mote" style="left: 44%; animation-delay: 48s;"></div>
+        <div class="mote" style="left: 54%; animation-delay: 50s;"></div>
+        <div class="mote" style="left: 64%; animation-delay: 52s;"></div>
+        <div class="mote" style="left: 74%; animation-delay: 54s;"></div>
+        <div class="mote" style="left: 84%; animation-delay: 56s;"></div>
+        <div class="mote" style="left: 94%; animation-delay: 58s;"></div>
+        <div class="mote" style="left: 6%; animation-delay: 60s;"></div>
+        <div class="mote" style="left: 16%; animation-delay: 62s;"></div>
+        <div class="mote" style="left: 26%; animation-delay: 64s;"></div>
+        <div class="mote" style="left: 36%; animation-delay: 66s;"></div>
+        <div class="mote" style="left: 46%; animation-delay: 68s;"></div>
+        <div class="mote" style="left: 56%; animation-delay: 70s;"></div>
+        <div class="mote" style="left: 66%; animation-delay: 72s;"></div>
+        <div class="mote" style="left: 76%; animation-delay: 74s;"></div>
+        <div class="mote" style="left: 86%; animation-delay: 76s;"></div>
+        <div class="mote" style="left: 96%; animation-delay: 78s;"></div>
+        <div class="mote" style="left: 9%; animation-delay: 80s;"></div>
+        <div class="mote" style="left: 19%; animation-delay: 82s;"></div>
+        <div class="mote" style="left: 29%; animation-delay: 84s;"></div>
+        <div class="mote" style="left: 39%; animation-delay: 86s;"></div>
+        <div class="mote" style="left: 49%; animation-delay: 88s;"></div>
+        <div class="mote" style="left: 59%; animation-delay: 90s;"></div>
+        <div class="mote" style="left: 69%; animation-delay: 92s;"></div>
+        <div class="mote" style="left: 79%; animation-delay: 94s;"></div>
+        <div class="mote" style="left: 89%; animation-delay: 96s;"></div>
+        <div class="mote" style="left: 99%; animation-delay: 98s;"></div>
+        <div class="mote" style="left: 1%; animation-delay: 100s;"></div>
+        <div class="mote" style="left: 2%; animation-delay: 4s;"></div>
+        <div class="mote" style="left: 41%; animation-delay: 8s;"></div>
+        <div class="mote" style="left: 71%; animation-delay: 12s;"></div>
         <div class="mote" style="left: 88%; animation-delay: 52s;"></div>
         <div class="mote" style="left: 95%; animation-delay: 54s;"></div>
     </div>
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-xl"> <!-- Changed from navbar-expand-lg to navbar-expand-xl for later collapse -->
-        <div class="container">
+    <nav class="navbar navbar-expand-md"> <!-- Changed from navbar-expand-xl to navbar-expand-md -->
+        <div class="container-fluid"> <!-- Changed from container to container-fluid for more width -->
             <a class="navbar-brand" href="/">
                 <!-- Option 1: Keep the Bootstrap icon -->
                 <i class="bi bi-archive"></i>
@@ -589,7 +664,7 @@
                             <h6 class="fw-bold mb-3 text-bone">Support</h6>
                             <ul class="list-unstyled">
                                 <li><a href="/admin/" class="text-subtle text-decoration-none">Admin</a></li>
-                                <li><a href="mailto:support@cit.is" class="text-subtle text-decoration-none">Contact</a></li>
+                                <li><a href="mailto:sij@sij.law" class="text-subtle text-decoration-none">Contact</a></li>
                             </ul>
                         </div>
                     </div>
@@ -599,11 +674,11 @@
             <div class="row align-items-center">
                 <div class="col-md-6">
                     <p class="text-subtle mb-0">
-                        &copy; {% now "Y" %} cit.is. All rights reserved.
+                        &copy; {% now "Y" %} cit.is · all rights reserved
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <span class="text-subtle">Clarity through Atmosphere</span>
+                    <span class="text-subtle">anchor your cites in time</span>
                 </div>
             </div>
         </div>

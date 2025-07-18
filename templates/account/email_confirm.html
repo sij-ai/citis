@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Confirm Email - cit.is{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card auth-card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <h2 class="h4 text-bone mb-0">Confirm Email Address</h2>
+                            <p class="text-subtle small">Please confirm your email to complete registration</p>
+                        </div>
+
+                        {% if confirmation %}
+                            <p class="text-bone mb-4">
+                                Please confirm that <strong>{{ confirmation.email_address.email }}</strong> 
+                                is an email address for user {{ confirmation.email_address.user.display_name|default:confirmation.email_address.user.username }}.
+                            </p>
+                            
+                            <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+                                {% csrf_token %}
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">Confirm Email Address</button>
+                                </div>
+                            </form>
+                        {% else %}
+                            <div class="alert alert-warning" role="alert">
+                                <strong>Invalid confirmation link!</strong><br>
+                                The email confirmation link was invalid, possibly because it has already been used.
+                            </div>
+                            
+                            <div class="text-center">
+                                <a href="{% url 'account_email' %}" class="btn btn-outline-primary">
+                                    Manage Email Addresses
+                                </a>
+                            </div>
+                        {% endif %}
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'account_login' %}" class="text-subtle text-decoration-none">
+                                ← Back to Login
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

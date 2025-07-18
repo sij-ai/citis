@@ -1,0 +1,518 @@
+<div id="perma-overlay-container">
+    <style>
+/* CSS Variables for configurable colors - these get overridden by inline styles from config */
+:root {
+    --style-background-color: {{ style_background_color|default:'#000000' }};
+    --style-link-color: {{ style_link_color|default:'#ffe100' }};
+    --style-accent-color: {{ style_accent_color|default:'#ffe100' }};
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+    .desktop-text { display: none !important; }
+    .mobile-text { display: inline !important; }
+    .mobile-hide { display: none !important; }
+    .mobile-show { display: block !important; }
+    
+    /* Compact mobile layout */
+    #perma-overlay .perma-timestamp { 
+        min-width: 0px !important; 
+        font-size: 12px !important;
+    }
+    #perma-overlay .perma-links-row { 
+        gap: 8px !important; 
+    }
+    #perma-overlay .perma-actions { 
+        gap: 6px !important; 
+    }
+    #perma-overlay .perma-content-area { 
+        gap: 8px !important; 
+    }
+    #perma-overlay .perma-left { 
+        padding: 0 10px !important; 
+    }
+    #perma-overlay .perma-right { 
+        gap: 8px !important; 
+    }
+    #perma-overlay {
+        padding: 4px 10px !important;
+        font-size: 10px !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .desktop-text { display: inline !important; }
+    .mobile-text { display: none !important; }
+    .mobile-hide { display: block !important; }
+    .mobile-show { display: none !important; }
+    
+    /* Desktop-specific timestamp sizing */
+    #perma-overlay .perma-timestamp {
+        min-width: 80px !important;
+    }
+}
+
+#perma-overlay {
+    position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
+    height: auto !important; min-height: 36px !important;
+    padding: 6px 10px !important;
+    background: var(--style-background-color) !important;
+    color: #839496 !important;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    z-index: 2147483647 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    transition: all 0.3s ease !important;
+}
+#perma-overlay * {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    color: inherit !important;
+    line-height: inherit !important;
+    font-weight: normal !important;
+}
+#perma-overlay .perma-top-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important;
+    margin-top: 4px !important;
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+    margin-bottom: 2px !important;
+    width: calc(100% - 20px) !important;
+    max-width: calc(100% - 20px) !important;
+    box-sizing: border-box !important;
+}
+#perma-overlay .perma-url-info {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+#perma-overlay .perma-url-info a {
+    font-weight: bold !important;
+    font-size: 14px !important;
+    font-style: normal !important;
+}
+#perma-overlay .perma-archive-date {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+}
+#perma-overlay .perma-server-icon {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+}
+#perma-overlay .server-icon {
+    max-height: 32px !important;
+}
+#perma-overlay .perma-content-area {
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    min-height: 28px !important;
+}
+#perma-overlay .perma-left {
+    flex: 1 1 auto !important;
+    padding: 0 4px 0 0 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+#perma-overlay .perma-center {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+}
+#perma-overlay .copy-button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 16px !important;
+    max-height: 16px !important;
+    padding: 0 8px !important;
+    font-size: 16px !important;
+    opacity: 0.75 !important;
+}
+#perma-overlay .copy-button img,
+#perma-overlay .copy-icon {
+    width: auto !important;
+    height: auto !important;
+    max-width: 24px !important;
+    max-height: 16px !important;
+}
+#perma-overlay .copy-button:hover {
+    opacity: 1 !important;
+}
+#perma-overlay .perma-right {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    flex: 0 0 auto !important;
+}
+#perma-overlay .perma-stats-upper,
+#perma-overlay .perma-stats-lower {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+}
+#perma-overlay .perma-actions-stack {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    align-items: flex-end !important;
+}
+#perma-overlay .perma-actions-stack .perma-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+#perma-overlay .perma-right .perma-actions-stack .perma-actions {
+    justify-content: center !important;
+    text-align: center !important;
+}
+#perma-overlay .perma-text-fragment {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    height: 100% !important;
+    min-height: 24px !important;
+}
+#perma-overlay .fragment-label {
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace !important;
+    font-style: normal !important;
+    color: #586e75 !important;
+    font-size: 10px !important;
+    white-space: nowrap !important;
+    padding-top: 2px !important;
+}
+#perma-overlay .fragment-quote {
+    font-family: 'Garamond', 'Georgia', 'Baskerville', serif !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+    color: rgba(147, 161, 161, 0.33) !important;
+    font-size: 22px !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+    align-self: center !important;
+    user-select: none !important;
+}
+#perma-overlay .fragment-text-container {
+    display: flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    cursor: pointer !important;
+    position: relative !important;
+}
+#perma-overlay .fragment-text {
+    font-family: 'Garamond', 'Georgia', 'Baskerville', serif !important;
+    font-weight: 400 !important;
+    font-style: italic !important;
+    color: #93a1a1 !important;
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-break: keep-all !important;
+    overflow-wrap: anywhere !important;
+    hyphens: none !important;
+    text-decoration: none !important;
+    transition: all 0.3s ease !important;
+    background-size: 400% auto !important;
+    background-image: linear-gradient(110deg, rgba(140, 160, 160, 1.0), rgba(100, 220, 240, 1.0), rgba(80, 180, 200, 1.0) 92%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    background-position: 0% center !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+}
+#perma-overlay .fragment-space-protection {
+    font-size: 6pt !important;
+}
+#perma-overlay .fragment-text-container:hover .fragment-text {
+    color: transparent !important;
+    text-decoration: none !important;
+    animation: shineText 0.8s ease-out forwards !important;
+    text-shadow: 0 0 2px rgba(0, 160, 140, 0.15) !important;
+}
+@keyframes shineText {
+    0% {
+        background-position: 0% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+#perma-overlay .perma-links {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1px !important;
+}
+#perma-overlay .perma-links-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+#perma-overlay .perma-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+#perma-overlay .perma-stats {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    text-align: center !important;
+}
+#perma-overlay a {
+    color: var(--style-link-color) !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+}
+#perma-overlay a:hover {
+    color: var(--style-link-color) !important;
+    opacity: 0.8 !important;
+}
+#perma-overlay .deepcite-link {
+    font-size: 18px !important;
+    color: #93a1a1 !important;
+    text-decoration: none !important;
+    padding: 2px 6px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 28px !important;
+}
+#perma-overlay .deepcite-link:hover {
+    color: #eee8d5 !important;
+    background: rgba(147, 161, 161, 0.1) !important;
+    border-radius: 3px !important;
+}
+#perma-overlay .perma-fallback-warning {
+    color: #b58900 !important;
+    font-size: 10px !important;
+}
+#perma-overlay .visit-graph {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    cursor: pointer !important;
+}
+#perma-overlay .visit-graph:hover .visit-bar {
+    animation: barBump 0.5s ease-out !important;
+}
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(1) { animation-delay: 0s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(2) { animation-delay: 0.05s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(3) { animation-delay: 0.1s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(4) { animation-delay: 0.15s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(5) { animation-delay: 0.2s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(6) { animation-delay: 0.25s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(7) { animation-delay: 0.3s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(8) { animation-delay: 0.35s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(9) { animation-delay: 0.4s !important; }
+#perma-overlay .visit-graph:hover .visit-bar:nth-child(10) { animation-delay: 0.45s !important; }
+@keyframes barBump {
+    0%, 100% {
+        transform: scaleY(1);
+    }
+    50% {
+        transform: scaleY(1.25);
+    }
+}
+#perma-overlay .visit-bars {
+    display: flex !important;
+    align-items: end !important;
+    gap: 1px !important;
+    height: 16px !important;
+}
+#perma-overlay .visit-bar {
+    width: 3px !important;
+    background: var(--style-accent-color) !important;
+    min-height: 1px !important;
+    border-radius: 1px !important;
+    cursor: pointer !important;
+    transform-origin: bottom !important;
+}
+#perma-overlay .visit-label {
+    font-size: 11px !important;
+    color: var(--style-accent-color) !important;
+    cursor: pointer !important;
+    transition: color 0.2s ease !important;
+}
+#perma-overlay .visit-label:hover {
+    color: var(--style-accent-color) !important;
+    opacity: 0.8 !important;
+}
+#perma-overlay a::after {
+    content: none !important;
+    display: none !important;
+}
+#perma-overlay a[href^="http"]::after {
+    content: none !important;
+    display: none !important;
+}
+/* Analytics Expanded View */
+#analytics-section {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    display: none !important;
+    background: var(--style-background-color) !important;
+    padding-top: 10px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    padding-bottom: 10px !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 2147483646 !important;
+    box-sizing: border-box !important;
+}
+#analytics-section.active {
+    display: block !important;
+    opacity: 1 !important;
+}
+.analytics-content {
+    display: flex !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
+}
+.analytics-left {
+    flex: 2 !important;
+}
+.analytics-right {
+    flex: 1 !important;
+    min-width: 150px !important;
+}
+.analytics-title {
+    color: #93a1a1 !important;
+    font-size: 10px !important;
+    margin-bottom: 5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+.line-chart {
+    height: 80px !important;
+    background: var(--style-background-color) !important;
+    border-radius: 3px !important;
+    position: relative !important;
+    margin-bottom: 10px !important;
+    padding: 5px !important;
+}
+.line-chart svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+.line-chart path {
+    fill: none !important;
+    stroke: var(--style-accent-color) !important;
+    stroke-width: 2 !important;
+}
+.country-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+}
+.country-item {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--style-background-color) !important;
+    padding: 3px 6px !important;
+    border-radius: 2px !important;
+    font-size: 9px !important;
+}
+.country-bar {
+    width: 30px !important;
+    height: 8px !important;
+    background: var(--style-accent-color) !important;
+    border-radius: 1px !important;
+    margin-left: 5px !important;
+}
+.close-analytics {
+    color: #586e75 !important;
+    cursor: pointer !important;
+    float: right !important;
+    font-size: 12px !important;
+    margin-left: 10px !important;
+}
+.close-analytics:hover {
+    color: #93a1a1 !important;
+} 
+    </style>
+    <div id="perma-overlay">
+        <!-- Top row: Server icon, URL info, and archive date -->
+        <div class="perma-top-row">
+            <div class="perma-server-icon">
+                {{ server_icon_html|safe }}
+            </div>
+            <div class="perma-url-info">
+                {{ url_line_html|safe }}
+            </div>
+            <div class="perma-archive-date">
+                {{ archive_date_text }}
+            </div>
+        </div>
+        
+        <!-- Content rows: Text fragment + copy icon + stats -->
+        <div class="perma-content-area">
+            <div class="perma-left">
+                {{ text_fragment_html|safe }}
+                {{ warning_html|safe }}
+            </div>
+            <div class="perma-center">
+                <a href="#" onclick="copyCiteToClipboard(); return false;" class="copy-button">{{ copy_graphic|safe }}</a>
+            </div>
+            <div class="perma-right">
+                <div class="perma-stats-upper">
+                    {{ visit_graph|safe }}
+                </div>
+                <div class="perma-stats-lower">
+                    <div class="visit-label" onclick="toggleAnalytics()" style="cursor: pointer !important;">{{ formatted_hits }}</div>
+                </div>
+            </div>
+        </div>
+        {{ archivebox_link_html|safe }}
+    </div>
+        
+    <!-- Analytics Expanded Section -->
+    <div id="analytics-section">
+        <div class="analytics-title">
+            Link Analytics
+            <span class="close-analytics" onclick="toggleAnalytics()">×</span>
+        </div>
+        <div class="analytics-content">
+            <div class="analytics-left">
+                <div class="analytics-title">Visits Over Time</div>
+                <div class="line-chart" id="visits-chart">
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #586e75;">
+                        Ready to load
+                    </div>
+                </div>
+            </div>
+            <div class="analytics-right">
+                <div class="analytics-title">Top Countries</div>
+                <div class="country-list" id="country-list">
+                    <div style="color: #586e75;">Ready to load</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

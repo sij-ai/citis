@@ -55,6 +55,8 @@ THIRD_PARTY_APPS = [
     'crispy_tailwind',
     'django_htmx',
     'djstripe',
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 LOCAL_APPS = [
@@ -146,6 +148,10 @@ ACCOUNT_SESSION_REMEMBER = True
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
+# Email template configuration
+ACCOUNT_EMAIL_SUBJECT_PREFIX = '[cit.is] '
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
+
 
 # =============================================================================
 # DJANGO REST FRAMEWORK, CRISPY FORMS, ETC.
@@ -176,6 +182,16 @@ SPECTACULAR_SETTINGS = {
 
 
 # =============================================================================
+# INTERNATIONALIZATION
+# =============================================================================
+
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
+
+
+# =============================================================================
 # STATIC FILES & MEDIA CONFIGURATION
 # =============================================================================
 
@@ -202,21 +218,37 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['true', '1']
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@citis.example.com')
+
+# Default email addresses (will be updated after SERVER_BASE_URL is defined)
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@localhost')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 
 # =============================================================================
-# STRIPE CONFIGURATION
+# STRIPE CONFIGURATION (dj-stripe)
 # =============================================================================
 
-STRIPE_LIVE_PUBLIC_KEY = os.getenv('STRIPE_LIVE_PUBLIC_KEY')
-STRIPE_LIVE_SECRET_KEY = os.getenv('STRIPE_LIVE_SECRET_KEY')
-STRIPE_TEST_PUBLIC_KEY = os.getenv('STRIPE_TEST_PUBLIC_KEY')
-STRIPE_TEST_SECRET_KEY = os.getenv('STRIPE_TEST_SECRET_KEY')
-STRIPE_LIVE_MODE = os.getenv('STRIPE_LIVE_MODE', 'False').lower() in ['true', '1']
-DJSTRIPE_WEBHOOK_SECRET = os.getenv('DJSTRIPE_WEBHOOK_SECRET', 'whsec_')
+# Basic Stripe settings (also used by our custom views)
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+
+# dj-stripe specific settings
+DJSTRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 DJSTRIPE_USE_NATIVE_JSONFIELD = True
 DJSTRIPE_FOREIGN_KEY_TO_FIELD = 'id'
+
+# Test vs Live mode detection based on key prefix
+# Provide fallbacks for development without Stripe keys
+if STRIPE_SECRET_KEY and STRIPE_SECRET_KEY.startswith('sk_test_'):
+    DJSTRIPE_TEST_API_KEY = STRIPE_SECRET_KEY
+    DJSTRIPE_LIVE_API_KEY = ''
+elif STRIPE_SECRET_KEY and STRIPE_SECRET_KEY.startswith('sk_live_'):
+    DJSTRIPE_TEST_API_KEY = ''
+    DJSTRIPE_LIVE_API_KEY = STRIPE_SECRET_KEY
+else:
+    # Fallback for development - use test mode with placeholder
+    DJSTRIPE_TEST_API_KEY = 'sk_test_placeholder'
+    DJSTRIPE_LIVE_API_KEY = ''
 
 
 # =============================================================================
@@ -242,6 +274,14 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
+
+# =============================================================================
+# STRIPE CONFIGURATION
+# =============================================================================
+
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 
 # =============================================================================
 # LOGGING CONFIGURATION
@@ -279,6 +319,17 @@ SERVER_URL_PREFIX = os.getenv('SERVER_URL_PREFIX', '')
 SERVER_REQUIRE_API_KEY = os.getenv('SERVER_REQUIRE_API_KEY', 'True').lower() in ['true', '1', 'yes']
 MASTER_API_KEY = os.getenv('MASTER_API_KEY')
 
+# Update email settings with proper domain if not explicitly set
+if not os.getenv('DEFAULT_FROM_EMAIL'):
+    _domain = os.getenv('SITE_DOMAIN')
+    if not _domain:
+        # Extract from SERVER_BASE_URL
+        from urllib.parse import urlparse
+        parsed = urlparse(SERVER_BASE_URL)
+        _domain = parsed.netloc or 'localhost'
+    DEFAULT_FROM_EMAIL = f'noreply@{_domain}'
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
 # Archive Configuration
 ARCHIVE_MODE = os.getenv('ARCHIVE_MODE', 'singlefile')
 SHORTCODE_LENGTH = int(os.getenv('SHORTCODE_LENGTH', 8))
@@ -295,3 +346,48 @@ SINGLEFILE_SCREENSHOT_HEIGHT = int(os.getenv('SINGLEFILE_SCREENSHOT_HEIGHT', 108
 
 # GeoIP Configuration
 GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
+
+# Overlay Configuration
+STYLE_BACKGROUND_COLOR = os.getenv('STYLE_BACKGROUND_COLOR', '#000000')
+STYLE_LINK_COLOR = os.getenv('STYLE_LINK_COLOR', '#ffe100')
+STYLE_ACCENT_COLOR = os.getenv('STYLE_ACCENT_COLOR', '#ffe100')
+STYLE_ICON = os.getenv('STYLE_ICON')
+STYLE_COPY_GRAPHIC = os.getenv('STYLE_COPY_GRAPHIC')
+SERVER_DOMAIN = os.getenv('SERVER_DOMAIN')
+ARCHIVEBOX_EXPOSE_URL = os.getenv('ARCHIVEBOX_EXPOSE_URL', 'False').lower() in ['true', '1', 'yes']
+ARCHIVEBOX_BASE_URL = os.getenv('ARCHIVEBOX_BASE_URL')
+ARCHIVEBOX_DATA_PATH = os.getenv('ARCHIVEBOX_DATA_PATH')
+
+
+# =============================================================================
+# CELERY CONFIGURATION
+# =============================================================================
+
+# Celery Broker Configuration
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+
+# Celery Task Configuration
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Worker Configuration
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+
+# Celery Beat Configuration (for periodic tasks)
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Task Routing
+CELERY_TASK_ROUTES = {
+    'archive.tasks.archive_url_task': {'queue': 'archive'},
+    'archive.tasks.extract_assets_task': {'queue': 'assets'},
+    'archive.tasks.update_visit_analytics_task': {'queue': 'analytics'},
+}
+
+# Task Time Limits
+CELERY_TASK_TIME_LIMIT = 300  # 5 minutes
+CELERY_TASK_SOFT_TIME_LIMIT = 240  # 4 minutes
