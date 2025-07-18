@@ -22,23 +22,9 @@ import httpx
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.http import HttpResponse
-from functools import lru_cache
-import logging
-import sqlite3
-import subprocess
-from typing import Any, Dict, List, Optional
-from asgiref.sync import sync_to_async
 
 logger = logging.getLogger(__name__)
 
-
-@sync_to_async
-def read_file_async(path: Path) -> str:
-    """Asynchronously reads a file and returns its content."""
-    if not path.exists():
-        return ""
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        return f.read()
 
 class AssetExtractor:
     """Handles extraction of favicons, screenshots, and PDFs from websites"""
@@ -249,15 +235,19 @@ class SingleFileManager:
     """Manages SingleFile archiving operations"""
     
     def __init__(self):
-        # In a real-world scenario, you might pass a config object
-        # but for now, we'll rely on Django settings.
-        # Ensure the base archive path exists
-        self.archive_base_path = Path(settings.SINGLEFILE_DATA_PATH)
-        self.archive_base_path.mkdir(parents=True, exist_ok=True)
+        self.asset_extractor = AssetExtractor(timeout=10)
+        
+        # Resolve archive data path relative to BASE_DIR if it's relative
+        data_path = Path(settings.SINGLEFILE_DATA_PATH)
+        if data_path.is_absolute():
+            self.archive_base_path = data_path
+        else:
+            self.archive_base_path = (settings.BASE_DIR / data_path).resolve()
+        
         logger.info(f"SingleFile archive path: {self.archive_base_path}")
-
+        
     def _url_to_base62_hash(self, url: str) -> str:
-        """Convert URL to a base62 hash."""
+        """Convert URL to base62 hash"""
         alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
         hash_bytes = hashlib.sha256(url.encode('utf-8')).digest()
         hash_int = int.from_bytes(hash_bytes[:8], byteorder='big')
@@ -270,9 +260,9 @@ class SingleFileManager:
             result = alphabet[hash_int % 62] + result
             hash_int //= 62
         return result
-
+    
     def _get_archive_path(self, url: str, timestamp: datetime) -> Path:
-        """Generate archive path from URL and timestamp."""
+        """Generate archive path using structured directory layout"""
         parsed_url = urlparse(url)
         domain = parsed_url.netloc.lower()
         url_hash = self._url_to_base62_hash(url)
@@ -326,16 +316,14 @@ class SingleFileManager:
             logger.debug(f"Could not compare files {file1} and {file2}: {e}")
             return False
     
-    async def find_archives_for_url(self, url: str) -> List[Dict[str, Any]]:
+    def find_archives_for_url(self, url: str) -> List[Dict[str, Any]]:
         """Find all SingleFile archives for a given URL"""
         logger.debug(f"SingleFileManager.find_archives_for_url called with URL: {url}")
         parsed_url = urlparse(url)
         domain = parsed_url.netloc.lower()
         url_hash = self._url_to_base62_hash(url)
-        logger.debug(f"Domain: {domain}, URL hash: {url_hash}")
         
         domain_path = self.archive_base_path / domain / url_hash
-        logger.debug(f"Looking for archives in: {domain_path}")
         if not domain_path.exists():
             logger.debug(f"Domain path does not exist: {domain_path}")
             return []
@@ -401,18 +389,6 @@ class SingleFileManager:
         
         return None
     
-    async def get_archive_content(self, archive_details: Dict[str, Any]) -> str:
-        """
-        Get the HTML content of a SingleFile archive.
-        """
-        archive_path = archive_details.get("archive_path")
-        if not archive_path:
-            return ""
-        
-        # The archive_path is the directory; we need to read the HTML file within it.
-        html_file_path = Path(archive_path) / "singlefile.html"
-        return await read_file_async(html_file_path)
-
     async def _extract_favicon(self, url: str, archive_path: Path) -> bool:
         """Extract favicon using shared AssetExtractor"""
         return await self.asset_extractor.extract_favicon(url, archive_path)
@@ -547,8 +523,8 @@ class ArchiveBoxManager:
     """Manages ArchiveBox archiving operations"""
     
     def __init__(self):
-        self.data_path = Path(settings.ARCHIVEBOX_DATA_PATH) if settings.ARCHIVEBOX_DATA_PATH else None
-
+        pass
+        
     async def find_archives_for_url(self, url: str) -> List[Dict[str, Any]]:
         """Find all ArchiveBox archives for a given URL"""
         if not settings.ARCHIVEBOX_API_KEY:
@@ -611,23 +587,33 @@ class ArchiveBoxManager:
                 "was_duplicate": False
             }
     
-    async def get_archive_content(self, archive_details: Dict[str, Any]) -> str:
-        """
-        Get the HTML content of an archived page from ArchiveBox.
-        """
-        archive_timestamp_dt = archive_details.get("timestamp")
-        if not archive_timestamp_dt:
-            raise ValueError("Timestamp missing from archive details")
-        
-        archive_timestamp = str(int(archive_timestamp_dt.timestamp()))
+    async def get_archive_content(self, archive_timestamp: str) -> str:
+        """Get archived HTML content from ArchiveBox"""
+        if settings.ARCHIVEBOX_DATA_PATH:
+            # File mode - read from disk
+            archive_dir = Path(settings.ARCHIVEBOX_DATA_PATH) / "archive" / archive_timestamp
+            file_path = archive_dir / "singlefile.html"
+            if not file_path.exists(): 
+                file_path = archive_dir / "output.html"
+            if not file_path.exists(): 
+                raise Exception("Archive file not found.")
 
-        if not self.data_path:
-            raise ValueError("ARCHIVEBOX_DATA_PATH not set")
-
-        archive_dir = self.data_path / "archive" / archive_timestamp
-        html_file = archive_dir / "index.html"
-
-        return await read_file_async(html_file)
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read()
+        else:
+            # Proxy mode - fetch from ArchiveBox via HTTP
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                headers = {"X-ArchiveBox-API-Key": settings.ARCHIVEBOX_API_KEY}
+                singlefile_url = f"{settings.ARCHIVEBOX_BASE_URL}/archive/{archive_timestamp}/singlefile.html"
+                
+                response = await client.get(singlefile_url, headers=headers)
+                if response.status_code == 404:
+                    # Try output.html as fallback
+                    output_url = f"{settings.ARCHIVEBOX_BASE_URL}/archive/{archive_timestamp}/output.html"
+                    response = await client.get(output_url, headers=headers)
+                
+                response.raise_for_status()
+                return response.text
     
     async def serve_pdf(self, archive_timestamp: str, shortcode: str) -> HttpResponse:
         """Serve PDF with proper download headers"""

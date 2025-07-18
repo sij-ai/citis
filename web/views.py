@@ -8,7 +8,7 @@ and the authenticated user dashboard.
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.http import JsonResponse, HttpResponse, Http404, FileResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.conf import settings
@@ -17,33 +17,12 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.core.paginator import Paginator
 from pathlib import Path
-from asgiref.sync import sync_to_async
-from datetime import timezone as dt_timezone
 
 from archive.models import Shortcode, Visit, ApiKey
 from core.utils import generate_api_key, get_client_ip
-from core.services import get_archive_managers
-from .overlay import inject_overlay
-import asyncio
 
 
 User = get_user_model()
-
-
-@sync_to_async
-def get_shortcode_or_404(shortcode_pk):
-    """Asynchronously gets a Shortcode object or raises Http404."""
-    return get_object_or_404(Shortcode, pk=shortcode_pk)
-
-@sync_to_async
-def create_visit_async(shortcode_obj, request):
-    """Asynchronously creates a Visit object."""
-    return Visit.objects.create(
-        shortcode=shortcode_obj,
-        ip_address=request.META.get('REMOTE_ADDR'),
-        user_agent=request.META.get('HTTP_USER_AGENT', ''),
-        referer=request.META.get('HTTP_REFERER', ''),
-    )
 
 
 def landing_page(request):
@@ -382,81 +361,52 @@ def highlight_text(request):
     })
 
 
-async def shortcode_redirect(request, shortcode):
+def shortcode_redirect(request, shortcode):
     """
-    Redirect to the archived page for a given shortcode, injecting an overlay.
+    Serve archived content for a given shortcode.
+    This is the main view that handles /{shortcode} URLs.
     """
-    shortcode_obj = await get_shortcode_or_404(shortcode)
-
-    # Track the visit
-    visit = await create_visit_async(shortcode_obj, request)
-    # Trigger async task for analytics processing
-    # from archive.tasks import update_visit_analytics_task
-    # update_visit_analytics_task.delay(visit.id)
-
-    # Determine the archive manager to use
-    managers = get_archive_managers()
-    if shortcode_obj.archive_method in managers:
-        manager = managers[shortcode_obj.archive_method]
-    elif managers:
-        manager = next(iter(managers.values())) # fallback to first available
-    else:
-        raise Http404("No archive manager is configured.")
-
-    # Get the timestamp from the query parameter or use the creation date
-    ts_str = request.GET.get('ts')
-    requested_dt = None
-    if ts_str:
+    # Look up the shortcode
+    try:
+        shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
+    except Shortcode.DoesNotExist:
+        raise Http404(f"Shortcode '{shortcode}' not found")
+    
+    # Record the visit for analytics
+    visit = Visit.objects.create(
+        shortcode=shortcode_obj,
+        ip_address=get_client_ip(request),
+        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+        referer=request.META.get('HTTP_REFERER', ''),
+    )
+    
+    # Update analytics asynchronously
+    from archive.tasks import update_visit_analytics_task
+    update_visit_analytics_task.delay(visit.pk)
+    
+    # For now, redirect to the original URL
+    # TODO: Serve the archived content instead
+    if shortcode_obj.archive_path:
         try:
-            # Timestamps from query params might be floats
-            requested_dt = datetime.fromtimestamp(float(ts_str), tz=dt_timezone.utc)
-        except (ValueError, TypeError):
-            pass # Ignore invalid timestamp
-
-    # Find the most relevant archive
-    archives = await manager.find_archives_for_url(shortcode_obj.url)
-    if not archives:
-        raise Http404("No archive found for this URL.")
-
-    # Select the best match based on timestamp
-    if requested_dt:
-        # Find the archive closest to the requested timestamp (compare unix timestamps)
-        best_archive = min(archives, key=lambda a: abs(float(a['timestamp']) - requested_dt.timestamp()))
+            # Try to serve the archived content
+            archive_path = Path(shortcode_obj.archive_path)
+            singlefile_path = archive_path / "singlefile.html"
+            
+            if singlefile_path.exists():
+                with open(singlefile_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                # TODO: Add overlay banner here
+                # For now, serve the raw content
+                response = HttpResponse(content, content_type='text/html')
+                response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
+                return response
+            else:
+                # Archive file not found, redirect to original
+                return redirect(shortcode_obj.url)
+        except Exception as e:
+            # Error reading archive, redirect to original
+            return redirect(shortcode_obj.url)
     else:
-        # Default to the most recent archive
-        best_archive = max(archives, key=lambda a: float(a['timestamp']))
-    
-    # Convert the string unix timestamp of the chosen archive to a datetime object
-    actual_dt = datetime.fromtimestamp(float(best_archive['timestamp']), tz=dt_timezone.utc)
-
-    # Get archive content by passing the entire archive details dictionary
-    html_content = await manager.get_archive_content(best_archive)
-    
-    if html_content:
-        # Inject the overlay
-        html_with_overlay = await inject_overlay(html_content, shortcode_obj, requested_dt, actual_dt)
-        return HttpResponse(html_with_overlay)
-    
-    raise Http404("Could not retrieve archived content.")
-
-
-def serve_favicon(request, shortcode):
-    """
-    Serve the favicon for a given shortcode.
-    """
-    shortcode_obj = get_object_or_404(Shortcode, pk=shortcode)
-    
-    # Ensure the archive path exists on the object
-    if not shortcode_obj.archive_path:
-        raise Http404("Favicon not found (archive path not set).")
-
-    if shortcode_obj.archive_method == 'singlefile':
-        # The archive_path field points to the correct, timestamped directory
-        favicon_path = Path(shortcode_obj.archive_path) / "favicon.ico"
-        
-        if favicon_path.exists():
-            return FileResponse(open(favicon_path, 'rb'), content_type='image/x-icon')
-
-    # Fallback for other archive methods or if favicon not found in singlefile
-    # This might involve another lookup or a default favicon
-    raise Http404("Favicon not found.")
+        # No archive path, redirect to original URL
+        return redirect(shortcode_obj.url)

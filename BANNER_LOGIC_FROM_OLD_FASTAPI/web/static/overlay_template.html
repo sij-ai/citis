@@ -1,0 +1,62 @@
+<div id="perma-overlay-container">
+    <style>{overlay_styles}</style>
+    <div id="perma-overlay">
+        <!-- Top row: Server icon, URL info, and archive date -->
+        <div class="perma-top-row">
+            <div class="perma-server-icon">
+                {server_icon_html}
+            </div>
+            <div class="perma-url-info">
+                {url_line_html}
+            </div>
+            <div class="perma-archive-date">
+                {archive_date_text}
+            </div>
+        </div>
+        
+        <!-- Content rows: Text fragment + copy icon + stats -->
+        <div class="perma-content-area">
+            <div class="perma-left">
+                {text_fragment_html}
+                {warning_html}
+            </div>
+            <div class="perma-center">
+                <a href="#" onclick="copyCiteToClipboard(); return false;" class="copy-button">{copy_graphic}</a>
+            </div>
+            <div class="perma-right">
+                <div class="perma-stats-upper">
+                    {visit_graph}
+                </div>
+                <div class="perma-stats-lower">
+                    <div class="visit-label" onclick="toggleAnalytics()" style="cursor: pointer !important;">{formatted_hits}</div>
+                </div>
+            </div>
+        </div>
+        {archivebox_link_html}
+    </div>
+        
+        <!-- Analytics Expanded Section -->
+        <div id="analytics-section">
+            <div class="analytics-title">
+                Link Analytics
+                <span class="close-analytics" onclick="toggleAnalytics()">×</span>
+            </div>
+            <div class="analytics-content">
+                <div class="analytics-left">
+                    <div class="analytics-title">Visits Over Time</div>
+                    <div class="line-chart" id="visits-chart">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #586e75;">
+                            Ready to load
+                        </div>
+                    </div>
+                </div>
+                <div class="analytics-right">
+                    <div class="analytics-title">Top Countries</div>
+                    <div class="country-list" id="country-list">
+                        <div style="color: #586e75;">Ready to load</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

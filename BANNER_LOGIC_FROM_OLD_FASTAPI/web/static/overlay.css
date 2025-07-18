@@ -1,10 +1,8 @@
-<div id="perma-overlay-container">
-    <style>
 /* CSS Variables for configurable colors - these get overridden by inline styles from config */
 :root {
-    --style-background-color: {{ style_background_color|default:'#000000' }};
-    --style-link-color: {{ style_link_color|default:'#ffe100' }};
-    --style-accent-color: {{ style_accent_color|default:'#ffe100' }};
+    --style-background-color: #000000;
+    --style-link-color: #ffe100;
+    --style-accent-color: #ffe100;
 }
 
 /* Mobile-specific styles */
@@ -456,63 +454,3 @@
 .close-analytics:hover {
     color: #93a1a1 !important;
 } 
-    </style>
-    <div id="perma-overlay">
-        <!-- Top row: Server icon, URL info, and archive date -->
-        <div class="perma-top-row">
-            <div class="perma-server-icon">
-                {{ server_icon_html|safe }}
-            </div>
-            <div class="perma-url-info">
-                {{ url_line_html|safe }}
-            </div>
-            <div class="perma-archive-date">
-                {{ archive_date_text }}
-            </div>
-        </div>
-        
-        <!-- Content rows: Text fragment + copy icon + stats -->
-        <div class="perma-content-area">
-            <div class="perma-left">
-                {{ text_fragment_html|safe }}
-                {{ warning_html|safe }}
-            </div>
-            <div class="perma-center">
-                <a href="#" onclick="copyCiteToClipboard(); return false;" class="copy-button">{{ copy_graphic|safe }}</a>
-            </div>
-            <div class="perma-right">
-                <div class="perma-stats-upper">
-                    {{ visit_graph|safe }}
-                </div>
-                <div class="perma-stats-lower">
-                    <div class="visit-label" onclick="toggleAnalytics()" style="cursor: pointer !important;">{{ formatted_hits }}</div>
-                </div>
-            </div>
-        </div>
-        {{ archivebox_link_html|safe }}
-    </div>
-        
-    <!-- Analytics Expanded Section -->
-    <div id="analytics-section">
-        <div class="analytics-title">
-            Link Analytics
-            <span class="close-analytics" onclick="toggleAnalytics()">×</span>
-        </div>
-        <div class="analytics-content">
-            <div class="analytics-left">
-                <div class="analytics-title">Visits Over Time</div>
-                <div class="line-chart" id="visits-chart">
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #586e75;">
-                        Ready to load
-                    </div>
-                </div>
-            </div>
-            <div class="analytics-right">
-                <div class="analytics-title">Top Countries</div>
-                <div class="country-list" id="country-list">
-                    <div style="color: #586e75;">Ready to load</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div> 

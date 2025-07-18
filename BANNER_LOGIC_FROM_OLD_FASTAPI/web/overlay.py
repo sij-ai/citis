@@ -7,15 +7,153 @@ from typing import Dict, Any, Optional, Tuple, List
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from bs4 import BeautifulSoup
-import logging
+import hashlib
+from ..utils import clean_text_fragment
 
-from django.conf import settings
-from django.template.loader import render_to_string
-from archive.models import Shortcode, Visit
-from core.utils import clean_text_fragment
+# Cache for templates
+_overlay_css_cache: Optional[str] = None
+_overlay_html_template_cache: Optional[str] = None
+_overlay_js_template_cache: Optional[str] = None
 
+def clear_overlay_caches():
+    """Clear all overlay template caches"""
+    global _overlay_css_cache, _overlay_html_template_cache, _overlay_js_template_cache
+    _overlay_css_cache = None
+    _overlay_html_template_cache = None
+    _overlay_js_template_cache = None
 
-logger = logging.getLogger(__name__)
+def load_overlay_css() -> str:
+    """Load the CSS styles for the overlay from static file with caching"""
+    global _overlay_css_cache
+    
+    if _overlay_css_cache is not None:
+        return _overlay_css_cache
+    
+    css_path = Path(__file__).parent / "static" / "overlay.css"
+    
+    try:
+        with open(css_path, 'r', encoding='utf-8') as f:
+            _overlay_css_cache = f.read()
+        return _overlay_css_cache
+    except FileNotFoundError:
+        # Fallback - return empty string if file not found
+        return ""
+
+def load_overlay_html_template() -> str:
+    """Load the HTML template for the overlay from static file with caching"""
+    global _overlay_html_template_cache
+    
+    if _overlay_html_template_cache is not None:
+        return _overlay_html_template_cache
+    
+    template_path = Path(__file__).parent / "static" / "overlay_template.html"
+    
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            _overlay_html_template_cache = f.read()
+        return _overlay_html_template_cache
+    except FileNotFoundError:
+        # Fallback - return empty string if file not found
+        return ""
+
+def load_overlay_js_template() -> str:
+    """Load the JavaScript template for the overlay from static file with caching"""
+    global _overlay_js_template_cache
+    
+    if _overlay_js_template_cache is not None:
+        return _overlay_js_template_cache
+    
+    template_path = Path(__file__).parent / "static" / "overlay_template.js"
+    
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            _overlay_js_template_cache = f.read()
+        return _overlay_js_template_cache
+    except FileNotFoundError:
+        # Fallback - return empty string if file not found
+        return ""
+
+def generate_dynamic_overlay_css(config) -> str:
+    """Generate overlay CSS with dynamic colors from config"""
+    # Clear cache to ensure fresh CSS generation
+    clear_overlay_caches()
+    
+    base_css = load_overlay_css()
+    
+    # Set CSS variables for dynamic colors
+    css_vars = f"""
+:root {{
+    --style-background-color: {config.style_background_color} !important;
+    --style-link-color: {config.style_link_color} !important;
+    --style-accent-color: {config.style_accent_color} !important;
+}}
+"""
+    
+    # Prepend the CSS variables to the base CSS
+    return css_vars + base_css
+
+def generate_overlay_html(
+    original_url: str,
+    desktop_date: str,
+    mobile_month_day: str,
+    mobile_year: str,
+    archivebox_link_html: str,
+    warning_html: str,
+    text_fragment_html: str,
+    visit_graph: str,
+    total_visits: int,
+    overlay_styles: str,
+    formatted_hits: str,
+    server_icon_html: str,
+    server_domain_html: str,
+    copy_graphic: str,
+    url_line_html: str,
+    archive_date_text: str
+) -> str:
+    """Generate the overlay HTML from template"""
+    template = load_overlay_html_template()
+    
+    return template.format(
+        overlay_styles=overlay_styles,
+        original_url=original_url,
+        desktop_date=desktop_date,
+        mobile_month_day=mobile_month_day,
+        mobile_year=mobile_year,
+        # mobile_date=mobile_date,
+        archivebox_link_html=archivebox_link_html,
+        warning_html=warning_html,
+        text_fragment_html=text_fragment_html,
+        visit_graph=visit_graph,
+        total_visits=total_visits,
+        formatted_hits=formatted_hits,
+        server_icon_html=server_icon_html,
+        server_domain_html=server_domain_html,
+        copy_graphic=copy_graphic,
+        url_line_html=url_line_html,
+        archive_date_text=archive_date_text
+    )
+
+def generate_overlay_scripts(
+    analytics_data: Dict[str, Any],
+    text_fragment: Optional[str],
+    cleaned_fragment: str,
+    config
+) -> str:
+    """Generate the overlay JavaScript from template"""
+    template = load_overlay_js_template()
+    
+    # Escape text fragments for JavaScript
+    text_fragment_escaped = (text_fragment or "").replace("'", "\\'").replace('"', '\\"')
+    cleaned_fragment_escaped = cleaned_fragment.replace("'", "\\'").replace('"', '\\"')
+    
+    return template.format(
+        text_fragment=text_fragment_escaped,
+        cleaned_fragment=cleaned_fragment_escaped,
+        analytics_data_json=json.dumps(analytics_data),
+        style_background_color=config.style_background_color,
+        style_link_color=config.style_link_color,
+        style_accent_color=config.style_accent_color
+    )
 
 
 def format_time_difference(time_diff: timedelta) -> str:
@@ -54,9 +192,6 @@ def format_time_difference(time_diff: timedelta) -> str:
 
 def generate_time_warning(requested_dt: datetime, actual_dt: datetime, timediff_warning_threshold: int) -> Optional[str]:
     """Generate warning text if time difference exceeds threshold"""
-    if not requested_dt or not actual_dt:
-        return None
-
     time_diff = abs(requested_dt - actual_dt)
     
     if time_diff > timedelta(seconds=timediff_warning_threshold):
@@ -156,21 +291,27 @@ def create_visit_graph(visit_dates: List[datetime], short_code: str) -> str:
     # Determine time bucket based on age
     if age_days <= 3:  # Less than 3 days: per hour
         bucket_hours = 1
+        bucket_label = "hour"
         use_hourly = True
     elif age_days <= 14:  # Less than 2 weeks: per day
         bucket_days = 1
+        bucket_label = "day"
         use_hourly = False
     elif age_days <= 180:  # Less than 6 months: per week
         bucket_days = 7
+        bucket_label = "week"
         use_hourly = False
     elif age_days <= 365:  # Less than 1 year: per month
         bucket_days = 30
+        bucket_label = "month"
         use_hourly = False
     elif age_days <= 1095:  # Less than 3 years: per quarter
         bucket_days = 90
+        bucket_label = "quarter"
         use_hourly = False
     else:  # More than 3 years: per year 
         bucket_days = 365 
+        bucket_label = "year"
         use_hourly = False
     
     # Create buckets
@@ -232,28 +373,27 @@ def create_visit_graph(visit_dates: List[datetime], short_code: str) -> str:
     """
 
 
-def prepare_analytics_data(shortcode: Shortcode) -> Tuple[Dict, str, int, str]:
+def prepare_analytics_data(short_code: str, original_url: str, db) -> Tuple[Dict, str, int, str]:
     """Prepare analytics data for the overlay"""
-    visits = Visit.objects.filter(shortcode=shortcode)
-    visit_dates = list(visits.values_list('visited_at', flat=True))
+    visit_dates = db.get_visits(short_code)
     total_visits = len(visit_dates)
-    visit_graph = create_visit_graph(visit_dates, shortcode.shortcode)
+    visit_graph = create_visit_graph(visit_dates, short_code)
     formatted_hits = f"{format_hit_count(total_visits)} hits"
     
     # Get detailed analytics data
-    detailed_visits = list(visits.values('visited_at', 'country'))
+    detailed_visits = db.get_detailed_visits(short_code)
     
     # Process analytics data for embedding
     analytics_data = {
-        "shortcode": shortcode.shortcode,
-        "url": shortcode.url,
+        "shortcode": short_code,
+        "url": original_url,
         "total_visits": total_visits,
         "visits": []
     }
     
     for visit in detailed_visits:
         analytics_data["visits"].append({
-            "visited_at": visit["visited_at"].isoformat(),
+            "visited_at": visit["visited_at"],
             "country": visit.get("country")
         })
     
@@ -283,26 +423,26 @@ def prepare_graphic_html(graphic_value: Optional[str], alt_text: str, css_class:
         return img_html
 
 
-def prepare_server_info() -> Tuple[str, str]:
+def prepare_server_info(config) -> Tuple[str, str]:
     """Prepare server icon and domain HTML for the overlay"""
     server_icon_html = ""
     server_domain_html = ""
     
-    if settings.STYLE_ICON:
-        server_icon_html = prepare_graphic_html(settings.STYLE_ICON, "Server Icon", css_class="server-icon", link_url=settings.SERVER_BASE_URL)
+    if config.style_icon:
+        server_icon_html = prepare_graphic_html(config.style_icon, "Server Icon", css_class="server-icon", link_url=config.server_base_url)
     
-    if settings.SERVER_DOMAIN:
-        server_domain_html = f'<a href="{settings.SERVER_BASE_URL}" target="_blank">{settings.SERVER_DOMAIN}</a>'
+    if config.server_domain:
+        server_domain_html = f'<a href="{config.server_base_url}" target="_blank">{config.server_domain}</a>'
     
     return server_icon_html, server_domain_html
 
 
-def prepare_copy_graphic() -> str:
+def prepare_copy_graphic(config) -> str:
     """Prepare copy graphic HTML"""
-    if not settings.STYLE_COPY_GRAPHIC:
+    if not config.style_copy_graphic:
         return "📋"  # Default fallback
     
-    return prepare_graphic_html(settings.STYLE_COPY_GRAPHIC, "Copy", css_class="copy-icon")
+    return prepare_graphic_html(config.style_copy_graphic, "Copy", css_class="copy-icon")
 
 
 def prepare_url_line(original_url: str, archive_dt: datetime) -> Tuple[str, str]:
@@ -317,8 +457,11 @@ def prepare_url_line(original_url: str, archive_dt: datetime) -> Tuple[str, str]
     return url_line_html, archive_date_text
 
 
-def prepare_overlay_links(shortcode: Shortcode, archive_dt: datetime) -> Tuple[str, str, str, str]:
+def prepare_overlay_links(snapshot: Dict, short_code: str, config) -> Tuple[str, str, str, str]:
     """Prepare the various links for the overlay"""
+    archive_timestamp = snapshot['timestamp']
+    archive_dt = datetime.fromtimestamp(float(archive_timestamp), tz=timezone.utc)
+    
     # Format dates for desktop and mobile
     desktop_date = archive_dt.strftime("%B %d, %Y")  # "June 11, 2025"
     mobile_month_day = f"{archive_dt.month}.{archive_dt.day:02d}" # "06.11"
@@ -326,9 +469,8 @@ def prepare_overlay_links(shortcode: Shortcode, archive_dt: datetime) -> Tuple[s
     
     # Archivebox link
     archivebox_link_html = ""
-    if hasattr(settings, 'ARCHIVEBOX_EXPOSE_URL') and settings.ARCHIVEBOX_EXPOSE_URL and shortcode.archive_method in ('archivebox', 'both'):
-        archive_timestamp = int(archive_dt.timestamp())
-        archivebox_link = f"{settings.ARCHIVEBOX_BASE_URL}/archive/{archive_timestamp}/index.html"
+    if config.archivebox_expose_url:
+        archivebox_link = f"{config.archivebox_base_url}/archive/{archive_timestamp}/index.html"
         archivebox_link_html = f'<a href="{archivebox_link}" target="_blank">archivebox</a>'
     
     return desktop_date, mobile_month_day, mobile_year, archivebox_link_html
@@ -361,7 +503,7 @@ def create_text_fragment_html(cleaned_fragment: str) -> str:
     '''
 
 
-def create_favicon_tag(soup: BeautifulSoup, shortcode: Shortcode, archive_dt: datetime) -> None:
+def create_favicon_tag(soup, snapshot: Dict, short_code: str, config) -> None:
     """Create and inject favicon tag into head"""
     head_tag = soup.find('head')
     if not head_tag:
@@ -374,7 +516,7 @@ def create_favicon_tag(soup: BeautifulSoup, shortcode: Shortcode, archive_dt: da
     # Add theme-color meta tag for browser color matching
     theme_color_tag = soup.new_tag('meta')
     theme_color_tag.attrs['name'] = 'theme-color'
-    theme_color_tag.attrs['content'] = settings.STYLE_BACKGROUND_COLOR
+    theme_color_tag.attrs['content'] = config.style_background_color  # Match overlay background color
     head_tag.insert(0, theme_color_tag)
     
     # Create new favicon link
@@ -382,27 +524,35 @@ def create_favicon_tag(soup: BeautifulSoup, shortcode: Shortcode, archive_dt: da
     favicon_link.attrs['rel'] = 'shortcut icon'
     favicon_link.attrs['type'] = 'image/x-icon'
     
-    if shortcode.archive_method == 'singlefile':
-        archive_base_path = Path(settings.SINGLEFILE_DATA_PATH)
-        # Use archive_path from the shortcode object, which is the specific timestamped folder
-        favicon_path = Path(shortcode.archive_path) / "favicon.ico"
+    archive_method = snapshot.get('archive_method', 'archivebox')
+    archive_timestamp = snapshot['timestamp']
+    
+    if archive_method == 'singlefile':
+        # For SingleFile mode, check if favicon exists in archive
+        archive_path = Path(snapshot['archive_path'])
+        favicon_path = archive_path / "favicon.ico"
         if favicon_path.exists():
-            prefix = f"/{settings.SERVER_URL_PREFIX}" if settings.SERVER_URL_PREFIX else ""
-            # The URL should point to the favicon serving endpoint
-            favicon_link.attrs['href'] = f"{prefix}/{shortcode.shortcode}/favicon.ico"
+            # Use relative path construction that matches the serving logic
+            prefix = f"/{config.server_url_prefix}" if config.server_url_prefix else ""
+            # We'll need to serve favicon through a new endpoint
+            favicon_link.attrs['href'] = f"{prefix}/{short_code}.favicon.ico"
         else:
+            # Fallback to a generic favicon or remove the link
             return
-    else: # archivebox
-        archive_timestamp = int(archive_dt.timestamp())
-        if hasattr(settings, 'ARCHIVEBOX_DATA_PATH') and settings.ARCHIVEBOX_DATA_PATH:
+    else:
+        # ArchiveBox mode (original logic)
+        if config.archivebox_data_path:
             favicon_link.attrs['href'] = f"/archive/{archive_timestamp}/favicon.ico"
         else:
-            favicon_link.attrs['href'] = f"{settings.ARCHIVEBOX_BASE_URL}/archive/{archive_timestamp}/favicon.ico"
+            favicon_link.attrs['href'] = f"{config.archivebox_base_url}/archive/{archive_timestamp}/favicon.ico"
     
+    # Insert at beginning of head for priority
     head_tag.insert(0, favicon_link)
 
 
-async def inject_overlay(html_content: str, shortcode: Shortcode, requested_dt: datetime, actual_dt: datetime) -> str:
+async def inject_overlay(html_content: str, original_url: str, snapshot: Dict, 
+                        requested_dt: datetime, actual_dt: datetime, short_code: str, 
+                        url: str, text_fragment: Optional[str], config, db, logger) -> str:
     """Main function to inject overlay into archived content"""
     try:
         soup = BeautifulSoup(html_content, 'lxml')
@@ -411,62 +561,59 @@ async def inject_overlay(html_content: str, shortcode: Shortcode, requested_dt: 
             return html_content
         
         # Create favicon
-        create_favicon_tag(soup, shortcode, actual_dt)
+        create_favicon_tag(soup, snapshot, short_code, config)
         
         # Prepare analytics data
-        analytics_data, visit_graph, total_visits, formatted_hits = prepare_analytics_data(shortcode)
+        analytics_data, visit_graph, total_visits, formatted_hits = prepare_analytics_data(short_code, original_url, db)
         
         # Prepare overlay links
-        desktop_date, mobile_month_day, mobile_year, archivebox_link_html = prepare_overlay_links(shortcode, actual_dt)
+        desktop_date, mobile_month_day, mobile_year, archivebox_link_html = prepare_overlay_links(snapshot, short_code, config)
         
         # Prepare server info
-        server_icon_html, server_domain_html = prepare_server_info()
+        server_icon_html, server_domain_html = prepare_server_info(config)
         
         # Prepare copy graphic
-        copy_graphic = prepare_copy_graphic()
+        copy_graphic = prepare_copy_graphic(config)
         
         # Prepare URL line and archive date for top row
-        url_line_html, archive_date_text = prepare_url_line(shortcode.url, actual_dt)
+        archive_timestamp = snapshot['timestamp']
+        archive_dt = datetime.fromtimestamp(float(archive_timestamp), tz=timezone.utc)
+        url_line_html, archive_date_text = prepare_url_line(original_url, archive_dt)
         
         # Generate warning if needed
-        warning_text = generate_time_warning(requested_dt, actual_dt, settings.TIMEDIFF_WARNING_THRESHOLD)
+        warning_text = generate_time_warning(requested_dt, actual_dt, config.timediff_warning_threshold)
         warning_html = f'<div class="perma-fallback-warning">note: {warning_text}</div>' if warning_text else ""
         
         # Prepare text fragment
-        cleaned_fragment = clean_text_fragment(shortcode.text_fragment)
+        cleaned_fragment = clean_text_fragment(text_fragment)
         text_fragment_html = create_text_fragment_html(cleaned_fragment)
         
-        context = {
-            'style_background_color': settings.STYLE_BACKGROUND_COLOR,
-            'style_link_color': settings.STYLE_LINK_COLOR,
-            'style_accent_color': settings.STYLE_ACCENT_COLOR,
-            'original_url': shortcode.url,
-            'desktop_date': desktop_date,
-            'mobile_month_day': mobile_month_day,
-            'mobile_year': mobile_year,
-            'archivebox_link_html': archivebox_link_html,
-            'warning_html': warning_html,
-            'text_fragment_html': text_fragment_html,
-            'visit_graph': visit_graph,
-            'total_visits': total_visits,
-            'formatted_hits': formatted_hits,
-            'server_icon_html': server_icon_html,
-            'server_domain_html': server_domain_html,
-            'copy_graphic': copy_graphic,
-            'url_line_html': url_line_html,
-            'archive_date_text': archive_date_text,
-            'analytics_data_json': json.dumps(analytics_data),
-            'text_fragment': (shortcode.text_fragment or "").replace("'", "\\'").replace('"', '\\"'),
-            'cleaned_fragment': cleaned_fragment.replace("'", "\\'").replace('"', '\\"'),
-        }
-
+        # Generate dynamic CSS with configured colors
+        overlay_styles = generate_dynamic_overlay_css(config)
+        
         # Create overlay HTML using template
-        overlay_html = render_to_string('web/partials/overlay.html', context)
+        overlay_html = generate_overlay_html(
+            original_url=original_url,
+            desktop_date=desktop_date,
+            mobile_month_day=mobile_month_day,
+            mobile_year=mobile_year,
+            archivebox_link_html=archivebox_link_html,
+            warning_html=warning_html,
+            text_fragment_html=text_fragment_html,
+            visit_graph=visit_graph,
+            total_visits=total_visits,
+            overlay_styles=overlay_styles,
+            formatted_hits=formatted_hits,
+            server_icon_html=server_icon_html,
+            server_domain_html=server_domain_html,
+            copy_graphic=copy_graphic,
+            url_line_html=url_line_html,
+            archive_date_text=archive_date_text
+        )
         
         # Create script tag
-        overlay_script = render_to_string('web/partials/overlay.js', context)
         padding_script_tag = soup.new_tag('script')
-        padding_script_tag.string = overlay_script
+        padding_script_tag.string = generate_overlay_scripts(analytics_data, text_fragment, cleaned_fragment, config)
         
         # Inject into page
         body_tag.insert(0, BeautifulSoup(overlay_html, 'html.parser'))
@@ -475,5 +622,5 @@ async def inject_overlay(html_content: str, shortcode: Shortcode, requested_dt: 
         return str(soup)
         
     except Exception as e:
-        logger.error(f"Error injecting overlay for {shortcode.shortcode}: {e}", exc_info=True)
+        logger.error(f"Error injecting overlay: {e}", exc_info=True)
         return html_content 

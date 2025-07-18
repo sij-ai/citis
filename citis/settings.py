@@ -347,17 +347,6 @@ SINGLEFILE_SCREENSHOT_HEIGHT = int(os.getenv('SINGLEFILE_SCREENSHOT_HEIGHT', 108
 # GeoIP Configuration
 GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
 
-# Overlay Configuration
-STYLE_BACKGROUND_COLOR = os.getenv('STYLE_BACKGROUND_COLOR', '#000000')
-STYLE_LINK_COLOR = os.getenv('STYLE_LINK_COLOR', '#ffe100')
-STYLE_ACCENT_COLOR = os.getenv('STYLE_ACCENT_COLOR', '#ffe100')
-STYLE_ICON = os.getenv('STYLE_ICON')
-STYLE_COPY_GRAPHIC = os.getenv('STYLE_COPY_GRAPHIC')
-SERVER_DOMAIN = os.getenv('SERVER_DOMAIN')
-ARCHIVEBOX_EXPOSE_URL = os.getenv('ARCHIVEBOX_EXPOSE_URL', 'False').lower() in ['true', '1', 'yes']
-ARCHIVEBOX_BASE_URL = os.getenv('ARCHIVEBOX_BASE_URL')
-ARCHIVEBOX_DATA_PATH = os.getenv('ARCHIVEBOX_DATA_PATH')
-
 
 # =============================================================================
 # CELERY CONFIGURATION
