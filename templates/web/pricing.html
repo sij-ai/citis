@@ -3,403 +3,247 @@
 {% block title %}Pricing - cit.is{% endblock %}
 
 {% block content %}
+<style>
+    /* Simple styling to make key sections stand out */
+    .pricing-table .card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .pricing-table .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+    }
+    .key-feature {
+        background-color: rgba(128, 128, 128, 0.05);
+        border: 1px solid rgba(128, 128, 128, 0.1);
+        border-radius: .25rem;
+        padding: 0.75rem;
+        margin-top: 1rem;
+        font-size: 0.9em;
+    }
+    .key-feature strong {
+        display: block;
+        margin-bottom: 0.25rem;
+        color: var(--text-normal, #e0e0e0); /* Use your theme's text color */
+    }
+</style>
+
 <div class="container my-5">
+    <!-- Logo -->
+    <div class="row">
+        <div class="col-12 text-center mb-4">
+            <div style="padding: 1.5rem 0;">
+                <img src="/static/citis-pixelart.png" 
+                     alt="cit.is Logo" 
+                     class="logo"
+                     style="image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; width: auto; height: 50px; opacity: 0.9;">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Header -->
     <div class="row">
         <div class="col-lg-8 mx-auto text-center mb-5">
-            <h1 class="display-4 fw-bold mb-4 text-bone">Simple, Transparent Pricing</h1>
-            <p class="lead text-subtle">
+            <h1 class="display-5 fw-bold">Find Your Plan</h1>
+            <p class="lead" style="color: var(--text-subtle);">
                 Choose the plan that fits your archiving needs. Start free and upgrade as you grow.
             </p>
         </div>
     </div>
     
-    <div class="row g-4 mb-5">
+    <!-- Pricing Cards -->
+    <div class="row g-4 justify-content-center pricing-table">
+
         <!-- Free Plan -->
-        <div class="col-lg-4">
-            <div class="card h-100 border-0">
-                <div class="card-body d-flex flex-column p-4">
+        <div class="col-lg-4 d-flex">
+            <div class="card h-100 w-100 border-0 d-flex flex-column">
+                <div class="card-body p-4 d-flex flex-column">
                     <div class="text-center mb-4">
-                        <h3 class="h5 text-subtle mb-1">Free</h3>
-                        <div class="display-4 fw-bold text-bone">$0</div>
-                        <div class="text-subtle">for students, hobbyists, and light use</div>
+                        <h3 class="h4 fw-bold">Free</h3>
+                        <p class="mb-4" style="color: var(--text-subtle);">For students, hobbyists, and light use.</p>
+                    </div>
+
+                    <!-- Link Permanence Feature -->
+                    <div class="key-feature">
+                        <strong>Our Promise:</strong>
+                        <p class="mb-0" style="color: var(--text-muted);">Artifacts will be hosted on cit.is for at least 3 years. After that, we may ask you to upgrade to preserve older archives.</p>
+                    </div>
+
+                    <ul class="list-unstyled my-4">
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5</strong> New Archives / Month (+20 for students!)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>25 New Redirects / Month</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>5MB Max Archive Size</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>8 random character shortlinks</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (1-day interval)</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Content Integrity Scan</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>API Access</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Full-Text Search</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Analytics</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Periodic Re-Archival</li>
+                    </ul>
+
+                    <!-- Trust Feature -->
+                    <div class="key-feature">
+                        <strong>Trust: Basic Proof</strong>
+                        <p class="mb-0" style="color: var(--text-muted);">Every archive includes a SHA256 checksum so anyone can verify its integrity.</p>
                     </div>
                     
-                    <ul class="list-unstyled mb-4">
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed"><strong>5</strong> archives per month (+20 for students!)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">25 redirects per month</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">5MB max archive size</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">8 random character shortlinks</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Cited text highlighted</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Downloadable artifacts</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Link rot monitoring (1-day interval)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Basic proof: SHA256 checksums</span>
-                        </li>
-                        <li class="mb-2 text-subtle">
-                            <i class="bi bi-x-circle me-2"></i>
-                            Content change monitoring
-                        </li>
-                        <li class="mb-2 text-subtle">
-                            <i class="bi bi-x-circle me-2"></i>
-                            API access
-                        </li>
-                        <li class="mb-2 text-subtle">
-                            <i class="bi bi-x-circle me-2"></i>
-                            Full-text search
-                        </li>
-                        <li class="mb-2 text-subtle">
-                            <i class="bi bi-x-circle me-2"></i>
-                            Analytics
-                        </li>
-                    </ul>
-                    
-                    <div class="mt-auto">
-                        <a href="{% url 'account_signup' %}" class="btn btn-outline-primary w-100">
-                            Get Started Free
-                        </a>
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+                        <p class="text-center mb-0" style="color: var(--text-muted);">Support: Self-Help Forums (coming soon)</p>
+                    </div>
+
+                    <div class="mt-auto pt-4">
+                        <a href="{% url 'account_signup' %}" class="btn btn-outline-primary w-100">Get Started Free</a>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Professional Plan -->
-        <div class="col-lg-4">
-            <div class="card h-100 border-cyan position-relative premium-card">
+        <div class="col-lg-4 d-flex">
+            <div class="card h-100 w-100 border-primary position-relative d-flex flex-column" style="border-width: 2px;">
                 <div class="position-absolute top-0 start-50 translate-middle">
-                    <span class="badge bg-cyan text-dark rounded-pill px-3 py-2" style="background-color: var(--accent-cyan); color: var(--bg-primary);">Most Popular</span>
+                    <span class="badge rounded-pill px-3 py-2" style="background-color: var(--accent-cyan); color: var(--bg-primary); font-weight: 600;">Most Popular</span>
                 </div>
-                <div class="card-body d-flex flex-column p-4">
+                <div class="card-body p-4 d-flex flex-column">
                     <div class="text-center mb-4">
-                        <h3 class="h5 text-subtle mb-1">Professional</h3>
-                        <div class="display-4 fw-bold text-cyan">$10</div>
-                        <div class="text-subtle">per month</div>
-                        <div class="text-subtle small">for researchers, journalists, and professionals</div>
+                        <h3 class="h4 fw-bold">Professional</h3>
+                        <p class="mb-4" style="color: var(--text-subtle);">For researchers, journalists, and professionals.</p>
                     </div>
-                    
-                    <ul class="list-unstyled mb-4">
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed"><strong>100</strong> archives per month</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">250 redirects per month</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">25MB max archive size</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">6 random character shortlinks + custom slugs</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Cited text highlighted</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Downloadable artifacts</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Link rot monitoring (5-minute interval)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Content change monitoring (1-hour interval)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">API access</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Full-text search</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Basic analytics</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Time proof: checksums + trusted timestamps</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Standard support (email)</span>
-                        </li>
+
+                    <!-- Link Permanence Feature -->
+                    <div class="key-feature">
+                        <strong>Our Guarantee:</strong>
+                        <p class="mb-0" style="color: var(--text-muted);">Artifacts will be hosted on cit.is for the life of your subscription, plus a 3-year grace period.</p>
+                    </div>
+
+                    <ul class="list-unstyled my-4">
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>100</strong> New Archives / Month</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>250</strong> New Redirects / Month</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>25MB</strong> Max Archive Size</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>6</strong> random characters (5 for first 1k!) + Custom slugs</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (5-minute interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (1-hour interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>API Access</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Full-Text Search</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Basic Analytics</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Periodic Re-Archival</li>
                     </ul>
-                    
-                    <div class="mt-auto">
-                        {% if user.is_authenticated %}
-                            {% if user.is_premium %}
-                                <button class="btn btn-success w-100" disabled>
-                                    Current Plan
-                                </button>
-                            {% else %}
-                                <form method="post" action="{% url 'web:create_checkout_session' %}" class="premium-signup-form">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="price_id" value="monthly">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        Start Professional
-                                    </button>
-                                </form>
-                            {% endif %}
-                        {% else %}
-                            <a href="{% url 'account_signup' %}" class="btn btn-primary w-100">
-                                Start Professional
-                            </a>
-                        {% endif %}
+
+                    <!-- Trust Feature -->
+                    <div class="key-feature">
+                        <strong>Trust: Time Proof</strong>
+                        <p class="mb-0" style="color: var(--text-muted);">In addition to checksums, every archive gets a trusted timestamp, creating a verifiable digital artifact.</p>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+                        <p class="text-center mb-0" style="color: var(--text-muted);">Support: Standard Support (Email)</p>
+                    </div>
+
+                    <div class="mt-auto pt-4">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary w-100">Start Professional - $10/mo</a>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Institutional / Sovereign Plan -->
-        <div class="col-lg-4">
-            <div class="card h-100 border-0">
-                <div class="card-body d-flex flex-column p-4">
+        <!-- Sovereign Plan -->
+        <div class="col-lg-4 d-flex">
+            <div class="card h-100 w-100 border-0 d-flex flex-column">
+                <div class="card-body p-4 d-flex flex-column">
                     <div class="text-center mb-4">
-                        <h3 class="h5 text-subtle mb-1">Institutional / Sovereign</h3>
-                        <div class="display-4 fw-bold text-bone">Contact Us</div>
-                        <div class="text-subtle">for law firms, newsrooms, libraries, and enterprises</div>
+                        <h3 class="h4 fw-bold">Sovereign</h3>
+                        <p class="mb-4" style="color: var(--text-subtle);">For law firms, newsrooms, and enterprises.</p>
                     </div>
-                    
-                    <ul class="list-unstyled mb-4">
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed"><strong>Unlimited</strong> archives (usage-based pricing)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Unlimited redirects (usage-based pricing)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Unlimited max archive size</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">5 random character shortlinks + custom slugs</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Custom domains</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Cited text highlighted</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Downloadable artifacts</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Link rot monitoring (real-time)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Content change monitoring (5-minute interval)</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">API access</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Full-text search</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Basic & advanced analytics</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Periodic re-archival</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Legal proof: multi-source verification + chain-of-custody</span>
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-cyan me-2"></i>
-                            <span class="text-dimmed">Dedicated priority support (phone, live chat, email)</span>
-                        </li>
+
+                    <!-- Link Permanence Feature -->
+                    <div class="key-feature">
+                        <strong>Your Freedom:</strong>
+                        <p class="mb-0" style="color: var(--text-muted);">By connecting a custom domain, your links can outlive us via our portable open source platform.</p>
+                    </div>
+
+                    <ul class="list-unstyled my-4">
+                        <li class="mb-2"><span class="me-2">&#10003;</span>**Custom Volume** (Usage-based)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>**Custom Volume** (Usage-based)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>**Custom Volume** (Usage-based)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5</strong> random characters (or any length) + Custom slugs</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (Real-time)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (5-minute interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>API Access</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Full-Text Search</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Advanced Analytics</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Periodic Re-Archival</li>
                     </ul>
-                    
-                    <div class="mt-auto">
-                        <a href="mailto:sales@citis.app" class="btn btn-outline-primary w-100">
-                            Contact Sales
-                        </a>
+
+                    <!-- Trust Feature -->
+                    <div class="key-feature">
+                        <strong>Trust: Legal Proof</strong>
+                        <p class="mb-0" style="color: var(--text-muted);">Multi-source verification, commercial timestamping, full chain-of-custody report, and optional legal consultation.</p>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+                        <p class="text-center mb-0" style="color: var(--text-muted);">Support: Dedicated Priority (Phone, Chat, Email)</p>
+                    </div>
+
+                    <div class="mt-auto pt-4">
+                        <a href="mailto:sales@citis.app" class="btn btn-outline-primary w-100">Contact Sales</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- FAQ Section -->
-    <div class="row">
+    <div class="row mt-5 pt-5">
         <div class="col-lg-8 mx-auto">
-            <h2 class="text-center mb-4 text-bone">Frequently Asked Questions</h2>
-            
+            <h2 class="text-center mb-4">Frequently Asked Questions</h2>
             <div class="accordion" id="pricingFAQ">
+                <!-- FAQ Item 1 -->
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq1">
-                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
-                            How long are archives stored?
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            What's the difference between a "Link Health Check" and "Content Integrity Scan"?
                         </button>
                     </h2>
-                    <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#pricingFAQ">
+                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            <strong>Free:</strong> Our Promise - Artifacts will be hosted on cit.is for at least 3 years. After that, we may ask you to upgrade to preserve older archives.<br>
-                            <strong>Professional:</strong> Our Guarantee - Artifacts will be hosted on cit.is for the life of your subscription, plus a 3-year grace period.<br>
-                            <strong>Institutional / Sovereign:</strong> Your Freedom - Artifacts will be hosted on cit.is as long as the service exists. By connecting a custom domain, your links can even outlive us via our portable open source platform.
+                            A <strong>Link Health Check</strong> simply verifies if the original URL is still online (e.g., not a 404 error). A <strong>Content Integrity Scan</strong> is much more powerful: it re-downloads the page and performs a comparison to see if the text or images have been meaningfully altered since you archived it.
                         </div>
                     </div>
                 </div>
-                
+                <!-- FAQ Item 2 -->
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq2">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
-                            Can I upgrade or downgrade my plan?
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            What is a "Trusted Timestamp"?
                         </button>
                     </h2>
-                    <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and billing is prorated accordingly.
+                            For our Professional and Sovereign plans, we use a third-party, cryptographically secure timestamping authority (TSA). This creates a verifiable, independent record proving that your archived content existed in a specific state at a specific point in time, which is crucial for legal and academic integrity.
                         </div>
                     </div>
                 </div>
-                
+                <!-- FAQ Item 3 -->
                 <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq3">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
-                            What happens if I exceed my monthly limit?
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                           Can I use my own domain?
                         </button>
                     </h2>
-                    <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            We'll notify you when you approach your limit. You can either upgrade your plan or wait until the next billing cycle. Your existing archives remain accessible.
+                           Yes! Custom domain support is a core feature of our Sovereign plan. This allows you to brand your archived links (e.g., `archive.yourcompany.com/ABC`) and provides a path to keep your links alive even if the cit.is service were to cease operations, ensuring true data sovereignty.
                         </div>
                     </div>
-                </div>
-                
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq4">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
-                            Do you offer refunds?
-                        </button>
-                    </h2>
-                    <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
-                        <div class="accordion-body">
-                            We offer a 30-day money-back guarantee for all paid plans. If you're not satisfied, contact support for a full refund.
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq5">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse5">
-                            Is there an API for developers?
-                        </button>
-                    </h2>
-                    <div id="collapse5" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
-                        <div class="accordion-body">
-                            Yes! Professional and Institutional / Sovereign plans include full API access. You can integrate archiving into your applications, automate workflows, and manage archives programmatically.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- CTA Section -->
-    <div class="row mt-5">
-        <div class="col-lg-8 mx-auto text-center">
-            <div class="cta-container p-5 rounded-3">
-                <h3 class="mb-3 text-bone">Ready to get started?</h3>
-                <p class="text-subtle mb-4">
-                    Join thousands of professionals who trust cit.is for permanent web archiving
-                </p>
-                <div class="d-flex gap-3 justify-content-center">
-                    <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg">
-                        Start Free Trial
-                    </a>
-                    <a href="{% url 'web:about' %}" class="btn btn-outline-primary btn-lg">
-                        Learn More
-                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-// Handle premium signup form submission
-document.addEventListener('DOMContentLoaded', function() {
-    const premiumForms = document.querySelectorAll('.premium-signup-form');
-    
-    premiumForms.forEach(form => {
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const button = form.querySelector('button[type="submit"]');
-            const originalText = button.textContent;
-            button.textContent = 'Processing...';
-            button.disabled = true;
-            
-            try {
-                const formData = new FormData(form);
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.checkout_url) {
-                        window.location.href = data.checkout_url;
-                    } else {
-                        throw new Error('No checkout URL received');
-                    }
-                } else {
-                    throw new Error('Failed to create checkout session');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to start premium subscription. Please try again.');
-                button.textContent = originalText;
-                button.disabled = false;
-            }
-        });
-    });
-});
-</script>
-{% endblock %} 
+{% endblock %}

@@ -139,45 +139,70 @@
         /* Navigation - no separate background for minimalism */
         .navbar {
             background: transparent !important; /* Minimal, let motes show through */
-            border-bottom: 1px solid var(--border-subtle);
-            backdrop-filter: blur(5px); /* Subtle background blur */
+            border-bottom: none; /* Remove border for cleaner look */
+            backdrop-filter: none; /* Remove blur for more minimal approach */
+            padding: 2rem 0 1rem 0; /* More breathing room */
         }
         
         .navbar-brand {
             color: var(--text-bone) !important;
             font-weight: 400;
-            font-size: 1.25rem;
-            text-shadow: 0 0 10px rgba(255, 245, 235, 0.3);
-            letter-spacing: -0.5px;
+            font-size: 1rem; /* Smaller, more restrained */
+            text-shadow: none; /* Remove glow for minimalism */
+            letter-spacing: 2px; /* More spaced out */
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+            text-transform: uppercase;
         }
         
         .navbar-brand:hover {
             color: var(--accent-cyan) !important;
         }
         
+        /* Center the entire navbar content */
+        .navbar .container-fluid {
+            justify-content: center;
+        }
+        
         .nav-link {
-            color: var(--text-dimmed) !important;
-            font-weight: 500;
+            color: var(--text-subtle) !important; /* More subdued */
+            font-weight: 400; /* Less bold */
             transition: all 0.3s ease;
             text-transform: uppercase;
-            font-size: 0.875rem;
-            letter-spacing: 0.5px;
-            white-space: nowrap; /* Prevent wrapping */
+            font-size: 0.75rem; /* Smaller */
+            letter-spacing: 1px;
+            white-space: nowrap;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+            margin: 0 1.5rem; /* More spacing between items */
         }
         
         .nav-link:hover {
             color: var(--accent-hover) !important;
-            text-shadow: 0 0 8px rgba(78, 205, 196, 0.4);
+            text-shadow: none; /* Remove glow */
         }
         
-        /* Fix navbar collapse behavior - only collapse on very small screens */
-        @media (max-width: 768px) {
+        /* Hide navbar collapse on medium screens and up - keep it always expanded */
+        @media (min-width: 768px) {
+            .navbar-toggler {
+                display: none;
+            }
             .navbar-collapse {
-                background: rgba(26, 42, 46, 0.95);
-                border-radius: 6px;
-                margin-top: 0.5rem;
-                padding: 1rem;
-                border: 1px solid var(--border-subtle);
+                display: flex !important;
+            }
+        }
+        
+        /* Minimal mobile navigation */
+        @media (max-width: 767px) {
+            .navbar-collapse {
+                background: rgba(26, 42, 46, 0.98);
+                border-radius: 0;
+                margin-top: 1rem;
+                padding: 2rem 1rem;
+                border: none;
+                text-align: center;
+            }
+            .nav-link {
+                margin: 0.5rem 0;
+                display: block;
             }
         }
         
@@ -197,11 +222,13 @@
             font-weight: bold;
         }
         
-        .btn-primary:hover {
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active {
             background: var(--accent-hover);
             border-color: var(--accent-hover);
             color: var(--bg-primary);
-            box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
+            box-shadow: none;
         }
         
         .btn-outline-primary {
@@ -210,11 +237,13 @@
             background: transparent;
         }
         
-        .btn-outline-primary:hover {
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
             background: var(--accent-cyan);
             border-color: var(--accent-cyan);
             color: var(--bg-primary);
-            box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
+            box-shadow: none;
         }
         
         .btn-secondary {
@@ -269,6 +298,26 @@
         
         .form-control::placeholder {
             color: var(--text-subtle);
+        }
+        
+        /* Minimal form styling for landing page */
+        .minimal-form .form-control {
+            background: transparent;
+            border: 1px solid var(--text-subtle);
+            color: var(--text-dimmed);
+            border-radius: 0;
+        }
+        
+        .minimal-form .form-control:focus {
+            background: transparent;
+            border-color: var(--text-bone);
+            box-shadow: none;
+            color: var(--text-bone);
+        }
+        
+        .minimal-form .form-control::placeholder {
+            color: var(--text-subtle);
+            font-style: italic;
         }
         
         .form-label {
@@ -359,12 +408,62 @@
             color: var(--text-bone);
         }
         
-        /* Footer */
-        .footer {
+        /* Accordion styling */
+        .accordion {
+            --bs-accordion-bg: var(--bg-secondary);
+            --bs-accordion-border-color: var(--border-subtle);
+            --bs-accordion-btn-bg: var(--bg-secondary);
+            --bs-accordion-btn-color: var(--text-dimmed);
+            --bs-accordion-active-bg: var(--bg-tertiary);
+            --bs-accordion-active-color: var(--text-bone);
+        }
+        
+        .accordion-button {
             background: var(--bg-secondary);
-            border-top: 1px solid var(--border-subtle);
-            color: var(--text-subtle);
-            margin-top: 4rem;
+            color: var(--text-dimmed);
+            border: 1px solid var(--border-subtle);
+        }
+        
+        .accordion-button:not(.collapsed) {
+            background: var(--bg-tertiary);
+            color: var(--text-bone);
+            border-color: var(--border-subtle);
+            box-shadow: none;
+        }
+        
+        .accordion-button:focus {
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+            border-color: var(--accent-cyan);
+        }
+        
+        .accordion-body {
+            background: var(--bg-secondary);
+            color: var(--text-dimmed);
+        }
+        
+        /* Fix Bootstrap's blue focus colors */
+        .btn:focus,
+        .form-control:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+        }
+        
+        /* Override Bootstrap's primary color */
+        .border-primary {
+            border-color: var(--accent-cyan) !important;
+        }
+        
+        .text-primary {
+            color: var(--accent-cyan) !important;
+        }
+        
+        .bg-primary {
+            background-color: var(--accent-cyan) !important;
+        }
+        
+        /* Footer */
+        footer a:hover {
+            color: var(--accent-cyan) !important;
         }
         
         /* Auth pages */
@@ -444,176 +543,82 @@
             .navbar-brand {
                 font-size: 1rem;
             }
+            
+            /* Mobile minimal form adjustments */
+            .minimal-form {
+                flex-direction: column !important;
+                gap: 1.5rem !important;
+            }
+            
+            .minimal-form .form-control {
+                min-width: 280px !important;
+                text-align: center;
+            }
+            
+            .minimal-form .btn {
+                width: 100%;
+                max-width: 280px;
+            }
         }
     </style>
     
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Enhanced animated background motes -->
+    <!-- Subtle animated background motes -->
     <div class="background-motes">
-        <div class="mote" style="left: 10%; animation-delay: 0s;"></div>
-        <div class="mote" style="left: 20%; animation-delay: 2s;"></div>
-        <div class="mote" style="left: 30%; animation-delay: 4s;"></div>
-        <div class="mote" style="left: 40%; animation-delay: 6s;"></div>
-        <div class="mote" style="left: 50%; animation-delay: 8s;"></div>
-        <div class="mote" style="left: 60%; animation-delay: 10s;"></div>
-        <div class="mote" style="left: 70%; animation-delay: 12s;"></div>
-        <div class="mote" style="left: 80%; animation-delay: 14s;"></div>
-        <div class="mote" style="left: 90%; animation-delay: 16s;"></div>
-        <div class="mote" style="left: 15%; animation-delay: 18s;"></div>
-        <div class="mote" style="left: 25%; animation-delay: 20s;"></div>
-        <div class="mote" style="left: 35%; animation-delay: 22s;"></div>
-        <div class="mote" style="left: 45%; animation-delay: 24s;"></div>
-        <div class="mote" style="left: 55%; animation-delay: 26s;"></div>
-        <div class="mote" style="left: 65%; animation-delay: 28s;"></div>
-        <div class="mote" style="left: 75%; animation-delay: 30s;"></div>
+        <div class="mote" style="left: 15%; animation-delay: 0s;"></div>
+        <div class="mote" style="left: 35%; animation-delay: 8s;"></div>
+        <div class="mote" style="left: 55%; animation-delay: 16s;"></div>
+        <div class="mote" style="left: 75%; animation-delay: 24s;"></div>
         <div class="mote" style="left: 85%; animation-delay: 32s;"></div>
-        <div class="mote" style="left: 95%; animation-delay: 34s;"></div>
-        <div class="mote" style="left: 5%; animation-delay: 36s;"></div>
-        <div class="mote" style="left: 12%; animation-delay: 38s;"></div>
-        <div class="mote" style="left: 22%; animation-delay: 40s;"></div>
-        <div class="mote" style="left: 32%; animation-delay: 42s;"></div>
-        <div class="mote" style="left: 42%; animation-delay: 44s;"></div>
-        <div class="mote" style="left: 52%; animation-delay: 46s;"></div>
-        <div class="mote" style="left: 62%; animation-delay: 48s;"></div>
-        <div class="mote" style="left: 72%; animation-delay: 50s;"></div>
-        <div class="mote" style="left: 82%; animation-delay: 52s;"></div>
-        <div class="mote" style="left: 92%; animation-delay: 54s;"></div>
-        <div class="mote" style="left: 8%; animation-delay: 56s;"></div>
-        <div class="mote" style="left: 18%; animation-delay: 58s;"></div>
-        <div class="mote" style="left: 28%; animation-delay: 60s;"></div>
-        <div class="mote" style="left: 38%; animation-delay: 62s;"></div>
-        <div class="mote" style="left: 48%; animation-delay: 64s;"></div>
-        <div class="mote" style="left: 58%; animation-delay: 66s;"></div>
-        <div class="mote" style="left: 68%; animation-delay: 68s;"></div>
-        <div class="mote" style="left: 78%; animation-delay: 70s;"></div>
-        <div class="mote" style="left: 88%; animation-delay: 72s;"></div>
-        <div class="mote" style="left: 98%; animation-delay: 74s;"></div>
-        <div class="mote" style="left: 3%; animation-delay: 76s;"></div>
-        <div class="mote" style="left: 13%; animation-delay: 78s;"></div>
-        <div class="mote" style="left: 23%; animation-delay: 80s;"></div>
-        <div class="mote" style="left: 33%; animation-delay: 82s;"></div>
-        <div class="mote" style="left: 43%; animation-delay: 84s;"></div>
-        <div class="mote" style="left: 53%; animation-delay: 86s;"></div>
-        <div class="mote" style="left: 63%; animation-delay: 88s;"></div>
-        <div class="mote" style="left: 73%; animation-delay: 90s;"></div>
-        <div class="mote" style="left: 83%; animation-delay: 92s;"></div>
-        <div class="mote" style="left: 93%; animation-delay: 94s;"></div>
-        <div class="mote" style="left: 7%; animation-delay: 2s;"></div>
-        <div class="mote" style="left: 17%; animation-delay: 4s;"></div>
-        <div class="mote" style="left: 27%; animation-delay: 6s;"></div>
-        <div class="mote" style="left: 37%; animation-delay: 8s;"></div>
-        <div class="mote" style="left: 47%; animation-delay: 10s;"></div>
-        <div class="mote" style="left: 57%; animation-delay: 12s;"></div>
-        <div class="mote" style="left: 67%; animation-delay: 14s;"></div>
-        <div class="mote" style="left: 77%; animation-delay: 16s;"></div>
-        <div class="mote" style="left: 87%; animation-delay: 18s;"></div>
-        <div class="mote" style="left: 97%; animation-delay: 20s;"></div>
-        <div class="mote" style="left: 11%; animation-delay: 22s;"></div>
-        <div class="mote" style="left: 21%; animation-delay: 24s;"></div>
-        <div class="mote" style="left: 31%; animation-delay: 26s;"></div>
-        <div class="mote" style="left: 41%; animation-delay: 28s;"></div>
-        <div class="mote" style="left: 51%; animation-delay: 30s;"></div>
-        <div class="mote" style="left: 61%; animation-delay: 32s;"></div>
-        <div class="mote" style="left: 71%; animation-delay: 34s;"></div>
-        <div class="mote" style="left: 81%; animation-delay: 36s;"></div>
-        <div class="mote" style="left: 91%; animation-delay: 38s;"></div>
-        <div class="mote" style="left: 4%; animation-delay: 40s;"></div>
-        <div class="mote" style="left: 14%; animation-delay: 42s;"></div>
-        <div class="mote" style="left: 24%; animation-delay: 44s;"></div>
-        <div class="mote" style="left: 34%; animation-delay: 46s;"></div>
-        <div class="mote" style="left: 44%; animation-delay: 48s;"></div>
-        <div class="mote" style="left: 54%; animation-delay: 50s;"></div>
-        <div class="mote" style="left: 64%; animation-delay: 52s;"></div>
-        <div class="mote" style="left: 74%; animation-delay: 54s;"></div>
-        <div class="mote" style="left: 84%; animation-delay: 56s;"></div>
-        <div class="mote" style="left: 94%; animation-delay: 58s;"></div>
-        <div class="mote" style="left: 6%; animation-delay: 60s;"></div>
-        <div class="mote" style="left: 16%; animation-delay: 62s;"></div>
-        <div class="mote" style="left: 26%; animation-delay: 64s;"></div>
-        <div class="mote" style="left: 36%; animation-delay: 66s;"></div>
-        <div class="mote" style="left: 46%; animation-delay: 68s;"></div>
-        <div class="mote" style="left: 56%; animation-delay: 70s;"></div>
-        <div class="mote" style="left: 66%; animation-delay: 72s;"></div>
-        <div class="mote" style="left: 76%; animation-delay: 74s;"></div>
-        <div class="mote" style="left: 86%; animation-delay: 76s;"></div>
-        <div class="mote" style="left: 96%; animation-delay: 78s;"></div>
-        <div class="mote" style="left: 9%; animation-delay: 80s;"></div>
-        <div class="mote" style="left: 19%; animation-delay: 82s;"></div>
-        <div class="mote" style="left: 29%; animation-delay: 84s;"></div>
-        <div class="mote" style="left: 39%; animation-delay: 86s;"></div>
-        <div class="mote" style="left: 49%; animation-delay: 88s;"></div>
-        <div class="mote" style="left: 59%; animation-delay: 90s;"></div>
-        <div class="mote" style="left: 69%; animation-delay: 92s;"></div>
-        <div class="mote" style="left: 79%; animation-delay: 94s;"></div>
-        <div class="mote" style="left: 89%; animation-delay: 96s;"></div>
-        <div class="mote" style="left: 99%; animation-delay: 98s;"></div>
-        <div class="mote" style="left: 1%; animation-delay: 100s;"></div>
-        <div class="mote" style="left: 2%; animation-delay: 4s;"></div>
-        <div class="mote" style="left: 41%; animation-delay: 8s;"></div>
-        <div class="mote" style="left: 71%; animation-delay: 12s;"></div>
-        <div class="mote" style="left: 88%; animation-delay: 52s;"></div>
-        <div class="mote" style="left: 95%; animation-delay: 54s;"></div>
+        <div class="mote" style="left: 25%; animation-delay: 40s;"></div>
+        <div class="mote" style="left: 45%; animation-delay: 48s;"></div>
+        <div class="mote" style="left: 65%; animation-delay: 56s;"></div>
+        <div class="mote" style="left: 5%; animation-delay: 64s;"></div>
+        <div class="mote" style="left: 95%; animation-delay: 72s;"></div>
+        <div class="mote" style="left: 10%; animation-delay: 80s;"></div>
+        <div class="mote" style="left: 30%; animation-delay: 88s;"></div>
+        <div class="mote" style="left: 50%; animation-delay: 96s;"></div>
+        <div class="mote" style="left: 70%; animation-delay: 104s;"></div>
+        <div class="mote" style="left: 90%; animation-delay: 112s;"></div>
+        <div class="mote" style="left: 20%; animation-delay: 120s;"></div>
+        <div class="mote" style="left: 40%; animation-delay: 128s;"></div>
+        <div class="mote" style="left: 60%; animation-delay: 136s;"></div>
+        <div class="mote" style="left: 80%; animation-delay: 144s;"></div>
+        <div class="mote" style="left: 12%; animation-delay: 152s;"></div>
+        <div class="mote" style="left: 32%; animation-delay: 160s;"></div>
+        <div class="mote" style="left: 52%; animation-delay: 168s;"></div>
+        <div class="mote" style="left: 72%; animation-delay: 176s;"></div>
+        <div class="mote" style="left: 92%; animation-delay: 184s;"></div>
+        <div class="mote" style="left: 8%; animation-delay: 192s;"></div>
     </div>
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-md"> <!-- Changed from navbar-expand-xl to navbar-expand-md -->
-        <div class="container-fluid"> <!-- Changed from container to container-fluid for more width -->
-            <a class="navbar-brand" href="/">
-                <!-- Option 1: Keep the Bootstrap icon -->
-                <i class="bi bi-archive"></i>
-                <!-- Option 2: Use CSS pixel art (uncomment to try) -->
-                <!-- <span class="pixel-logo"></span> -->
-                <strong>cit.is</strong>
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border-color: var(--border-subtle);">
+    <nav class="navbar navbar-expand-md">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" style="border: none; position: absolute; left: 1rem;">
                 <span class="navbar-toggler-icon" style="background-image: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 30 30%27%3e%3cpath stroke=%27%23E8DDD0%27 stroke-linecap=%27round%27 stroke-miterlimit=%2710%27 stroke-width=%272%27 d=%27M4 7h22M4 15h22M4 23h22%27/%3e%3c/svg%3e');"></span>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav mx-auto">
                     <li class="nav-item">
                         <a class="nav-link" href="/">HOME</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'web:about' %}">ABOUT</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'web:pricing' %}">PRICING</a>
                     </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'web:dashboard' %}">DASHBOARD</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:create_archive' %}">CREATE ARCHIVE</a>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:pricing' %}">PRICING</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'web:about' %}">ABOUT</a>
-                    </li>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i>
-                            {{ user.get_full_display_name|default:user.email }}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><h6 class="dropdown-header text-bone">Account</h6></li>
-                            <li><a class="dropdown-item" href="/accounts/email/"><i class="bi bi-envelope me-2"></i>Email Settings</a></li>
-                            <li><a class="dropdown-item" href="/accounts/password/change/"><i class="bi bi-lock me-2"></i>Change Password</a></li>
-                            <li><hr class="dropdown-divider" style="border-color: var(--border-subtle);"></li>
-                            <li><a class="dropdown-item" href="/accounts/logout/"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
-                    </li>
                     {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="/accounts/login/">LOGIN</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-primary ms-2" href="/accounts/signup/">SIGN UP</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -638,49 +643,36 @@
     </main>
     
     <!-- Footer -->
-    <footer class="footer">
+    <footer style="padding: 4rem 0 2rem 0; text-align: center; border-top: 1px solid var(--border-subtle); margin-top: 6rem;">
         <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-archive text-cyan me-2"></i>
-                        <span class="fw-bold text-bone font-mono">cit.is</span>
-                    </div>
-                    <p class="text-subtle mb-0">
-                        Permanent web archiving and citation for reliable research and documentation.
-                    </p>
-                </div>
-                <div class="col-md-6">
-                    <div class="row">
-                        <div class="col-6">
-                            <h6 class="fw-bold mb-3 text-bone">Product</h6>
-                            <ul class="list-unstyled">
-                                <li><a href="{% url 'web:pricing' %}" class="text-subtle text-decoration-none">Pricing</a></li>
-                                <li><a href="/api/docs/" class="text-subtle text-decoration-none">API Docs</a></li>
-                                <li><a href="{% url 'web:about' %}" class="text-subtle text-decoration-none">About</a></li>
-                            </ul>
-                        </div>
-                        <div class="col-6">
-                            <h6 class="fw-bold mb-3 text-bone">Support</h6>
-                            <ul class="list-unstyled">
-                                <li><a href="/admin/" class="text-subtle text-decoration-none">Admin</a></li>
-                                <li><a href="mailto:sij@sij.law" class="text-subtle text-decoration-none">Contact</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+            <div style="margin-bottom: 2rem;">
+                <a href="https://sij.law" target="_blank" rel="noopener" style="margin: 0 1rem; text-decoration: none; color: var(--text-subtle); transition: color 0.3s ease;">
+                    <span style="font-size: 1.5rem; font-family: monospace;">〄</span>
+                </a>
+                <a href="https://earth.law/@sij" target="_blank" rel="noopener" style="margin: 0 1rem; text-decoration: none; color: var(--text-subtle); transition: color 0.3s ease;">
+                    <svg style="width: 20px; height: 20px; vertical-align: middle;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                        <path d="M23.193 7.879c0-5.206-3.411-6.732-3.411-6.732C18.062.357 15.108.025 12.041 0h-.076c-3.068.025-6.02.357-7.74 1.147 0 0-3.411 1.526-3.411 6.732 0 1.192-.023 2.618.015 4.129.124 5.092.934 10.109 5.641 11.355 2.17.574 4.034.695 5.535.612 2.722-.15 4.25-.972 4.25-.972l-.09-1.975s-1.945.613-4.129.538c-2.165-.074-4.449-.233-4.799-2.891a5.499 5.499 0 0 1-.048-.745s2.125.519 4.817.643c1.646.076 3.19-.096 4.758-.283 3.007-.359 5.625-2.212 5.954-3.905.517-2.665.475-6.507.475-6.507zm-4.024 6.709h-2.497V8.469c0-1.29-.543-1.944-1.628-1.944-1.2 0-1.802.776-1.802 2.312v3.349h-2.483v-3.349c0-1.536-.602-2.312-1.802-2.312-1.085 0-1.628.655-1.628 1.944v6.119H4.832V8.284c0-1.29.328-2.313.987-3.07.679-.757 1.568-1.145 2.677-1.145 1.278 0 2.246.491 2.886 1.474L12 6.585l.618-1.043c.64-.983 1.608-1.474 2.886-1.474 1.109 0 1.998.388 2.677 1.145.659.757.987 1.78.987 3.07v6.304z"/>
+                    </svg>
+                </a>
+                <a href="https://bsky.app/profile/sij.law" target="_blank" rel="noopener" style="margin: 0 1rem; text-decoration: none; color: var(--text-subtle); transition: color 0.3s ease;">
+                    <svg style="width: 20px; height: 20px; vertical-align: middle;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                        <path d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479.815 2.736 3.713 3.66 6.383 3.364.136-.02.275-.039.415-.056-.138.022-.276.04-.415.056-3.912.58-7.387 2.005-2.83 7.078 5.013 5.19 6.87-1.113 7.823-4.308.953 3.195 2.05 9.271 7.733 4.308 4.267-4.308 1.172-6.498-2.74-7.078a8.741 8.741 0 0 1-.415-.056c.14.017.279.036.415.056 2.67.296 5.568-.628 6.383-3.364.246-.828.624-5.79.624-6.478 0-.69-.139-1.861-.902-2.206-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8Z"/>
+                    </svg>
+                </a>
+                <a href="https://matrix.to/#/@sij:we2.ee" target="_blank" rel="noopener" style="margin: 0 1rem; text-decoration: none; color: var(--text-subtle); transition: color 0.3s ease;">
+                    <svg style="width: 20px; height: 20px; vertical-align: middle;" viewBox="0 0 27.9 32" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                        <g transform="translate(-.095 .005)">
+                            <path d="m27.1 31.2v-30.5h-2.19v-0.732h3.04v32h-3.04v-0.732z"/>
+                            <path d="m8.23 10.4v1.54h0.044c0.385-0.564 0.893-1.03 1.49-1.37 0.58-0.323 1.25-0.485 1.99-0.485 0.72 0 1.38 0.14 1.97 0.42 0.595 0.279 1.05 0.771 1.36 1.48 0.338-0.5 0.796-0.941 1.38-1.32 0.58-0.383 1.27-0.574 2.06-0.574 0.602 0 1.16 0.074 1.67 0.22 0.514 0.148 0.954 0.383 1.32 0.707 0.366 0.323 0.653 0.746 0.859 1.27 0.205 0.522 0.308 1.15 0.308 1.89v7.63h-3.13v-6.46c0-0.383-0.015-0.743-0.044-1.08-0.0209-0.307-0.103-0.607-0.242-0.882-0.133-0.251-0.336-0.458-0.584-0.596-0.257-0.146-0.606-0.22-1.05-0.22-0.44 0-0.796 0.085-1.07 0.253-0.272 0.17-0.485 0.39-0.639 0.662-0.159 0.287-0.264 0.602-0.308 0.927-0.052 0.347-0.078 0.697-0.078 1.05v6.35h-3.13v-6.4c0-0.338-7e-3 -0.673-0.021-1-0.0114-0.314-0.0749-0.623-0.188-0.916-0.108-0.277-0.3-0.512-0.55-0.673-0.258-0.168-0.636-0.253-1.14-0.253-0.198 0.0083-0.394 0.042-0.584 0.1-0.258 0.0745-0.498 0.202-0.705 0.374-0.228 0.184-0.422 0.449-0.584 0.794-0.161 0.346-0.242 0.798-0.242 1.36v6.62h-3.13v-11.4z"/>
+                            <path d="m0.936 0.732v30.5h2.19v0.732h-3.04v-32h3.03v0.732z"/>
+                        </g>
+                    </svg>
+                </a>
             </div>
-            <hr class="my-4" style="border-color: var(--border-subtle);">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <p class="text-subtle mb-0">
-                        &copy; {% now "Y" %} cit.is · all rights reserved
-                    </p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <span class="text-subtle">anchor your cites in time</span>
-                </div>
-            </div>
+            
+            <p style="font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace; font-size: 0.6rem; color: var(--text-subtle); opacity: 0.5; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                &copy; {% now "Y" %} cit.is · all rights reserved
+            </p>
         </div>
     </footer>
     
