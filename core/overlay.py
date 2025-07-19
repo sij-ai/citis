@@ -473,20 +473,24 @@ def create_favicon_tag(soup, shortcode_obj) -> None:
     favicon_link.attrs['rel'] = 'shortcut icon'
     favicon_link.attrs['type'] = 'image/x-icon'
     
-    # For SingleFile mode, check if favicon exists in archive
-    if shortcode_obj.archive_path:
-        archive_path = Path(shortcode_obj.archive_path)
-        favicon_path = archive_path / "favicon.ico"
-        if favicon_path.exists():
-            # Use relative path construction that matches the serving logic
-            prefix = f"/{settings.SERVER_URL_PREFIX}" if settings.SERVER_URL_PREFIX else ""
-            # We'll need to serve favicon through a new endpoint
-            favicon_link.attrs['href'] = f"{prefix}/{shortcode_obj.shortcode}.favicon.ico"
+    # For SingleFile mode, check if favicon exists in archive using filesystem
+    if shortcode_obj.is_archived():
+        archive_path = shortcode_obj.get_latest_archive_path()
+        if archive_path:
+            favicon_path = archive_path / "favicon.ico"
+            if favicon_path.exists():
+                # Use relative path construction that matches the serving logic
+                prefix = f"/{settings.SERVER_URL_PREFIX}" if settings.SERVER_URL_PREFIX else ""
+                # We'll need to serve favicon through a new endpoint
+                favicon_link.attrs['href'] = f"{prefix}/{shortcode_obj.shortcode}.favicon.ico"
+            else:
+                # No favicon available, remove link
+                return
         else:
-            # No favicon available, remove link
+            # No archive path, remove link
             return
     else:
-        # No archive path, remove link
+        # No archive available, remove link
         return
     
     # Insert at beginning of head for priority

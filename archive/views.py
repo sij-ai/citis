@@ -124,9 +124,7 @@ class AddArchiveView(APIView):
             archive_method=archive_method,
             creator_user=creator_user,
             creator_api_key=api_key,
-            creator_ip=client_ip,
-            archive_path=archive_result.get("archive_path", ""),
-            is_archived=True if archive_result.get("archive_path") else False
+            creator_ip=client_ip
         )
 
         # Format response

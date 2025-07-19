@@ -15,8 +15,10 @@ A Django-based SaaS for creating permanent, citable archives of web content. Per
 
 1. **Setup Environment**
    ```bash
+   # Copy the example environment file
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your configuration (see Configuration section below)
+   # At minimum, set: SERVER_BASE_URL, MASTER_USER_EMAIL, MASTER_USER_PASSWORD, MASTER_API_KEY
    ```
 
 2. **Install Dependencies**
@@ -24,11 +26,11 @@ A Django-based SaaS for creating permanent, citable archives of web content. Per
    pip install -r requirements.txt
    ```
 
-3. **Database Setup**
+3. **Automated Setup**
    ```bash
-   python manage.py migrate
-   python manage.py createsuperuser
+   python setup_citis.py
    ```
+   This single command handles migrations, site configuration, and superuser creation automatically from your `.env` settings.
 
 4. **Run Development Server**
    ```bash
@@ -46,6 +48,12 @@ Key environment variables in `.env`:
 SECRET_KEY=your-secret-key
 DEBUG=True
 DATABASE_URL=sqlite:///db.sqlite3
+SERVER_BASE_URL=https://yourdomain.com
+
+# Master User (for API key authentication)
+MASTER_USER_EMAIL=admin@yourdomain.com
+MASTER_USER_PASSWORD=your-secure-password
+MASTER_API_KEY=your-master-api-key
 
 # Archive Engines  
 ARCHIVE_MODE=singlefile  # singlefile, archivebox, or both
@@ -55,6 +63,11 @@ SINGLEFILE_DATA_PATH=./archives
 # Optional Services
 STRIPE_SECRET_KEY=sk_test_...  # For billing
 REDIS_URL=redis://localhost:6379  # For caching/Celery
+
+# Overlay Styling (optional)
+OVERLAY_STYLE_BACKGROUND_COLOR=#000000
+OVERLAY_STYLE_LINK_COLOR=#ffe100
+OVERLAY_STYLE_ACCENT_COLOR=#ffe100
 ```
 
 ## Architecture

@@ -9,9 +9,14 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.conf import settings
 from datetime import datetime, timedelta
+from pathlib import Path
+from urllib.parse import urlparse
+from typing import Optional, List, Dict, Any
 import string
 import random
+import hashlib
 
 
 User = get_user_model()
@@ -198,6 +203,8 @@ class Shortcode(models.Model):
         help_text="Method used to archive this URL"
     )
     
+    # Archive status and path are determined dynamically from filesystem
+    
     class Meta:
         db_table = 'archive_shortcode'
         verbose_name = 'Shortcode'
@@ -248,6 +255,107 @@ class Shortcode(models.Model):
             .annotate(count=Count('id'))
             .order_by('-count')[:limit]
         )
+    
+    # Filesystem-based archive checking methods
+    def _url_to_base62_hash(self) -> str:
+        """Convert URL to base62 hash (same as migrate_archive.py)"""
+        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        hash_bytes = hashlib.sha256(self.url.encode('utf-8')).digest()
+        hash_int = int.from_bytes(hash_bytes[:8], byteorder='big')
+        
+        if hash_int == 0:
+            return alphabet[0]
+        
+        result = ""
+        while hash_int > 0:
+            result = alphabet[hash_int % 62] + result
+            hash_int //= 62
+        return result
+    
+    def _get_archive_base_path(self) -> Path:
+        """Get the base archive path from settings"""
+        data_path = Path(settings.SINGLEFILE_DATA_PATH)
+        if data_path.is_absolute():
+            return data_path
+        else:
+            # Resolve relative to project root
+            return Path(settings.BASE_DIR) / data_path
+    
+    def _get_archive_paths_for_url(self) -> List[Path]:
+        """Get all possible archive paths for this URL"""
+        parsed_url = urlparse(self.url)
+        domain = parsed_url.netloc.lower()
+        url_hash = self._url_to_base62_hash()
+        
+        archive_base_path = self._get_archive_base_path()
+        domain_path = archive_base_path / domain / url_hash
+        
+        if not domain_path.exists():
+            return []
+        
+        archive_paths = []
+        for year_dir in domain_path.iterdir():
+            if not year_dir.is_dir():
+                continue
+            
+            for mmdd_dir in year_dir.iterdir():
+                if not mmdd_dir.is_dir():
+                    continue
+                
+                for hhmmss_dir in mmdd_dir.iterdir():
+                    if not hhmmss_dir.is_dir():
+                        continue
+                    
+                    singlefile_path = hhmmss_dir / "singlefile.html"
+                    if singlefile_path.exists():
+                        archive_paths.append(hhmmss_dir)
+        
+        # Sort by timestamp (newest first)
+        archive_paths.sort(key=lambda p: p.name, reverse=True)
+        return archive_paths
+    
+    def get_latest_archive_path(self) -> Optional[Path]:
+        """Get the path to the most recent archive for this URL"""
+        archive_paths = self._get_archive_paths_for_url()
+        return archive_paths[0] if archive_paths else None
+    
+    def is_archived(self) -> bool:
+        """Check if this URL has been successfully archived"""
+        return self.get_latest_archive_path() is not None
+    
+    def get_archive_path(self) -> Optional[str]:
+        """Get the path to the archived content (for compatibility)"""
+        latest_path = self.get_latest_archive_path()
+        return str(latest_path) if latest_path else None
+    
+    def find_archives_for_url(self) -> List[Dict[str, Any]]:
+        """Find all archives for this URL with metadata"""
+        archive_paths = self._get_archive_paths_for_url()
+        archives = []
+        
+        for archive_path in archive_paths:
+            try:
+                # Extract timestamp from path structure: year/mmdd/hhmmss
+                path_parts = archive_path.parts
+                year = path_parts[-3]
+                mmdd = path_parts[-2]
+                hhmmss = path_parts[-1]
+                
+                timestamp_str = f"{year}{mmdd}{hhmmss}"
+                timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+                timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                
+                archives.append({
+                    "timestamp": str(int(timestamp_dt.timestamp())),
+                    "url": self.url,
+                    "archive_path": str(archive_path),
+                    "archive_method": self.archive_method
+                })
+            except Exception:
+                # Skip malformed paths
+                continue
+        
+        return sorted(archives, key=lambda x: float(x["timestamp"]), reverse=True)
     
     def clean_text_fragment(self):
         """Clean and validate the text fragment."""

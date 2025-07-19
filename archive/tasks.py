@@ -32,8 +32,6 @@ def archive_url_task(self, shortcode_id):
         
         if not managers:
             logger.error("No archive managers configured")
-            shortcode.is_archived = False
-            shortcode.save()
             return {"success": False, "error": "No archive managers configured"}
         
         # Archive with configured methods
@@ -48,26 +46,19 @@ def archive_url_task(self, shortcode_id):
                     )
                     archive_results.append(result)
                     
-                    # Update shortcode with archive path from first successful result
-                    if not shortcode.archive_path and result.get('archive_path'):
-                        shortcode.archive_path = result['archive_path']
-                    
                 except Exception as e:
                     logger.error(f"Archive failed with {method_name}: {e}")
                     archive_results.append({"error": str(e), "method": method_name})
         
-        # Mark as archived if any method succeeded
-        if any(r.get('archive_path') for r in archive_results):
-            shortcode.is_archived = True
+        # Check if archiving succeeded using filesystem
+        archive_successful = any(r.get('archive_path') for r in archive_results)
+        if archive_successful:
             logger.info(f"Successfully archived {shortcode.url} -> {shortcode.shortcode}")
         else:
-            shortcode.is_archived = False
             logger.error(f"All archive methods failed for {shortcode.url}")
         
-        shortcode.save()
-        
         return {
-            "success": shortcode.is_archived,
+            "success": archive_successful,
             "shortcode": shortcode.shortcode,
             "results": archive_results
         }
@@ -84,13 +75,7 @@ def archive_url_task(self, shortcode_id):
             logger.info(f"Retrying archive task for shortcode {shortcode_id}")
             raise self.retry(countdown=60 * (2 ** self.request.retries))
         
-        # Final failure - mark shortcode as failed
-        try:
-            shortcode = Shortcode.objects.get(pk=shortcode_id)
-            shortcode.is_archived = False
-            shortcode.save()
-        except Shortcode.DoesNotExist:
-            pass
+        # Final failure - archive status will be determined by filesystem
         
         return {"success": False, "error": str(exc)}
 
@@ -106,12 +91,12 @@ def extract_assets_task(self, shortcode_id):
     try:
         shortcode = Shortcode.objects.get(pk=shortcode_id)
         
-        if not shortcode.archive_path:
-            logger.warning(f"No archive path for shortcode {shortcode.shortcode}")
-            return {"success": False, "error": "No archive path"}
+        if not shortcode.is_archived():
+            logger.warning(f"No archive found for shortcode {shortcode.shortcode}")
+            return {"success": False, "error": "No archive found"}
         
-        archive_path = Path(shortcode.archive_path)
-        if not archive_path.exists():
+        archive_path = shortcode.get_latest_archive_path()
+        if not archive_path or not archive_path.exists():
             logger.warning(f"Archive path does not exist: {archive_path}")
             return {"success": False, "error": "Archive path not found"}
         
@@ -185,28 +170,27 @@ def cleanup_failed_archives_task():
     # Clean up old failed archives (older than 24 hours)
     cutoff = timezone.now() - timezone.timedelta(hours=24)
     
-    failed_archives = Shortcode.objects.filter(
-        is_archived=False,
-        created_at__lt=cutoff,
-        archive_path__isnull=False
-    )
+    # Get all old shortcodes and check their archive status
+    old_shortcodes = Shortcode.objects.filter(created_at__lt=cutoff)
     
     cleaned_count = 0
-    for shortcode in failed_archives:
+    for shortcode in old_shortcodes:
         try:
-            if shortcode.archive_path:
-                archive_path = Path(shortcode.archive_path)
-                if archive_path.exists():
-                    import shutil
-                    shutil.rmtree(archive_path)
-                    logger.info(f"Cleaned up failed archive: {archive_path}")
-                    cleaned_count += 1
-                
-                # Clear the archive path
-                shortcode.archive_path = ''
-                shortcode.save()
+            # Only clean up if not properly archived
+            if not shortcode.is_archived():
+                # Look for any orphaned archive directories for this URL
+                archive_paths = shortcode._get_archive_paths_for_url()
+                for archive_path in archive_paths:
+                    if archive_path.exists():
+                        # Check if the archive is incomplete (no singlefile.html)
+                        singlefile_path = archive_path / "singlefile.html"
+                        if not singlefile_path.exists():
+                            import shutil
+                            shutil.rmtree(archive_path)
+                            logger.info(f"Cleaned up incomplete archive: {archive_path}")
+                            cleaned_count += 1
         except Exception as e:
-            logger.error(f"Error cleaning up archive {shortcode.archive_path}: {e}")
+            logger.error(f"Error cleaning up archive for {shortcode.shortcode}: {e}")
     
     logger.info(f"Cleaned up {cleaned_count} failed archives")
     return {"cleaned_count": cleaned_count} 

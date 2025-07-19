@@ -319,6 +319,10 @@ SERVER_URL_PREFIX = os.getenv('SERVER_URL_PREFIX', '')
 SERVER_REQUIRE_API_KEY = os.getenv('SERVER_REQUIRE_API_KEY', 'True').lower() in ['true', '1', 'yes']
 MASTER_API_KEY = os.getenv('MASTER_API_KEY')
 
+# Master user configuration (for master API key)
+MASTER_USER_EMAIL = os.getenv('MASTER_USER_EMAIL', 'admin@example.com')
+MASTER_USER_PASSWORD = os.getenv('MASTER_USER_PASSWORD', 'changeme123')
+
 # Update email settings with proper domain if not explicitly set
 if not os.getenv('DEFAULT_FROM_EMAIL'):
     _domain = os.getenv('SITE_DOMAIN')

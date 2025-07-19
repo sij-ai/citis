@@ -24,7 +24,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Fields to display in the shortcode list
     list_display = (
         'shortcode', 'url_display', 'creator_user', 'created_at', 
-        'archive_method', 'visit_count', 'view_archive_link'
+        'archive_method', 'archived_status', 'visit_count', 'view_archive_link'
     )
     
     # Fields that can be used for filtering
@@ -44,7 +44,8 @@ class ShortcodeAdmin(admin.ModelAdmin):
     
     # Fields that should be read-only
     readonly_fields = (
-        'shortcode', 'created_at', 'creator_ip', 'visit_count_display'
+        'shortcode', 'created_at', 'creator_ip', 'visit_count_display',
+        'archive_path_display'
     )
     
     # Add date hierarchy for easy filtering by creation date
@@ -53,10 +54,10 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Organize fields in fieldsets
     fieldsets = (
         ('Archive Information', {
-            'fields': ('shortcode', 'url', 'archive_method')
+            'fields': ('shortcode', 'url', 'archived_status', 'archive_method')
         }),
         ('Content', {
-            'fields': ('text_fragment',),
+            'fields': ('text_fragment', 'archive_path_display'),
             'classes': ('wide',),
         }),
         ('Creator Information', {
@@ -96,6 +97,16 @@ class ShortcodeAdmin(admin.ModelAdmin):
         return '0 visits'
     visit_count_display.short_description = 'Visit Count'
     
+    def archived_status(self, obj):
+        """Display archive status using filesystem check"""
+        is_archived = obj.is_archived()
+        if is_archived:
+            return format_html('<span style="color: green;">✓ Archived</span>')
+        else:
+            return format_html('<span style="color: red;">✗ Not Archived</span>')
+    archived_status.short_description = 'Archive Status'
+    archived_status.admin_order_field = 'shortcode'  # Allow sorting by shortcode
+    
     def view_archive_link(self, obj):
         """Display link to view the archived page"""
         return format_html(
@@ -104,7 +115,12 @@ class ShortcodeAdmin(admin.ModelAdmin):
         )
     view_archive_link.short_description = 'Actions'
     
-
+    def archive_path_display(self, obj):
+        """Display archive path information"""
+        if obj.archive_path:
+            return format_html('<code>{}</code>', obj.archive_path)
+        return 'Not set'
+    archive_path_display.short_description = 'Archive Path'
     
     # Add annotations for efficient querying
     def get_queryset(self, request):
@@ -324,8 +340,17 @@ class ShortcodeInline(admin.TabularInline):
     """
     model = Shortcode
     extra = 0
-    readonly_fields = ('shortcode', 'url', 'created_at')
-    fields = ('shortcode', 'url', 'created_at')
+    readonly_fields = ('shortcode', 'url', 'created_at', 'archived_status')
+    fields = ('shortcode', 'url', 'created_at', 'archived_status')
+    
+    def archived_status(self, obj):
+        """Display archive status using filesystem check"""
+        is_archived = obj.is_archived()
+        if is_archived:
+            return format_html('<span style="color: green;">✓ Archived</span>')
+        else:
+            return format_html('<span style="color: red;">✗ Not Archived</span>')
+    archived_status.short_description = 'Archive Status'
     
     def has_add_permission(self, request, obj=None):
         """Prevent adding shortcodes through admin"""

@@ -1,6 +1,7 @@
-# Generated migration to remove incorrectly added archive fields
+# Generated manually for filesystem-based archive checking
 
 from django.db import migrations
+
 
 class Migration(migrations.Migration):
 
@@ -11,10 +12,10 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RemoveField(
             model_name='shortcode',
-            name='archive_path',
+            name='is_archived',
         ),
         migrations.RemoveField(
             model_name='shortcode',
-            name='is_archived',
+            name='archive_path',
         ),
     ] 

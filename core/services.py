@@ -1,195 +1,29 @@
 """
-Core services for the citis Django application.
+Core archiving services for the citis Django application.
 
-These services handle external integrations and business logic
-that can be shared across different parts of the application.
+These services handle the business logic for web archiving using SingleFile
+and ArchiveBox, as well as asset extraction (favicons, screenshots, PDFs).
 """
 
 import asyncio
-import tempfile
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
-from typing import Optional, Dict, Any, List
-import logging
+
 import httpx
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.http import HttpResponse
 
 logger = logging.getLogger(__name__)
-
-
-class SingleFileManager:
-    """
-    Manages SingleFile archiving with directory-based storage.
-    Ported from the original FastAPI implementation.
-    """
-    
-    def __init__(self):
-        # Resolve archive data path
-        data_path = Path(settings.SINGLEFILE_DATA_PATH)
-        if data_path.is_absolute():
-            self.archive_base_path = data_path
-        else:
-            # Resolve relative to project root
-            self.archive_base_path = (settings.BASE_DIR / data_path).resolve()
-        
-        logger.info(f"SingleFile archive path: {self.archive_base_path}")
-        
-    def _url_to_base62_hash(self, url: str) -> str:
-        """Convert URL to base62 hash (same as original system)"""
-        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-        hash_bytes = hashlib.sha256(url.encode('utf-8')).digest()
-        hash_int = int.from_bytes(hash_bytes[:8], byteorder='big')
-        
-        if hash_int == 0:
-            return alphabet[0]
-        
-        result = ""
-        while hash_int > 0:
-            result = alphabet[hash_int % 62] + result
-            hash_int //= 62
-        return result
-    
-    def _get_archive_path(self, url: str, timestamp: datetime) -> Path:
-        """Generate archive path using same structure as original system"""
-        parsed_url = urlparse(url)
-        domain = parsed_url.netloc.lower()
-        url_hash = self._url_to_base62_hash(url)
-        
-        year = timestamp.strftime('%Y')
-        mmdd = timestamp.strftime('%m%d')
-        hhmmss = timestamp.strftime('%H%M%S')
-        
-        return self.archive_base_path / domain / url_hash / year / mmdd / hhmmss
-    
-    def find_archives_for_url(self, url: str) -> List[Dict[str, Any]]:
-        """Find all SingleFile archives for a given URL"""
-        logger.debug(f"SingleFileManager.find_archives_for_url called with URL: {url}")
-        parsed_url = urlparse(url)
-        domain = parsed_url.netloc.lower()
-        url_hash = self._url_to_base62_hash(url)
-        logger.debug(f"Domain: {domain}, URL hash: {url_hash}")
-        
-        domain_path = self.archive_base_path / domain / url_hash
-        logger.debug(f"Looking for archives in: {domain_path}")
-        if not domain_path.exists():
-            logger.debug(f"Domain path does not exist: {domain_path}")
-            return []
-        
-        archives = []
-        for year_dir in domain_path.iterdir():
-            if not year_dir.is_dir():
-                continue
-            year = year_dir.name
-            
-            for mmdd_dir in year_dir.iterdir():
-                if not mmdd_dir.is_dir():
-                    continue
-                mmdd = mmdd_dir.name
-                
-                for hhmmss_dir in mmdd_dir.iterdir():
-                    if not hhmmss_dir.is_dir():
-                        continue
-                    hhmmss = hhmmss_dir.name
-                    
-                    singlefile_path = hhmmss_dir / "singlefile.html"
-                    
-                    if singlefile_path.exists():
-                        # Extract timestamp from path
-                        try:
-                            # Combine year, mmdd, and hhmmss to create timestamp
-                            timestamp_str = f"{year}{mmdd}{hhmmss}"
-                            timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-                            timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
-                            timestamp_unix = int(timestamp_dt.timestamp())
-                            
-                            archive_info = {
-                                "timestamp": str(timestamp_unix),
-                                "url": url,
-                                "archive_path": str(hhmmss_dir),
-                                "archive_method": "singlefile"
-                            }
-                            logger.debug(f"Found archive: {archive_info}")
-                            archives.append(archive_info)
-                        except Exception as e:
-                            logger.warning(f"Could not process archive at {hhmmss_dir}: {e}")
-        
-        sorted_archives = sorted(archives, key=lambda x: float(x["timestamp"]))
-        logger.debug(f"Total archives found for {url}: {len(sorted_archives)}")
-        return sorted_archives
-
-    async def archive_url(self, url: str, timestamp: datetime) -> Dict[str, Any]:
-        """Archive a URL using SingleFile CLI"""
-        archive_path = self._get_archive_path(url, timestamp)
-        archive_path.mkdir(parents=True, exist_ok=True)
-        
-        singlefile_path = archive_path / "singlefile.html"
-        
-        # Build command
-        cmd = [
-            settings.SINGLEFILE_EXECUTABLE_PATH,
-            url,
-            str(singlefile_path)
-        ]
-        
-        logger.info(f"Executing SingleFile: {' '.join(cmd)}")
-        
-        try:
-            # Get environment with proper PATH
-            env = os.environ.copy()
-            executable_dir = Path(settings.SINGLEFILE_EXECUTABLE_PATH).parent
-            if str(executable_dir) not in env.get("PATH", ""):
-                env["PATH"] = f"{executable_dir}:{env.get('PATH', '')}"
-            
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=env
-            )
-            
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), 
-                timeout=settings.SINGLEFILE_TIMEOUT
-            )
-            
-            if process.returncode != 0:
-                logger.error(f"SingleFile error: {stderr.decode()}")
-                raise Exception(f"SingleFile failed: {stderr.decode()}")
-            
-            if not singlefile_path.exists():
-                raise Exception("SingleFile output not created")
-            
-            logger.info(f"SingleFile archive created successfully at {archive_path}")
-            
-            return {
-                "timestamp": str(int(timestamp.timestamp())),
-                "url": url,
-                "archive_path": str(archive_path),
-                "archive_method": "singlefile",
-                "was_duplicate": False
-            }
-            
-        except asyncio.TimeoutError:
-            if archive_path.exists():
-                shutil.rmtree(archive_path)
-            raise Exception(f"SingleFile timed out after {settings.SINGLEFILE_TIMEOUT}s")
-        except FileNotFoundError:
-            if archive_path.exists():
-                shutil.rmtree(archive_path)
-            raise Exception("SingleFile CLI not found. Install with: npm install -g single-file-cli")
-        except Exception as e:
-            if archive_path.exists():
-                shutil.rmtree(archive_path)
-            logger.error(f"SingleFile error: {e}")
-            raise
 
 
 class AssetExtractor:
@@ -395,6 +229,294 @@ class AssetExtractor:
         except Exception as e:
             logger.error(f"PDF generation error: {e}")
             return False
+
+
+class SingleFileManager:
+    """Manages SingleFile archiving operations"""
+    
+    def __init__(self):
+        self.asset_extractor = AssetExtractor(timeout=10)
+        
+        # Resolve archive data path relative to BASE_DIR if it's relative
+        data_path = Path(settings.SINGLEFILE_DATA_PATH)
+        if data_path.is_absolute():
+            self.archive_base_path = data_path
+        else:
+            self.archive_base_path = (settings.BASE_DIR / data_path).resolve()
+        
+        logger.info(f"SingleFile archive path: {self.archive_base_path}")
+        
+    def _url_to_base62_hash(self, url: str) -> str:
+        """Convert URL to base62 hash"""
+        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        hash_bytes = hashlib.sha256(url.encode('utf-8')).digest()
+        hash_int = int.from_bytes(hash_bytes[:8], byteorder='big')
+        
+        if hash_int == 0:
+            return alphabet[0]
+        
+        result = ""
+        while hash_int > 0:
+            result = alphabet[hash_int % 62] + result
+            hash_int //= 62
+        return result
+    
+    def _get_archive_path(self, url: str, timestamp: datetime) -> Path:
+        """Generate archive path using structured directory layout"""
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+        url_hash = self._url_to_base62_hash(url)
+        
+        year = timestamp.strftime('%Y')
+        mmdd = timestamp.strftime('%m%d')
+        hhmmss = timestamp.strftime('%H%M%S')
+        
+        return self.archive_base_path / domain / url_hash / year / mmdd / hhmmss
+    
+    def _extract_url_from_singlefile(self, file_path: Path) -> Optional[str]:
+        """Extract original URL from SingleFile HTML header comment"""
+        try:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read(8192)  # Read first 8KB
+            
+            # Look for SingleFile comment with URL
+            pattern = r'<!--\s*Page saved with SingleFile.*?url:\s*([^\s]+).*?-->'
+            match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            
+            if match:
+                return match.group(1)
+            
+            # Fallback: try saved-url meta tag
+            soup = BeautifulSoup(content, 'html.parser')
+            saved_url_meta = soup.find('meta', attrs={'name': 'saved-url'})
+            if saved_url_meta and saved_url_meta.get('content'):
+                return saved_url_meta['content']
+            
+            # Final fallback: metadata.json
+            metadata_path = file_path.parent / "metadata.json"
+            if metadata_path.exists():
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                    return metadata.get('url')
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Could not extract URL from {file_path}: {e}")
+            return None
+    
+    def _files_are_identical(self, file1: Path, file2: Path) -> bool:
+        """Check if two files are identical by comparing hashes"""
+        try:
+            with open(file1, 'rb') as f1, open(file2, 'rb') as f2:
+                h1 = hashlib.sha256(f1.read()).hexdigest()
+                h2 = hashlib.sha256(f2.read()).hexdigest()
+                return h1 == h2
+        except Exception as e:
+            logger.debug(f"Could not compare files {file1} and {file2}: {e}")
+            return False
+    
+    def find_archives_for_url(self, url: str) -> List[Dict[str, Any]]:
+        """Find all SingleFile archives for a given URL"""
+        logger.debug(f"SingleFileManager.find_archives_for_url called with URL: {url}")
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+        url_hash = self._url_to_base62_hash(url)
+        
+        domain_path = self.archive_base_path / domain / url_hash
+        if not domain_path.exists():
+            logger.debug(f"Domain path does not exist: {domain_path}")
+            return []
+        
+        archives = []
+        for year_dir in domain_path.iterdir():
+            if not year_dir.is_dir():
+                continue
+                
+            year = year_dir.name
+            for mmdd_dir in year_dir.iterdir():
+                if not mmdd_dir.is_dir():
+                    continue
+                    
+                mmdd = mmdd_dir.name
+                for hhmmss_dir in mmdd_dir.iterdir():
+                    if not hhmmss_dir.is_dir():
+                        continue
+                        
+                    hhmmss = hhmmss_dir.name
+                    singlefile_path = hhmmss_dir / "singlefile.html"
+                    
+                    if singlefile_path.exists():
+                        timestamp_str = f"{year}{mmdd}{hhmmss}"
+                        try:
+                            timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+                            timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                            
+                            archives.append({
+                                "timestamp": str(int(timestamp_dt.timestamp())),
+                                "url": url,
+                                "archive_path": str(hhmmss_dir),
+                                "archive_method": "singlefile"
+                            })
+                        except ValueError:
+                            logger.debug(f"Invalid timestamp format: {timestamp_str}")
+                            continue
+        
+        # Sort by timestamp (newest first)
+        sorted_archives = sorted(archives, key=lambda x: float(x["timestamp"]), reverse=True)
+        logger.debug(f"Total archives found for {url}: {len(sorted_archives)}")
+        return sorted_archives
+    
+    def _check_for_duplicate(self, new_archive_path: Path, url: str) -> Optional[Path]:
+        """Check if an identical archive already exists for this URL"""
+        singlefile_path = new_archive_path / "singlefile.html"
+        if not singlefile_path.exists():
+            return None
+        
+        # Find all existing archives for this URL
+        existing_archives = self.find_archives_for_url(url)
+        
+        for archive in existing_archives:
+            existing_path = Path(archive["archive_path"])
+            if existing_path == new_archive_path:
+                continue  # Skip the one we just created
+            
+            existing_singlefile = existing_path / "singlefile.html"
+            if existing_singlefile.exists():
+                if self._files_are_identical(singlefile_path, existing_singlefile):
+                    logger.info(f"Found identical archive at {existing_path}")
+                    return existing_path
+        
+        return None
+    
+    async def _extract_favicon(self, url: str, archive_path: Path) -> bool:
+        """Extract favicon using shared AssetExtractor"""
+        return await self.asset_extractor.extract_favicon(url, archive_path)
+
+    async def _generate_screenshot(self, url: str, archive_path: Path) -> bool:
+        """Generate screenshot using shared AssetExtractor"""
+        if not settings.SINGLEFILE_GENERATE_SCREENSHOT:
+            return False
+        return await self.asset_extractor.generate_screenshot(
+            url, archive_path,
+            width=settings.SINGLEFILE_SCREENSHOT_WIDTH,
+            height=settings.SINGLEFILE_SCREENSHOT_HEIGHT,
+            timeout=settings.SINGLEFILE_TIMEOUT
+        )
+
+    async def _generate_pdf(self, url: str, archive_path: Path) -> bool:
+        """Generate PDF using shared AssetExtractor"""
+        if not settings.SINGLEFILE_GENERATE_PDF:
+            return False
+        return await self.asset_extractor.generate_pdf(
+            url, archive_path,
+            timeout=settings.SINGLEFILE_TIMEOUT
+        )
+
+    async def archive_url(self, url: str, timestamp: datetime) -> Dict[str, Any]:
+        """Archive a URL using SingleFile CLI with deduplication"""
+        archive_path = self._get_archive_path(url, timestamp)
+        archive_path.mkdir(parents=True, exist_ok=True)
+        
+        singlefile_path = archive_path / "singlefile.html"
+        
+        # Build command
+        cmd = [
+            settings.SINGLEFILE_EXECUTABLE_PATH,
+            url,
+            str(singlefile_path)
+        ]
+        
+        logger.info(f"Executing SingleFile: {' '.join(cmd)}")
+        
+        try:
+            # Get environment with proper PATH for the Node.js version
+            env = os.environ.copy()
+            executable_dir = Path(settings.SINGLEFILE_EXECUTABLE_PATH).parent
+            if str(executable_dir) not in env.get("PATH", ""):
+                env["PATH"] = f"{executable_dir}:{env.get('PATH', '')}"
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env
+            )
+            
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), 
+                timeout=settings.SINGLEFILE_TIMEOUT
+            )
+            
+            if process.returncode != 0:
+                logger.error(f"SingleFile error: {stderr.decode()}")
+                raise Exception(f"SingleFile failed: {stderr.decode()}")
+            
+            if not singlefile_path.exists():
+                raise Exception("SingleFile output not created")
+            
+            # Generate additional assets in parallel
+            tasks = [
+                self._extract_favicon(url, archive_path),
+                self._generate_screenshot(url, archive_path),
+                self._generate_pdf(url, archive_path)
+            ]
+            
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Log results but don't fail if any individual task fails
+            favicon_success, screenshot_success, pdf_success = results
+            if isinstance(favicon_success, Exception):
+                logger.warning(f"Favicon extraction failed: {favicon_success}")
+            if isinstance(screenshot_success, Exception):
+                logger.warning(f"Screenshot generation failed: {screenshot_success}")
+            if isinstance(pdf_success, Exception):
+                logger.warning(f"PDF generation failed: {pdf_success}")
+            
+            # Check for duplicates
+            duplicate_path = self._check_for_duplicate(archive_path, url)
+            if duplicate_path:
+                logger.info(f"Duplicate content detected, removing new archive {archive_path}")
+                # Remove the newly created archive since it's identical
+                shutil.rmtree(archive_path)
+                
+                # Extract timestamp from the duplicate path
+                path_parts = duplicate_path.parts
+                year = path_parts[-3]
+                mmdd = path_parts[-2]
+                hhmmss = path_parts[-1]
+                timestamp_str = f"{year}{mmdd}{hhmmss}"
+                timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
+                timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                
+                return {
+                    "timestamp": str(int(timestamp_dt.timestamp())),
+                    "url": url,
+                    "archive_path": str(duplicate_path),
+                    "archive_method": "singlefile",
+                    "was_duplicate": True
+                }
+            
+            logger.info(f"SingleFile archive created successfully at {archive_path}")
+            
+            return {
+                "timestamp": str(int(timestamp.timestamp())),
+                "url": url,
+                "archive_path": str(archive_path),
+                "archive_method": "singlefile",
+                "was_duplicate": False
+            }
+            
+        except asyncio.TimeoutError:
+            # Clean up on timeout
+            if archive_path.exists():
+                shutil.rmtree(archive_path)
+            raise Exception(f"SingleFile timed out after {settings.SINGLEFILE_TIMEOUT}s")
+        except Exception as e:
+            # Clean up on any other error
+            if archive_path.exists():
+                shutil.rmtree(archive_path)
+            raise e
 
 
 class ArchiveBoxManager:
