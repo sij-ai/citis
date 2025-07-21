@@ -69,14 +69,16 @@
                     </div>
 
                     <ul class="list-unstyled my-2">
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5</strong> New Archives / Month (+20 for students!)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>25 New Redirects / Month</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>5MB Max Archive Size</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>8 random character shortlinks</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5</strong> New Archives / Month (+<strong>20</strong> for students!)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>25</strong> New Redirects / Month</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5MB</strong> Max Archive Size</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>8</strong> random character shortlinks</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (1-day interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (<strong>1-day</strong> interval)</li>
                         <li class="mb-2 text-muted"><span class="me-2">&times;</span>Content Integrity Scan</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Device Simulation</li>
+                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Proxy Access</li>
                         <li class="mb-2 text-muted"><span class="me-2">&times;</span>API Access</li>
                         <li class="mb-2 text-muted"><span class="me-2">&times;</span>Full-Text Search</li>
                         <li class="mb-2 text-muted"><span class="me-2">&times;</span>Analytics</li>
@@ -122,11 +124,13 @@
                         <li class="mb-2"><span class="me-2">&#10003;</span><strong>100</strong> New Archives / Month</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span><strong>250</strong> New Redirects / Month</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span><strong>25MB</strong> Max Archive Size</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>6</strong> random characters (5 for first 1k!) + Custom slugs</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>6</strong> random characters (<strong>5</strong> for first <strong>1k</strong>!) + Custom slugs</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (5-minute interval)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (1-hour interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (<strong>5-minute</strong> interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (<strong>1-hour</strong> interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Device Simulation (Desktop & Mobile)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Residential Proxy Access</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>API Access</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Full-Text Search</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Basic Analytics</li>
@@ -171,7 +175,10 @@
                         <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (Real-time)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (5-minute interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (<strong>5-minute</strong> interval)</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Advanced Device Simulation & Capture</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Global & Custom Proxy Access</li>
+                        <li class="mb-2"><span class="me-2">&#10003;</span>Full Forensic Package Download</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>API Access</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Full-Text Search</li>
                         <li class="mb-2"><span class="me-2">&#10003;</span>Advanced Analytics</li>
@@ -204,39 +211,130 @@
                 <!-- FAQ Item 1 -->
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                            What's the difference between a "Link Health Check" and "Content Integrity Scan"?
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            What is an "archive" or "artifact"? Is it just a screenshot?
                         </button>
                     </h2>
-                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            A <strong>Link Health Check</strong> simply verifies if the original URL is still online (e.g., not a 404 error). A <strong>Content Integrity Scan</strong> is much more powerful: it re-downloads the page and performs a comparison to see if the text or images have been meaningfully altered since you archived it.
+                            An artifact is much more than a screenshot. It is a fully interactive, self-contained HTML file. All the necessary CSS, fonts, and images are embedded directly into the file, so it looks and functions just like the original page, but can be viewed offline and will not change. You can select text, click (most) links, and interact with the content.
                         </div>
                     </div>
                 </div>
                 <!-- FAQ Item 2 -->
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
-                            What is a "Trusted Timestamp"?
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            What's the difference between "Link Health Check" and "Content Integrity Scan"?
                         </button>
                     </h2>
-                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
-                            For our Professional and Sovereign plans, we use a third-party, cryptographically secure timestamping authority (TSA). This creates a verifiable, independent record proving that your archived content existed in a specific state at a specific point in time, which is crucial for legal and academic integrity.
+                            A <strong>Link Health Check</strong> simply verifies if the original URL is still online (e.g., not a 404 error). A <strong>Content Integrity Scan</strong> is much more powerful: it re-downloads the page and performs a comparison to see if the text or images have been meaningfully altered since you archived it.
                         </div>
                     </div>
                 </div>
                 <!-- FAQ Item 3 -->
                 <div class="accordion-item">
                     <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            What is a "Trusted Timestamp"?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            For our Professional and Sovereign plans, we use a third-party, cryptographically secure timestamping authority (TSA). This creates a verifiable, independent record proving that your archived content existed in a specific state at a specific point in time, which is crucial for legal and academic integrity.
+                        </div>
+                    </div>
+                </div>
+                <!-- FAQ Item 4 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                           Why would I need a proxy to archive a public page?
+                        </button>
+                    </h2>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            Many modern websites serve different content based on the visitor's geographic location or block traffic from known datacenter IP addresses (like ours). Using a residential proxy allows our archiver to view the page exactly as a normal user from a specific country would, ensuring a high-fidelity capture of the correct content.
+                        </div>
+                    </div>
+                </div>
+                <!-- FAQ Item 5 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
                            Can I use my own domain?
                         </button>
                     </h2>
-                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
                         <div class="accordion-body">
                            Yes! Custom domain support is a core feature of our Sovereign plan. This allows you to brand your archived links (e.g., `archive.yourcompany.com/ABC`) and provides a path to keep your links alive even if the cit.is service were to cease operations, ensuring true data sovereignty.
+                        </div>
+                    </div>
+                </div>
+                 <!-- FAQ Item 6 -->
+                 <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                           What does "data sovereignty" mean for the Sovereign plan?
+                        </button>
+                    </h2>
+                    <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            It means you are in ultimate control. By using your own domain, you own the links themselves. If you ever decide to leave our service, you can use our open-source platform to host your archived artifacts on your own infrastructure without breaking any of your existing links. Your data is never locked in.
+                        </div>
+                    </div>
+                </div>
+                <!-- FAQ Item 7 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                           Can a cit.is archive be used as legal evidence?
+                        </button>
+                    </h2>
+                    <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            While cit.is is designed to meet high standards for evidentiary integrity, admissibility is determined by courts on a case-by-case basis. Our Sovereign plan provides a "Full Forensic Package"—including checksums, trusted timestamps, and chain-of-custody reports—to provide the strongest possible technical foundation for your legal arguments. We cannot offer legal advice, but we can provide the tools to support your case.
+                        </div>
+                    </div>
+                </div>
+                <!-- FAQ Item 8 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq8">
+                           How do I qualify for the student bonus?
+                        </button>
+                    </h2>
+                    <div id="faq8" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            Simply sign up with a valid email address from an educational institution (e.g., `.edu`, `.ac.uk`). The bonus archive quota will be applied to your account automatically.
+                        </div>
+                    </div>
+                </div>
+                <!-- FAQ Item 9 -->
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq9">
+                           What are the limitations? Can I archive videos or paywalled content?
+                        </button>
+                    </h2>
+                    <div id="faq9" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            cit.is archives the content of a web page—text, images, and layout. It cannot archive streaming video or audio content (though it will capture the player and surrounding text). The service is designed for publicly accessible pages. Archiving content behind a paywall or login screen is not supported at this time.
+                        </div>
+                    </div>
+                </div>
+                 <!-- FAQ Item 10 -->
+                 <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq10">
+                           What if I need more than the Professional plan offers but don't need the full Sovereign plan?
+                        </button>
+                    </h2>
+                    <div id="faq10" class="accordion-collapse collapse" data-bs-parent="#pricingFAQ">
+                        <div class="accordion-body">
+                            We understand that needs vary. If your usage exceeds the Professional plan limits, please contact us. We can often create custom "Pro Plus" plans with higher quotas for power users, small teams, and organizations that don't yet require the full suite of Sovereign features.
                         </div>
                     </div>
                 </div>

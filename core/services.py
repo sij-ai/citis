@@ -413,21 +413,50 @@ class SingleFileManager:
             timeout=settings.SINGLEFILE_TIMEOUT
         )
 
-    async def archive_url(self, url: str, timestamp: datetime) -> Dict[str, Any]:
-        """Archive a URL using SingleFile CLI with deduplication"""
+    async def archive_url(self, url: str, timestamp: datetime, requester_ip: Optional[str] = None) -> Dict[str, Any]:
+        """Archive a URL using SingleFile CLI with optional proxy support"""
         archive_path = self._get_archive_path(url, timestamp)
         archive_path.mkdir(parents=True, exist_ok=True)
         
         singlefile_path = archive_path / "singlefile.html"
         
-        # Build command
+        # Build base command
         cmd = [
             settings.SINGLEFILE_EXECUTABLE_PATH,
             url,
             str(singlefile_path)
         ]
         
-        logger.info(f"Executing SingleFile: {' '.join(cmd)}")
+        # Add proxy configuration if enabled and configured
+        proxy_config = None
+        proxy_metadata = {}
+        
+        try:
+            from .proxy_manager import ProxyManager
+            proxy_manager = ProxyManager()
+            
+            if proxy_manager.proxy_enabled:
+                proxy_config = proxy_manager.get_optimal_proxy(requester_ip)
+                
+                if proxy_config:
+                    # Use SingleFile's native proxy CLI options
+                    cmd.extend(proxy_config.to_singlefile_args())
+                    proxy_metadata = proxy_config.to_metadata()
+                    logger.info(f"Using proxy for {url}: {proxy_config.country_code} ({proxy_config.city}) via {proxy_config.provider}")
+                else:
+                    logger.debug(f"No suitable proxy found for archiving {url}")
+            else:
+                logger.debug("Proxy functionality disabled or not configured")
+                
+        except Exception as e:
+            # Proxy configuration failed - continue without proxy
+            logger.warning(f"Proxy configuration failed, archiving without proxy: {e}")
+            proxy_config = None
+            proxy_metadata = {}
+        
+        # Filter out passwords from log output for security
+        log_cmd = [arg if 'password' not in arg.lower() else '[PASSWORD_HIDDEN]' for arg in cmd]
+        logger.info(f"Executing SingleFile: {' '.join(log_cmd)}")
         
         try:
             # Get environment with proper PATH for the Node.js version
@@ -454,6 +483,16 @@ class SingleFileManager:
             
             if not singlefile_path.exists():
                 raise Exception("SingleFile output not created")
+            
+            # Save proxy metadata to JSON file if proxy was used
+            if proxy_metadata:
+                metadata_path = archive_path / "proxy_metadata.json"
+                try:
+                    with open(metadata_path, 'w') as f:
+                        json.dump(proxy_metadata, f, indent=2)
+                    logger.info(f"Saved proxy metadata: {proxy_metadata.get('proxy_ip', 'unknown IP')} from {proxy_metadata.get('proxy_provider')}")
+                except Exception as e:
+                    logger.warning(f"Failed to save proxy metadata: {e}")
             
             # Generate additional assets in parallel
             tasks = [
@@ -494,7 +533,8 @@ class SingleFileManager:
                     "url": url,
                     "archive_path": str(duplicate_path),
                     "archive_method": "singlefile",
-                    "was_duplicate": True
+                    "was_duplicate": True,
+                    "proxy_metadata": {}  # No proxy metadata for duplicates
                 }
             
             logger.info(f"SingleFile archive created successfully at {archive_path}")
@@ -504,7 +544,8 @@ class SingleFileManager:
                 "url": url,
                 "archive_path": str(archive_path),
                 "archive_method": "singlefile",
-                "was_duplicate": False
+                "was_duplicate": False,
+                "proxy_metadata": proxy_metadata
             }
             
         except asyncio.TimeoutError:

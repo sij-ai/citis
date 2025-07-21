@@ -33,6 +33,7 @@ PyYAML
 markdown
 pymdown-extensions
 geoip2
+geopy  # For proxy distance calculations
 httpx
 
 # Development & Testing

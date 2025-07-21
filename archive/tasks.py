@@ -17,12 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def archive_url_task(self, shortcode_id):
+def archive_url_task(self, shortcode_id, requester_ip=None):
     """
     Archive a URL using the configured archive managers.
     
     Args:
         shortcode_id: ID of the Shortcode instance to archive
+        requester_ip: IP address of the requester for proxy selection
     """
     try:
         shortcode = Shortcode.objects.get(pk=shortcode_id)
@@ -40,11 +41,36 @@ def archive_url_task(self, shortcode_id):
         for method_name, manager in managers.items():
             if shortcode.archive_method in [method_name, 'both']:
                 try:
-                    # Run async archive method in sync task
-                    result = asyncio.run(
-                        manager.archive_url(shortcode.url, datetime.now(timezone.utc))
-                    )
+                    # Run async archive method in sync task with proxy support
+                    if hasattr(manager, 'archive_url'):
+                        # Check if the manager supports requester_ip parameter
+                        import inspect
+                        sig = inspect.signature(manager.archive_url)
+                        if 'requester_ip' in sig.parameters:
+                            result = asyncio.run(
+                                manager.archive_url(shortcode.url, datetime.now(timezone.utc), requester_ip=requester_ip)
+                            )
+                        else:
+                            # Fallback for managers that don't support proxy
+                            result = asyncio.run(
+                                manager.archive_url(shortcode.url, datetime.now(timezone.utc))
+                            )
+                    else:
+                        # Fallback for older manager interfaces
+                        result = asyncio.run(
+                            manager.archive_url(shortcode.url, datetime.now(timezone.utc))
+                        )
+                    
                     archive_results.append(result)
+                    
+                    # Store proxy metadata in database if available
+                    if 'proxy_metadata' in result and result['proxy_metadata']:
+                        proxy_meta = result['proxy_metadata']
+                        shortcode.proxy_ip = proxy_meta.get('proxy_ip')
+                        shortcode.proxy_country = proxy_meta.get('proxy_country')
+                        shortcode.proxy_provider = proxy_meta.get('proxy_provider')
+                        shortcode.save(update_fields=['proxy_ip', 'proxy_country', 'proxy_provider'])
+                        logger.info(f"Stored proxy metadata for {shortcode.shortcode}: {proxy_meta.get('proxy_ip')} ({proxy_meta.get('proxy_provider')})")
                     
                 except Exception as e:
                     logger.error(f"Archive failed with {method_name}: {e}")

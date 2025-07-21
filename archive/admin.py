@@ -24,12 +24,12 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Fields to display in the shortcode list
     list_display = (
         'shortcode', 'url_display', 'creator_user', 'created_at', 
-        'archive_method', 'archived_status', 'visit_count', 'view_archive_link'
+        'archive_method', 'archived_status', 'proxy_display', 'visit_count', 'view_archive_link'
     )
     
     # Fields that can be used for filtering
     list_filter = (
-        'archive_method', 'created_at', 
+        'archive_method', 'proxy_provider', 'proxy_country', 'created_at', 
         'creator_user', 'creator_api_key'
     )
     
@@ -45,7 +45,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Fields that should be read-only
     readonly_fields = (
         'shortcode', 'created_at', 'creator_ip', 'visit_count_display',
-        'archive_path_display'
+        'archive_path_display', 'proxy_ip', 'proxy_country', 'proxy_provider'
     )
     
     # Add date hierarchy for easy filtering by creation date
@@ -62,6 +62,10 @@ class ShortcodeAdmin(admin.ModelAdmin):
         }),
         ('Creator Information', {
             'fields': ('creator_user', 'creator_api_key', 'creator_ip'),
+            'classes': ('collapse',),
+        }),
+        ('Proxy Information', {
+            'fields': ('proxy_ip', 'proxy_country', 'proxy_provider'),
             'classes': ('collapse',),
         }),
         ('Metadata', {
@@ -121,6 +125,25 @@ class ShortcodeAdmin(admin.ModelAdmin):
             return format_html('<code>{}</code>', obj.archive_path)
         return 'Not set'
     archive_path_display.short_description = 'Archive Path'
+    
+    def proxy_display(self, obj):
+        """Display proxy information"""
+        proxy_meta = obj.get_proxy_metadata()
+        
+        if proxy_meta.get('proxy_configured', False):
+            proxy_ip = proxy_meta.get('proxy_ip', 'Unknown')
+            proxy_country = proxy_meta.get('proxy_country', '??')
+            proxy_provider = proxy_meta.get('proxy_provider', 'Unknown')
+            
+            return format_html(
+                '<span title="Provider: {}, IP: {}">{} ({})</span>',
+                proxy_provider,
+                proxy_ip,
+                proxy_ip[:12] + '...' if len(proxy_ip) > 15 else proxy_ip,
+                proxy_country
+            )
+        return format_html('<span style="color: #999;">Direct</span>')
+    proxy_display.short_description = 'Proxy Used'
     
     # Add annotations for efficient querying
     def get_queryset(self, request):

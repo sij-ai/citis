@@ -205,6 +205,20 @@ class Shortcode(models.Model):
     
     # Archive status and path are determined dynamically from filesystem
     
+    # Proxy metadata
+    proxy_ip = models.GenericIPAddressField(
+        null=True, blank=True,
+        help_text="IP address of proxy used for archiving"
+    )
+    proxy_country = models.CharField(
+        max_length=2, blank=True,
+        help_text="Country code of proxy used for archiving"
+    )
+    proxy_provider = models.CharField(
+        max_length=50, blank=True,
+        help_text="Proxy provider used for archiving"
+    )
+    
     class Meta:
         db_table = 'archive_shortcode'
         verbose_name = 'Shortcode'
@@ -356,6 +370,30 @@ class Shortcode(models.Model):
                 continue
         
         return sorted(archives, key=lambda x: float(x["timestamp"]), reverse=True)
+    
+    def get_proxy_metadata(self) -> Dict[str, Any]:
+        """Get proxy metadata from filesystem or database"""
+        # First try to load from JSON file
+        archive_path = self.get_latest_archive_path()
+        if archive_path:
+            metadata_path = archive_path / "proxy_metadata.json"
+            if metadata_path.exists():
+                try:
+                    with open(metadata_path, 'r') as f:
+                        return json.load(f)
+                except Exception:
+                    pass
+        
+        # Fallback to database fields
+        if self.proxy_ip:
+            return {
+                'proxy_ip': self.proxy_ip,
+                'proxy_country': self.proxy_country,
+                'proxy_provider': self.proxy_provider,
+                'proxy_configured': True
+            }
+        
+        return {'proxy_configured': False}
     
     def clean_text_fragment(self):
         """Clean and validate the text fragment."""

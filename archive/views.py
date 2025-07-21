@@ -77,44 +77,13 @@ class AddArchiveView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-        # Get client IP from request
+        # Get client IP from request for proxy selection
         client_ip = get_client_ip(request)
 
         # Determine archive method based on settings and API key preferences
         archive_method = settings.ARCHIVE_MODE
         if hasattr(creator_user, 'default_archive_method'):
             archive_method = creator_user.default_archive_method
-
-        # Perform archiving
-        try:
-            timestamp = datetime.now(timezone.utc)
-            managers = get_archive_managers()
-            
-            # Select the appropriate manager, with fallback
-            manager_to_use = None
-            if archive_method in managers:
-                manager_to_use = managers[archive_method]
-            elif "singlefile" in managers:
-                manager_to_use = managers["singlefile"]
-                archive_method = "singlefile"
-            
-            if manager_to_use:
-                archive_result = asyncio.run(manager_to_use.archive_url(url, timestamp))
-            else:
-                return Response(
-                    {"error": f"No archive method available for mode: {archive_method}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
-            message = "Archive created."
-            if archive_result.get("was_duplicate"):
-                message = "Archive already exists (identical content found)."
-
-        except Exception as e:
-            return Response(
-                {"error": f"Archive creation failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
         # Create shortcode record
         shortcode_obj = Shortcode.objects.create(
@@ -126,6 +95,23 @@ class AddArchiveView(APIView):
             creator_api_key=api_key,
             creator_ip=client_ip
         )
+
+        # Trigger background archiving with proxy support
+        try:
+            from .tasks import archive_url_task
+            
+            # Check if we're in test mode (synchronous) or production (async)
+            if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
+                # Synchronous for testing
+                archive_url_task.apply(args=[shortcode_obj.shortcode], kwargs={'requester_ip': client_ip})
+            else:
+                # Asynchronous for production
+                archive_url_task.delay(shortcode_obj.shortcode, requester_ip=client_ip)
+                
+            message = "Archive creation started in background."
+        except Exception as e:
+            # Archive task failed to start, but shortcode is created
+            message = f"Shortcode created, but archive task failed to start: {str(e)}"
 
         # Format response
         base_url = settings.SERVER_BASE_URL

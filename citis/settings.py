@@ -370,6 +370,24 @@ SINGLEFILE_SCREENSHOT_HEIGHT = int(os.getenv('SINGLEFILE_SCREENSHOT_HEIGHT', 108
 # GeoIP Configuration
 GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
 
+# =============================================================================
+# RESIDENTIAL PROXY CONFIGURATION
+# =============================================================================
+
+RESIDENTIAL_PROXY_ENABLED = os.getenv('RESIDENTIAL_PROXY_ENABLED', 'False').lower() == 'true'
+RESIDENTIAL_PROXY_PROVIDER = os.getenv('RESIDENTIAL_PROXY_PROVIDER', 'brightdata')
+
+# Bright Data configuration
+BRIGHTDATA_USERNAME = os.getenv('BRIGHTDATA_USERNAME', '')
+BRIGHTDATA_PASSWORD = os.getenv('BRIGHTDATA_PASSWORD', '')
+BRIGHTDATA_ENDPOINT = os.getenv('BRIGHTDATA_ENDPOINT', 'brd.superproxy.io')
+BRIGHTDATA_PORT = int(os.getenv('BRIGHTDATA_PORT', 22225))
+
+# Proxy selection
+FALLBACK_PROXY_URL = os.getenv('FALLBACK_PROXY_URL', '')
+PROXY_SELECTION_STRATEGY = os.getenv('PROXY_SELECTION_STRATEGY', 'closest')
+PROXY_MAX_DISTANCE_KM = int(os.getenv('PROXY_MAX_DISTANCE_KM', 500))
+
 
 # =============================================================================
 # CELERY CONFIGURATION
