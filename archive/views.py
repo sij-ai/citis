@@ -96,19 +96,19 @@ class AddArchiveView(APIView):
             creator_ip=client_ip
         )
 
-        # Trigger background archiving with proxy support
+        # Execute archiving synchronously and wait for completion
         try:
             from .tasks import archive_url_task
             
-            # Check if we're in test mode (synchronous) or production (async)
-            if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False):
-                # Synchronous for testing
-                archive_url_task.apply(args=[shortcode_obj.shortcode], kwargs={'requester_ip': client_ip})
+            # Always run synchronously for immediate feedback
+            result = archive_url_task.apply(args=[shortcode_obj.shortcode], kwargs={'requester_ip': client_ip})
+            
+            if result.successful() and result.result.get('success', False):
+                message = "Archive created successfully."
             else:
-                # Asynchronous for production
-                archive_url_task.delay(shortcode_obj.shortcode, requester_ip=client_ip)
+                error_details = result.result.get('error', 'Unknown error') if result.result else 'Task failed'
+                message = f"Archive creation failed: {error_details}"
                 
-            message = "Archive creation started in background."
         except Exception as e:
             # Archive task failed to start, but shortcode is created
             message = f"Shortcode created, but archive task failed to start: {str(e)}"

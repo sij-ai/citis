@@ -13,7 +13,7 @@ import os
 import re
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from urllib.parse import urlparse
@@ -22,6 +22,7 @@ import httpx
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.http import HttpResponse
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -350,7 +351,7 @@ class SingleFileManager:
                         timestamp_str = f"{year}{mmdd}{hhmmss}"
                         try:
                             timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-                            timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                            timestamp_dt = timezone.make_aware(timestamp_dt)
                             
                             archives.append({
                                 "timestamp": str(int(timestamp_dt.timestamp())),
@@ -526,7 +527,7 @@ class SingleFileManager:
                 hhmmss = path_parts[-1]
                 timestamp_str = f"{year}{mmdd}{hhmmss}"
                 timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-                timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                timestamp_dt = timezone.make_aware(timestamp_dt)
                 
                 return {
                     "timestamp": str(int(timestamp_dt.timestamp())),

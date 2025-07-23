@@ -357,7 +357,7 @@ class Shortcode(models.Model):
                 
                 timestamp_str = f"{year}{mmdd}{hhmmss}"
                 timestamp_dt = datetime.strptime(timestamp_str, "%Y%m%d%H%M%S")
-                timestamp_dt = timestamp_dt.replace(tzinfo=timezone.utc)
+                timestamp_dt = timezone.make_aware(timestamp_dt)
                 
                 archives.append({
                     "timestamp": str(int(timestamp_dt.timestamp())),

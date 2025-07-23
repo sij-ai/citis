@@ -1,0 +1,230 @@
+{% extends "admin/base.html" %}
+{% load admin_urls %}
+
+{% block title %}Archive Dashboard - {{ site_title|default:"Django site admin" }}{% endblock %}
+
+{% block extrahead %}
+<style>
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #007cba;
+    margin-bottom: 10px;
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.success-rate {
+    color: #28a745;
+}
+
+.failure-rate {
+    color: #dc3545;
+}
+
+.pending-rate {
+    color: #ffc107;
+}
+
+.recent-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.recent-table th,
+.recent-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.recent-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.status-success { color: #28a745; }
+.status-failure { color: #dc3545; }
+.status-pending { color: #ffc107; }
+.status-started { color: #007bff; }
+
+.auto-refresh {
+    float: right;
+    margin-bottom: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Archive Dashboard</h1>
+
+<div class="auto-refresh">
+    <button onclick="window.location.reload()" class="button">🔄 Refresh</button>
+    <label>
+        <input type="checkbox" id="autoRefresh"> Auto-refresh (30s)
+    </label>
+</div>
+
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-number">{{ total_shortcodes }}</div>
+        <div class="stat-label">Total Archives</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number success-rate">{{ archived_count }}</div>
+        <div class="stat-label">Successfully Archived</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number pending-rate">{{ pending_count }}</div>
+        <div class="stat-label">Pending/Failed</div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-number">{{ success_rate|floatformat:1 }}%</div>
+        <div class="stat-label">Success Rate (24h)</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+    <!-- Recent Shortcodes -->
+    <div>
+        <h2>Recent Archives (24h)</h2>
+        {% if recent_shortcodes %}
+        <table class="recent-table">
+            <thead>
+                <tr>
+                    <th>Shortcode</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shortcode in recent_shortcodes %}
+                <tr>
+                    <td>
+                        <a href="{% url 'admin:archive_shortcode_change' shortcode.shortcode %}">
+                            {{ shortcode.shortcode }}
+                        </a>
+                    </td>
+                    <td>{{ shortcode.created_at|date:"m/d H:i" }}</td>
+                    <td>
+                        {% if shortcode.is_archived %}
+                            <span class="status-success">✓ Archived</span>
+                        {% else %}
+                            <span class="status-pending">✗ Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/{{ shortcode.shortcode }}" target="_blank" class="button">View</a>
+                        {% if not shortcode.is_archived %}
+                            <button onclick="retryArchive('{{ shortcode.shortcode }}')" class="button">Retry</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No recent archives found.</p>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Tasks -->
+    <div>
+        <h2>Recent Archive Tasks (24h)</h2>
+        {% if recent_tasks %}
+        <table class="recent-table">
+            <thead>
+                <tr>
+                    <th>Task ID</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Worker</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in recent_tasks %}
+                <tr>
+                    <td>
+                        <a href="{% url 'admin:django_celery_results_taskresult_change' task.id %}">
+                            {{ task.task_id|slice:":8" }}...
+                        </a>
+                    </td>
+                    <td>{{ task.date_created|date:"m/d H:i" }}</td>
+                    <td>
+                        <span class="status-{{ task.status|lower }}">{{ task.status }}</span>
+                    </td>
+                    <td>{{ task.worker|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No recent tasks found.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+let autoRefreshInterval;
+
+function retryArchive(shortcode) {
+    if (confirm(`Retry archiving for ${shortcode}?`)) {
+        fetch(`/admin/archive/shortcode/${shortcode}/retry-archive/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Archive task queued for ${shortcode}!\nTask ID: ${data.task_id}`);
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                alert(`Error: ${data.message}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to retry archive');
+        });
+    }
+}
+
+document.getElementById('autoRefresh').addEventListener('change', function() {
+    if (this.checked) {
+        autoRefreshInterval = setInterval(() => {
+            window.location.reload();
+        }, 30000);
+    } else {
+        clearInterval(autoRefreshInterval);
+    }
+});
+</script>
+{% endblock %} 

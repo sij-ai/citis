@@ -3,7 +3,7 @@ Celery tasks for archive operations.
 """
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from pathlib import Path
 
 from celery import shared_task
@@ -48,17 +48,17 @@ def archive_url_task(self, shortcode_id, requester_ip=None):
                         sig = inspect.signature(manager.archive_url)
                         if 'requester_ip' in sig.parameters:
                             result = asyncio.run(
-                                manager.archive_url(shortcode.url, datetime.now(timezone.utc), requester_ip=requester_ip)
+                                manager.archive_url(shortcode.url, timezone.now(), requester_ip=requester_ip)
                             )
                         else:
                             # Fallback for managers that don't support proxy
                             result = asyncio.run(
-                                manager.archive_url(shortcode.url, datetime.now(timezone.utc))
+                                manager.archive_url(shortcode.url, timezone.now())
                             )
                     else:
                         # Fallback for older manager interfaces
                         result = asyncio.run(
-                            manager.archive_url(shortcode.url, datetime.now(timezone.utc))
+                            manager.archive_url(shortcode.url, timezone.now())
                         )
                     
                     archive_results.append(result)

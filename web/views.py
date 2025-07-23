@@ -404,7 +404,9 @@ def shortcode_redirect(request, shortcode):
                     visits = shortcode_obj.visits.all().order_by('-visited_at')
                     
                     # Determine archive date from file modification time or creation time
-                    archive_dt = datetime.fromtimestamp(singlefile_path.stat().st_mtime, tz=timezone.utc)
+                    from django.utils import timezone as dj_timezone
+                    archive_dt = datetime.fromtimestamp(singlefile_path.stat().st_mtime)
+                    archive_dt = dj_timezone.make_aware(archive_dt)
                     
                     # Inject the overlay
                     content = inject_overlay(

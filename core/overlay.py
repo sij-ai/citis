@@ -4,12 +4,13 @@ import os
 from pathlib import Path
 import json
 from typing import Dict, Any, Optional, Tuple, List
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from collections import defaultdict
 from bs4 import BeautifulSoup
 from django.conf import settings
 from django.templatetags.static import static
 from django.urls import reverse
+from django.utils import timezone
 
 from .utils import clean_text_fragment
 
@@ -230,7 +231,7 @@ def create_visit_graph(visit_dates: List[datetime], short_code: str) -> str:
     if not visit_dates:
         return ""
     
-    now = datetime.now(timezone.utc)
+    now = timezone.now()
     oldest_visit = min(visit_dates)
     age_days = (now - oldest_visit).days
     

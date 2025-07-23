@@ -10,7 +10,43 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.db.models import Count
+from django.urls import path
+from django.shortcuts import render
+from django.http import JsonResponse
+from django_celery_results.models import TaskResult
 from .models import Shortcode, Visit, ApiKey
+
+
+# Enhanced TaskResult admin for Celery task monitoring
+class TaskResultAdmin(admin.ModelAdmin):
+    """
+    Admin interface for monitoring Celery task execution.
+    """
+    list_display = ('task_id', 'task_name', 'status', 'worker', 'date_created', 'date_done', 'result_display')
+    list_filter = ('status', 'task_name', 'worker', 'date_created')
+    search_fields = ('task_id', 'task_name', 'worker')
+    readonly_fields = ('task_id', 'task_name', 'status', 'worker', 'result', 'traceback', 'date_created', 'date_done')
+    ordering = ('-date_created',)
+    date_hierarchy = 'date_created'
+    
+    def result_display(self, obj):
+        """Display task result with formatting"""
+        if obj.result:
+            result_str = str(obj.result)[:100]
+            if obj.status == 'SUCCESS':
+                return format_html('<span style="color: green;">{}</span>', result_str)
+            elif obj.status == 'FAILURE':
+                return format_html('<span style="color: red;">{}</span>', result_str)
+            else:
+                return result_str
+        return '-'
+    result_display.short_description = 'Result'
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Shortcode)
@@ -24,7 +60,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Fields to display in the shortcode list
     list_display = (
         'shortcode', 'url_display', 'creator_user', 'created_at', 
-        'archive_method', 'archived_status', 'proxy_display', 'visit_count', 'view_archive_link'
+        'archive_method', 'archived_status', 'task_status', 'proxy_display', 'visit_count', 'action_buttons'
     )
     
     # Fields that can be used for filtering
@@ -45,7 +81,8 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Fields that should be read-only
     readonly_fields = (
         'shortcode', 'created_at', 'creator_ip', 'visit_count_display',
-        'archive_path_display', 'proxy_ip', 'proxy_country', 'proxy_provider'
+        'archive_path_display', 'proxy_ip', 'proxy_country', 'proxy_provider',
+        'task_status_display'
     )
     
     # Add date hierarchy for easy filtering by creation date
@@ -54,7 +91,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # Organize fields in fieldsets
     fieldsets = (
         ('Archive Information', {
-            'fields': ('shortcode', 'url', 'archived_status', 'archive_method')
+            'fields': ('shortcode', 'url', 'archived_status', 'archive_method', 'task_status_display')
         }),
         ('Content', {
             'fields': ('text_fragment', 'archive_path_display'),
@@ -73,6 +110,70 @@ class ShortcodeAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
+    
+    def get_urls(self):
+        """Add custom URLs for archive actions"""
+        urls = super().get_urls()
+        custom_urls = [
+            path('archive-dashboard/', self.admin_site.admin_view(self.archive_dashboard), name='archive_dashboard'),
+            path('<str:shortcode>/retry-archive/', self.admin_site.admin_view(self.retry_archive), name='retry_archive'),
+        ]
+        return custom_urls + urls
+    
+    def archive_dashboard(self, request):
+        """Archive status dashboard"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Get statistics
+        total_shortcodes = Shortcode.objects.count()
+        archived_count = sum(1 for s in Shortcode.objects.all() if s.is_archived())
+        
+        # Recent activity
+        last_24h = timezone.now() - timedelta(hours=24)
+        recent_shortcodes = Shortcode.objects.filter(created_at__gte=last_24h).order_by('-created_at')[:10]
+        
+        # Task statistics
+        recent_tasks = TaskResult.objects.filter(
+            task_name='archive.tasks.archive_url_task',
+            date_created__gte=last_24h
+        ).order_by('-date_created')[:20]
+        
+        # Calculate archive success rate
+        archived_recent = sum(1 for s in recent_shortcodes if s.is_archived())
+        success_rate = (archived_recent / len(recent_shortcodes) * 100) if recent_shortcodes else 0
+        
+        context = {
+            'title': 'Archive Dashboard',
+            'total_shortcodes': total_shortcodes,
+            'archived_count': archived_count,
+            'pending_count': total_shortcodes - archived_count,
+            'recent_shortcodes': recent_shortcodes,
+            'recent_tasks': recent_tasks,
+            'success_rate': success_rate,
+            'opts': self.model._meta,
+        }
+        
+        return render(request, 'admin/archive_dashboard.html', context)
+    
+    def retry_archive(self, request, shortcode):
+        """Retry archiving for a specific shortcode"""
+        try:
+            shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
+            
+            # Import and queue task
+            from .tasks import archive_url_task
+            result = archive_url_task.delay(shortcode_obj.shortcode)
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'Archive task queued for {shortcode}',
+                'task_id': result.task_id
+            })
+        except Shortcode.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Shortcode not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
     
     def url_display(self, obj):
         """Display URL with truncation and link"""
@@ -111,6 +212,78 @@ class ShortcodeAdmin(admin.ModelAdmin):
     archived_status.short_description = 'Archive Status'
     archived_status.admin_order_field = 'shortcode'  # Allow sorting by shortcode
     
+    def task_status(self, obj):
+        """Display most recent task status for this shortcode"""
+        # Find the most recent archive task for this shortcode
+        recent_task = TaskResult.objects.filter(
+            task_name='archive.tasks.archive_url_task',
+            task_args__contains=obj.shortcode
+        ).order_by('-date_created').first()
+        
+        if recent_task:
+            if recent_task.status == 'SUCCESS':
+                return format_html('<span style="color: green;">✓ Success</span>')
+            elif recent_task.status == 'FAILURE':
+                return format_html('<span style="color: red;">✗ Failed</span>')
+            elif recent_task.status == 'PENDING':
+                return format_html('<span style="color: orange;">⏳ Pending</span>')
+            elif recent_task.status == 'STARTED':
+                return format_html('<span style="color: blue;">🔄 Running</span>')
+            else:
+                return format_html('<span style="color: gray;">{}</span>', recent_task.status)
+        else:
+            return format_html('<span style="color: gray;">No task</span>')
+    task_status.short_description = 'Task Status'
+    
+    def task_status_display(self, obj):
+        """Detailed task status for the detail view"""
+        tasks = TaskResult.objects.filter(
+            task_name='archive.tasks.archive_url_task',
+            task_args__contains=obj.shortcode
+        ).order_by('-date_created')[:5]
+        
+        if not tasks:
+            return 'No tasks found'
+        
+        html = '<table style="width: 100%;">'
+        html += '<tr><th>Date</th><th>Status</th><th>Result</th></tr>'
+        
+        for task in tasks:
+            status_color = {
+                'SUCCESS': 'green',
+                'FAILURE': 'red', 
+                'PENDING': 'orange',
+                'STARTED': 'blue'
+            }.get(task.status, 'gray')
+            
+            result_preview = str(task.result)[:50] + '...' if task.result else '-'
+            
+            html += f'''
+            <tr>
+                <td>{task.date_created.strftime("%m/%d %H:%M")}</td>
+                <td><span style="color: {status_color};">{task.status}</span></td>
+                <td>{result_preview}</td>
+            </tr>
+            '''
+        
+        html += '</table>'
+        return format_html(html)
+    task_status_display.short_description = 'Task History'
+    
+    def action_buttons(self, obj):
+        """Display action buttons for the shortcode"""
+        buttons = []
+        
+        # View archive button
+        buttons.append(f'<a href="/{obj.shortcode}" target="_blank" class="button">View</a>')
+        
+        # Retry archive button if not archived
+        if not obj.is_archived():
+            buttons.append(f'<button onclick="retryArchive(\'{obj.shortcode}\')" class="button">Retry</button>')
+        
+        return format_html(' '.join(buttons))
+    action_buttons.short_description = 'Actions'
+    
     def view_archive_link(self, obj):
         """Display link to view the archived page"""
         return format_html(
@@ -121,9 +294,10 @@ class ShortcodeAdmin(admin.ModelAdmin):
     
     def archive_path_display(self, obj):
         """Display archive path information"""
-        if obj.archive_path:
-            return format_html('<code>{}</code>', obj.archive_path)
-        return 'Not set'
+        path = obj.get_latest_archive_path()
+        if path:
+            return format_html('<code>{}</code>', str(path))
+        return 'Not archived'
     archive_path_display.short_description = 'Archive Path'
     
     def proxy_display(self, obj):
@@ -151,6 +325,12 @@ class ShortcodeAdmin(admin.ModelAdmin):
         return queryset.select_related('creator_user', 'creator_api_key').annotate(
             visit_count=Count('visits')
         )
+    
+    class Media:
+        js = ('admin/js/archive_admin.js',)
+        css = {
+            'all': ('admin/css/archive_admin.css',)
+        }
 
 
 class VisitInline(admin.TabularInline):
@@ -382,3 +562,11 @@ class ShortcodeInline(admin.TabularInline):
 
 # Add shortcodes inline to ApiKeyAdmin
 ApiKeyAdmin.inlines = [ShortcodeInline]
+
+
+# Register TaskResult admin safely
+try:
+    admin.site.unregister(TaskResult)
+except admin.sites.NotRegistered:
+    pass
+admin.site.register(TaskResult, TaskResultAdmin)

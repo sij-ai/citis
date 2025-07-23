@@ -187,7 +187,9 @@ def generate_api_key() -> str:
 
 def parse_ts_str(ts_str: str) -> datetime:
     """Parse timestamp string to datetime"""
-    return datetime.strptime(ts_str, "%Y%m%d%H%M").replace(tzinfo=timezone.utc)
+    from django.utils import timezone
+    dt = datetime.strptime(ts_str, "%Y%m%d%H%M")
+    return timezone.make_aware(dt)
 
 
 def get_client_ip(request) -> Optional[str]:
