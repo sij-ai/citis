@@ -283,6 +283,10 @@ STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 
+# Stripe Price IDs for subscription plans
+STRIPE_PRICE_PREMIUM_MONTHLY = os.getenv('STRIPE_PRICE_PREMIUM_MONTHLY', '')
+STRIPE_PRICE_PREMIUM_YEARLY = os.getenv('STRIPE_PRICE_PREMIUM_YEARLY', '')
+
 # =============================================================================
 # LOGGING CONFIGURATION
 # =============================================================================

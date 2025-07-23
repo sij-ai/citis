@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 # Set Stripe API key
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
-# Product/Price configuration - these should match your Stripe Dashboard
+# Product/Price configuration loaded from settings
 PRICE_LOOKUP = {
-    'premium_monthly': 'price_1234567890',  # Replace with actual price ID
-    'premium_yearly': 'price_0987654321',   # Replace with actual price ID
+    'premium_monthly': settings.STRIPE_PRICE_PREMIUM_MONTHLY,
+    'premium_yearly': settings.STRIPE_PRICE_PREMIUM_YEARLY,
 }
 
 
@@ -34,6 +34,14 @@ def create_checkout_session(request):
             return JsonResponse({'error': 'Invalid price selection'}, status=400)
         
         stripe_price_id = PRICE_LOOKUP[price_lookup_key]
+        
+        # Check for missing configuration
+        if not stripe_price_id:
+            logger.error(f"Stripe price ID not configured for {price_lookup_key}")
+            return JsonResponse({
+                'error': 'Subscription system is not properly configured. Please contact support.',
+                'dev_error': f'Missing Stripe price ID for {price_lookup_key}. Set STRIPE_PRICE_PREMIUM_MONTHLY in environment variables.'
+            }, status=500)
         
         # Get or create dj-stripe customer
         customer, created = Customer.get_or_create(subscriber=request.user)
@@ -56,9 +64,18 @@ def create_checkout_session(request):
         
         return JsonResponse({'checkout_url': checkout_session.url})
         
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error creating checkout session: {str(e)}")
+        return JsonResponse({
+            'error': 'Payment system error. Please try again or contact support.',
+            'dev_error': str(e)
+        }, status=500)
     except Exception as e:
         logger.error(f"Error creating checkout session: {str(e)}")
-        return JsonResponse({'error': 'Failed to create checkout session'}, status=500)
+        return JsonResponse({
+            'error': 'Failed to create checkout session. Please try again.',
+            'dev_error': str(e)
+        }, status=500)
 
 
 @login_required

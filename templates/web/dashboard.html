@@ -341,16 +341,79 @@ function openBillingPortal() {
             // Redirect to Stripe billing portal
             window.location.href = data.portal_url;
         } else {
-            throw new Error(data.error || 'Failed to access billing portal');
+            // Show user-friendly error message
+            const errorMessage = data.error || 'Failed to access billing portal';
+            
+            // Log technical details for developers
+            if (data.dev_error) {
+                console.error('Developer Error:', data.dev_error);
+            }
+            
+            throw new Error(errorMessage);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('There was an error accessing the billing portal. Please try again.');
+        
+        // Show appropriate error message
+        let errorMessage = 'There was an error accessing the billing portal. Please try again.';
+        if (error.message && error.message !== 'Failed to fetch') {
+            errorMessage = error.message;
+        }
+        
+        showErrorToast(errorMessage);
         
         // Restore button state
         button.disabled = false;
         button.innerHTML = originalText;
+    });
+}
+
+// Toast notification functions
+function showErrorToast(message) {
+    showToast(message, 'danger', 'Error');
+}
+
+function showSuccessToast(message) {
+    showToast(message, 'success', 'Success');
+}
+
+function showToast(message, type, title) {
+    // Create toast element
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+            <div class="toast-header bg-${type} text-white">
+                <i class="bi bi-${type === 'danger' ? 'exclamation-triangle' : 'check-circle'} me-2"></i>
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    // Add to container or create one
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '1055';
+        document.body.appendChild(container);
+    }
+    
+    container.insertAdjacentHTML('beforeend', toastHtml);
+    
+    // Show the toast
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+    
+    // Remove from DOM after it's hidden
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
     });
 }
 </script>
