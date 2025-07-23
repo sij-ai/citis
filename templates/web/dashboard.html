@@ -21,14 +21,27 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h1 class="text-bone">Welcome back, {{ user.get_display_name|default:user.email }}</h1>
-                    <p class="text-subtle">
+                    <div class="d-flex align-items-center gap-3">
+                        <p class="text-subtle mb-0">
+                            {% if user.is_premium %}
+                            <i class="bi bi-star-fill text-cyan me-1"></i>
+                            Premium Account
+                            {% else %}
+                            Free Account
+                            {% endif %}
+                        </p>
                         {% if user.is_premium %}
-                        <i class="bi bi-star-fill text-cyan me-1"></i>
-                        Premium Account
+                        <button class="btn btn-outline-secondary btn-sm" onclick="openBillingPortal()">
+                            <i class="bi bi-gear me-1"></i>
+                            Manage Subscription
+                        </button>
                         {% else %}
-                        Free Account
+                        <a href="{% url 'web:pricing' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-arrow-up-circle me-1"></i>
+                            Upgrade Plan
+                        </a>
                         {% endif %}
-                    </p>
+                    </div>
                 </div>
                 <div>
                     <a href="{% url 'web:create_archive' %}" class="btn btn-primary">
@@ -305,6 +318,41 @@ document.addEventListener('htmx:afterRequest', function(event) {
         toast.show();
     }
 });
+
+// Billing portal management
+function openBillingPortal() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Loading...';
+    
+    fetch('{% url "web:billing_portal" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.portal_url) {
+            // Redirect to Stripe billing portal
+            window.location.href = data.portal_url;
+        } else {
+            throw new Error(data.error || 'Failed to access billing portal');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('There was an error accessing the billing portal. Please try again.');
+        
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
 </script>
 
 {% if user_stats.chart_data %}

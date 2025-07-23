@@ -96,7 +96,19 @@
                     </div>
 
                     <div class="mt-auto pt-4">
-                        <a href="{% url 'account_signup' %}" class="btn btn-outline-primary w-100">Get Started Free</a>
+                        {% if user_is_authenticated %}
+                            {% if user_is_premium %}
+                                <button class="btn btn-outline-secondary w-100" disabled>
+                                    Current Plan
+                                </button>
+                            {% else %}
+                                <span class="btn btn-outline-secondary w-100" style="cursor: default;">
+                                    Current Plan
+                                </span>
+                            {% endif %}
+                        {% else %}
+                            <a href="{% url 'account_signup' %}" class="btn btn-outline-primary w-100">Get Started Free</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -148,7 +160,20 @@
                     </div>
 
                     <div class="mt-auto pt-4">
-                        <a href="{% url 'account_signup' %}" class="btn btn-primary w-100">Start Professional - $10/mo</a>
+                        {% if user_is_authenticated %}
+                            {% if user_is_premium %}
+                                <span class="btn btn-success w-100" style="cursor: default;">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    Current Plan
+                                </span>
+                            {% else %}
+                                <button class="btn btn-primary w-100" onclick="subscribeToProfessional()">
+                                    Upgrade to Professional - $10/mo
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <a href="{% url 'account_signup' %}" class="btn btn-primary w-100">Start Professional - $10/mo</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -196,7 +221,14 @@
                     </div>
 
                     <div class="mt-auto pt-4">
-                        <a href="mailto:sales@citis.app" class="btn btn-outline-primary w-100">Contact Sales</a>
+                        {% if user_is_authenticated and user_is_premium %}
+                            <button class="btn btn-outline-secondary w-100" onclick="openBillingPortal()">
+                                <i class="bi bi-gear me-2"></i>
+                                Manage Subscription
+                            </button>
+                        {% else %}
+                            <a href="mailto:sales@citis.app" class="btn btn-outline-primary w-100">Contact Sales</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -342,4 +374,80 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if user_is_authenticated %}
+<script>
+function subscribeToProfessional() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Processing...';
+    
+    // Create checkout session
+    fetch('{% url "web:create_checkout_session" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: 'price_id=premium_monthly'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.checkout_url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.checkout_url;
+        } else {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('There was an error processing your subscription. Please try again.');
+        
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
+
+function openBillingPortal() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="spinner-border spinner-border-sm me-2"></i>Loading...';
+    
+    fetch('{% url "web:billing_portal" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.portal_url) {
+            // Redirect to Stripe billing portal
+            window.location.href = data.portal_url;
+        } else {
+            throw new Error(data.error || 'Failed to access billing portal');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('There was an error accessing the billing portal. Please try again.');
+        
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+}
+</script>
+{% endif %}
 {% endblock %}

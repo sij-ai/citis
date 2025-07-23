@@ -51,7 +51,29 @@ def pricing_page(request):
     """
     Pricing page showing available plans.
     """
-    return render(request, 'web/pricing.html')
+    context = {}
+    
+    # Add user subscription status if authenticated
+    if request.user.is_authenticated:
+        context['user_is_authenticated'] = True
+        context['user_is_premium'] = request.user.is_premium
+        
+        # Get current subscription info if premium
+        if request.user.is_premium:
+            try:
+                from djstripe.models import Customer
+                customer = Customer.objects.get(subscriber=request.user)
+                active_subscriptions = customer.subscriptions.filter(
+                    status__in=['active', 'trialing']
+                )
+                if active_subscriptions.exists():
+                    context['current_subscription'] = active_subscriptions.first()
+            except Customer.DoesNotExist:
+                pass
+    else:
+        context['user_is_authenticated'] = False
+        
+    return render(request, 'web/pricing.html', context)
 
 
 def about_page(request):
