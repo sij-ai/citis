@@ -25,6 +25,52 @@
         margin-bottom: 0.25rem;
         color: var(--text-normal, #e0e0e0); /* Use your theme's text color */
     }
+    
+    /* Feature sections styling */
+    .feature-sections {
+        margin: 1.5rem 0;
+    }
+    
+    .feature-section {
+        margin-bottom: 1.25rem;
+    }
+    
+    .feature-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .feature-section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-subtle);
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    
+    .feature-section-header i {
+        opacity: 0.7;
+        font-size: 0.8rem;
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .feature-list li {
+        padding: 0.35rem 0;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        border-bottom: 1px solid rgba(128, 128, 128, 0.05);
+    }
+    
+    .feature-list li:last-child {
+        border-bottom: none;
+    }
 </style>
 
 <div class="container my-5">
@@ -68,23 +114,48 @@
                         <p class="mb-0" style="color: var(--text-muted);">Artifacts will be hosted on cit.is for at least 3 years. After that, we may ask you to upgrade to preserve older archives.</p>
                     </div>
 
-                    <ul class="list-unstyled my-2">
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5</strong> New Archives / Month (+<strong>20</strong> for students!)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>25</strong> New Redirects / Month</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5MB</strong> Max Archive Size</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>8</strong> random character shortlinks</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (<strong>1-day</strong> interval)</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Content Integrity Scan</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Device Simulation</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Proxy Access</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>API Access</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Full-Text Search</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Analytics</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Periodic Re-Archival</li>
-                    </ul>
+                    <!-- Feature Categories -->
+                    <div class="feature-sections">
+                        <!-- Usage & Limits -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-speedometer2 me-2"></i>Usage & Limits
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span><strong>5</strong> New Archives / Month (+<strong>20</strong> for students!)</li>
+                                <li><span class="me-2">&#10003;</span><strong>25</strong> New Redirects / Month</li>
+                                <li><span class="me-2">&#10003;</span><strong>5MB</strong> Max Archive Size</li>
+                                <li><span class="me-2">&#10003;</span><strong>8</strong> random character shortlinks</li>
+                            </ul>
+                        </div>
 
+                        <!-- Monitoring & Health -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-activity me-2"></i>Monitoring & Health
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span>Link Health Check (<strong>1-day</strong> interval)</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Content Integrity Scan</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Periodic Re-Archival</li>
+                            </ul>
+                        </div>
+
+                        <!-- Advanced Tools -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-tools me-2"></i>Advanced Tools
+                            </h6>
+                            <ul class="feature-list">
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Device Simulation</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Proxy Access</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>API Access</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Full-Text Search</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Analytics</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
                     <!-- Trust Feature -->
                     <div class="key-feature">
                         <strong>Trust: Basic Proof</strong>
@@ -132,22 +203,47 @@
                         <p class="mb-0" style="color: var(--text-muted);">Artifacts will be hosted on cit.is for the life of your subscription, plus a 3-year grace period.</p>
                     </div>
 
-                    <ul class="list-unstyled my-2">
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>100</strong> New Archives / Month</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>250</strong> New Redirects / Month</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>25MB</strong> Max Archive Size</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>6</strong> random characters (<strong>5</strong> for first <strong>1k</strong>!) + Custom slugs</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (<strong>5-minute</strong> interval)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (<strong>1-hour</strong> interval)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Device Simulation (Desktop & Mobile)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Residential Proxy Access</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>API Access</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Full-Text Search</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Basic Analytics</li>
-                        <li class="mb-2 text-muted"><span class="me-2">&times;</span>Periodic Re-Archival</li>
-                    </ul>
+                    <!-- Feature Categories -->
+                    <div class="feature-sections">
+                        <!-- Usage & Limits -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-speedometer2 me-2"></i>Usage & Limits
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span><strong>100</strong> New Archives / Month</li>
+                                <li><span class="me-2">&#10003;</span><strong>250</strong> New Redirects / Month</li>
+                                <li><span class="me-2">&#10003;</span><strong>25MB</strong> Max Archive Size</li>
+                                <li><span class="me-2">&#10003;</span><strong>6</strong> random characters (<strong>5</strong> for first <strong>1k</strong>!) + Custom slugs</li>
+                            </ul>
+                        </div>
+
+                        <!-- Monitoring & Health -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-activity me-2"></i>Monitoring & Health
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span>Link Health Check (<strong>5-minute</strong> interval)</li>
+                                <li><span class="me-2">&#10003;</span>Content Integrity Scan (<strong>1-hour</strong> interval)</li>
+                                <li style="color: var(--text-subtle);"><span class="me-2">&times;</span>Periodic Re-Archival</li>
+                            </ul>
+                        </div>
+
+                        <!-- Advanced Tools -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-tools me-2"></i>Advanced Tools
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span>Device Simulation (Desktop & Mobile)</li>
+                                <li><span class="me-2">&#10003;</span>Residential Proxy Access</li>
+                                <li><span class="me-2">&#10003;</span>API Access</li>
+                                <li><span class="me-2">&#10003;</span>Full-Text Search</li>
+                                <li><span class="me-2">&#10003;</span>Basic Analytics</li>
+                            </ul>
+                        </div>
+                    </div>
 
                     <!-- Trust Feature -->
                     <div class="key-feature">
@@ -194,21 +290,47 @@
                         <p class="mb-0" style="color: var(--text-muted);">By connecting a custom domain, your links can outlive us via our portable open source platform.</p>
                     </div>
 
-                    <ul class="list-unstyled my-2">
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Usage based pricing</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span><strong>5</strong> random characters (or any length) + Custom slugs</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Cited Text Highlighted</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Downloadable Artifacts</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Link Health Check (Real-time)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Content Integrity Scan (<strong>5-minute</strong> interval)</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Advanced Device Simulation & Capture</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Global & Custom Proxy Access</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Full Forensic Package Download</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>API Access</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Full-Text Search</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Advanced Analytics</li>
-                        <li class="mb-2"><span class="me-2">&#10003;</span>Periodic Re-Archival</li>
-                    </ul>
+                    <!-- Feature Categories -->
+                    <div class="feature-sections">
+                        <!-- Usage & Limits -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-speedometer2 me-2"></i>Usage & Limits
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span>Usage based pricing</li>
+                                <li><span class="me-2">&#10003;</span>Unlimited archives, redirects, file size</li>
+                                <li><span class="me-2">&#10003;</span><strong>5</strong> random characters (or any length) + Custom slugs</li>
+                                <li><span class="me-2">&#10003;</span>Custom domain support</li>
+                            </ul>
+                        </div>
+
+                        <!-- Monitoring & Health -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-activity me-2"></i>Monitoring & Health
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span>Link Health Check (Real-time)</li>
+                                <li><span class="me-2">&#10003;</span>Content Integrity Scan (<strong>5-minute</strong> interval)</li>
+                                <li><span class="me-2">&#10003;</span>Periodic Re-Archival</li>
+                            </ul>
+                        </div>
+
+                        <!-- Advanced Tools -->
+                        <div class="feature-section">
+                            <h6 class="feature-section-header">
+                                <i class="bi bi-tools me-2"></i>Advanced Tools
+                            </h6>
+                            <ul class="feature-list">
+                                <li><span class="me-2">&#10003;</span>Advanced Device Simulation & Capture</li>
+                                <li><span class="me-2">&#10003;</span>Global & Custom Proxy Access</li>
+                                <li><span class="me-2">&#10003;</span>API Access</li>
+                                <li><span class="me-2">&#10003;</span>Full-Text Search</li>
+                                <li><span class="me-2">&#10003;</span>Advanced Analytics</li>
+                            </ul>
+                        </div>
+                    </div>
 
                     <!-- Trust Feature -->
                     <div class="key-feature">
