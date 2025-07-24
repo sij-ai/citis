@@ -32,7 +32,10 @@ A Django-based SaaS for creating permanent, citable archives of web content. Per
    ```
    This single command handles migrations, site configuration, and superuser creation automatically from your `.env` settings.
 
-4. **Run Development Server**
+4. **Stripe Billing Setup (Optional)**
+   If you need subscription billing, follow the complete setup guide in [`STRIPE_SETUP.md`](STRIPE_SETUP.md) after completing the basic setup above.
+
+5. **Run Development Server**
    ```bash
    python manage.py runserver
    ```
@@ -60,8 +63,14 @@ ARCHIVE_MODE=singlefile  # singlefile, archivebox, or both
 SINGLEFILE_EXECUTABLE_PATH=/path/to/single-file
 SINGLEFILE_DATA_PATH=./archives
 
-# Optional Services
-STRIPE_SECRET_KEY=sk_test_...  # For billing
+# Stripe Integration (Required for billing)
+STRIPE_PUBLISHABLE_KEY=pk_live_...  # or pk_test_... for testing
+STRIPE_SECRET_KEY=sk_live_...       # or sk_test_... for testing
+STRIPE_WEBHOOK_SECRET=whsec_...     # From Stripe webhook configuration
+STRIPE_PRICE_PREMIUM_MONTHLY=price_1ABC123def456
+STRIPE_PRICE_PREMIUM_YEARLY=price_1XYZ789ghi012
+
+# Optional Services  
 REDIS_URL=redis://localhost:6379  # For caching/Celery
 
 # Overlay Styling (optional)
@@ -108,6 +117,24 @@ curl "http://localhost:8000/api/v1/analytics/abc123" \
 ```
 
 Full API documentation available at `/api/docs/`
+
+## Stripe Billing Setup
+
+For subscription billing, you must configure Stripe integration including webhooks. This process has several complex steps that must be completed in the correct order.
+
+**⚠️ Important**: Follow the complete guide in [`STRIPE_SETUP.md`](STRIPE_SETUP.md) - the webhook setup is particularly critical and will cause subscription failures if not configured properly.
+
+Quick overview:
+1. Set up Stripe products and prices in Stripe Dashboard
+2. Configure environment variables (`STRIPE_*` keys above)
+3. **Critical**: Run djstripe initialization commands to set up webhook processing
+4. Configure webhook endpoint in Stripe Dashboard with correct URL
+5. Test subscription flow
+
+Common issues:
+- Users don't become premium after payment → webhook misconfiguration
+- 404 webhook errors → wrong webhook URL in Stripe Dashboard  
+- 500 webhook errors → missing djstripe database objects
 
 ## Production Deployment
 

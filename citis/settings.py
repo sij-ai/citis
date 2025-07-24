@@ -236,6 +236,9 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 DJSTRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 DJSTRIPE_USE_NATIVE_JSONFIELD = True
 DJSTRIPE_FOREIGN_KEY_TO_FIELD = 'id'
+# Use retrieve_event to avoid signature validation complexity
+# This fetches events from Stripe API instead of validating webhook signatures
+DJSTRIPE_WEBHOOK_VALIDATION = 'retrieve_event'
 
 # Test vs Live mode detection based on key prefix
 # Provide fallbacks for development without Stripe keys
