@@ -11,22 +11,18 @@ from . import views
 app_name = 'archive'
 
 urlpatterns = [
-    # Archive creation
-    path('add', views.AddArchiveView.as_view(), name='add_archive'),
+    # API endpoints
+    path('api/v1/add', views.AddArchiveView.as_view(), name='add_archive'),
+    path('api/v1/shortcodes', views.ShortcodeListView.as_view(), name='shortcode_list'),
+    path('api/v1/shortcodes/<str:shortcode>', views.ShortcodeDetailView.as_view(), name='shortcode_detail'),
+    path('api/v1/analytics/<str:shortcode>', views.ShortcodeAnalyticsView.as_view(), name='shortcode_analytics'),
     
-    # Shortcode management
-    path('shortcodes', views.ListShortcodesView.as_view(), name='list_shortcodes'),
-    path('shortcodes/<str:shortcode>', views.ShortcodeDetailView.as_view(), name='shortcode_detail'),
+    # Verification endpoint (implements Basic Proof feature)
+    path('api/v1/verify/<str:shortcode>', views.VerificationView.as_view(), name='verify_shortcode'),
     
-    # Analytics
-    path('analytics/<str:shortcode>', views.AnalyticsView.as_view(), name='analytics'),
+    # Archive access endpoint  
+    path('archive/<str:shortcode>', views.ArchivePageView.as_view(), name='archive_page'),
     
-    # API key management
-    path('api/keys', views.APIKeyCreateView.as_view(), name='create_api_key'),
-    path('api/keys/<str:api_key>', views.APIKeyUpdateView.as_view(), name='update_api_key'),
-    
-    # Admin endpoints
-    path('cache/clear', views.clear_cache, name='clear_cache'),
-    path('health', views.health_check, name='health_check'),
-    path('info', views.get_info, name='info'),
+    # Health monitoring endpoints
+    path('api/v1/health/<str:shortcode>', views.HealthCheckView.as_view(), name='health_check'),
 ] 

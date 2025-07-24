@@ -17,6 +17,7 @@ from typing import Optional, List, Dict, Any
 import string
 import random
 import hashlib
+import json
 
 
 User = get_user_model()
@@ -210,13 +211,44 @@ class Shortcode(models.Model):
         null=True, blank=True,
         help_text="IP address of proxy used for archiving"
     )
+    
     proxy_country = models.CharField(
-        max_length=2, blank=True,
-        help_text="Country code of proxy used for archiving"
+        max_length=100, blank=True,
+        help_text="Country of proxy used for archiving"
     )
+    
     proxy_provider = models.CharField(
-        max_length=50, blank=True,
+        max_length=100, blank=True,
         help_text="Proxy provider used for archiving"
+    )
+    
+    # Trust and verification metadata
+    archive_checksum = models.CharField(
+        max_length=64,
+        blank=True,
+        help_text="SHA256 checksum of archived content for integrity verification"
+    )
+    
+    archive_size_bytes = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Size of archived content in bytes"
+    )
+    
+    trust_timestamp = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Trusted timestamp for professional/sovereign plans"
+    )
+    
+    trust_certificate = models.TextField(
+        blank=True,
+        help_text="Digital certificate or timestamp token for verification"
+    )
+    
+    trust_metadata = models.JSONField(
+        default=dict,
+        help_text="Additional trust verification metadata (TSA, chain-of-custody, etc.)"
     )
     
     class Meta:
@@ -532,3 +564,86 @@ class Visit(models.Model):
         except ImportError:
             # GeoIP service not available
             pass
+
+
+class HealthCheck(models.Model):
+    """
+    Health monitoring and content integrity check results.
+    
+    Tracks the results of periodic health checks and content integrity scans
+    for shortcodes based on user plan tier.
+    """
+    
+    CHECK_TYPE_CHOICES = [
+        ('link_health', 'Link Health Check'),
+        ('content_integrity', 'Content Integrity Scan'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('ok', 'OK'),
+        ('broken', 'Broken'),
+        ('minor_changes', 'Minor Changes'),
+        ('major_changes', 'Major Changes'),
+    ]
+    
+    # Link to the shortcode being monitored
+    shortcode = models.ForeignKey(
+        Shortcode,
+        on_delete=models.CASCADE,
+        related_name='health_checks',
+        help_text="The shortcode that was checked"
+    )
+    
+    # Type of check performed
+    check_type = models.CharField(
+        max_length=20,
+        choices=CHECK_TYPE_CHOICES,
+        help_text="Type of health check performed"
+    )
+    
+    # Status result
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        help_text="Result status of the health check"
+    )
+    
+    # Detailed results
+    details = models.JSONField(
+        default=dict,
+        help_text="Detailed check results and metadata"
+    )
+    
+    # When the check was performed
+    checked_at = models.DateTimeField(
+        default=timezone.now,
+        help_text="When this health check was performed"
+    )
+    
+    class Meta:
+        db_table = 'archive_healthcheck'
+        verbose_name = 'Health Check'
+        verbose_name_plural = 'Health Checks'
+        ordering = ['-checked_at']
+        indexes = [
+            models.Index(fields=['shortcode', 'check_type', 'checked_at']),
+            models.Index(fields=['check_type', 'status']),
+            models.Index(fields=['checked_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_check_type_display()} for {self.shortcode.shortcode}: {self.get_status_display()}"
+    
+    def is_healthy(self):
+        """Check if the health check result indicates a healthy status."""
+        return self.status == 'ok'
+    
+    def has_changes(self):
+        """Check if content integrity scan detected changes."""
+        return self.status in ['minor_changes', 'major_changes']
+    
+    def get_similarity_ratio(self):
+        """Get similarity ratio for content integrity scans."""
+        if self.check_type == 'content_integrity' and 'similarity_ratio' in self.details:
+            return self.details['similarity_ratio']
+        return None

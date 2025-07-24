@@ -61,6 +61,8 @@ def pricing_page(request):
     if request.user.is_authenticated:
         context['user_is_authenticated'] = True
         context['user_is_premium'] = request.user.is_premium
+        context['user_current_plan'] = request.user.current_plan
+        context['user_is_student'] = request.user.is_student
         
         # Get current subscription info if premium
         if request.user.is_premium:
@@ -239,22 +241,21 @@ def create_archive(request):
     """
     user = request.user
     
-    # Calculate usage information for display
-    current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    monthly_usage = Shortcode.objects.filter(
-        creator_user=user,
-        created_at__gte=current_month
-    ).count()
+    # Calculate usage information for display using new quota system
+    monthly_usage = user.get_monthly_shortcode_count()
+    effective_limit = user.get_effective_monthly_limit()
     
-    monthly_limit = user.monthly_shortcode_limit
-    usage_percentage = min((monthly_usage / monthly_limit) * 100, 100) if monthly_limit > 0 else 0
+    usage_percentage = min((monthly_usage / effective_limit) * 100, 100) if effective_limit > 0 else 0
     
     context = {
         'monthly_usage': monthly_usage,
-        'monthly_limit': monthly_limit,
+        'monthly_limit': effective_limit,
         'usage_percentage': usage_percentage,
-        'user_can_use_custom_shortcodes': user.is_premium,  # Based on pricing page - Professional+ plans get custom slugs
+        'user_can_use_custom_shortcodes': user.current_plan in ['professional', 'sovereign'],  # Professional+ plans get custom slugs
         'user_shortcode_length': user.shortcode_length,
+        'user_plan': user.current_plan,
+        'is_student': user.is_student,
+        'max_file_size_mb': user.max_archive_size_mb,
     }
     
     if request.method == 'POST':
@@ -265,15 +266,33 @@ def create_archive(request):
             messages.error(request, 'URL is required.')
             return render(request, 'web/create_archive.html', context)
         
-        # Check monthly limits for free users
-        if not user.is_premium:
-            if monthly_usage >= monthly_limit:
-                messages.error(request, 'Monthly archive limit reached. Upgrade to Premium for unlimited archives.')
-                return render(request, 'web/create_archive.html', context)
+        # Check if user can create another shortcode using new quota system
+        if not user.can_create_shortcode():
+            if user.current_plan == 'free':
+                if user.is_student:
+                    limit_msg = f"Monthly archive limit reached ({effective_limit} including student bonus)."
+                else:
+                    limit_msg = f"Monthly archive limit reached ({effective_limit})."
+                limit_msg += " Upgrade to Professional for 100 archives per month, or Sovereign for unlimited."
+            else:
+                limit_msg = "Monthly archive limit reached. Contact support if you need a higher limit."
+            
+            messages.error(request, limit_msg)
+            return render(request, 'web/create_archive.html', context)
+        
+        # Check redirect quota (for now same as archive quota, but separate for future)
+        if not user.can_create_redirect():
+            messages.error(request, f'Monthly redirect limit reached ({user.monthly_redirect_limit}). Upgrade for higher limits.')
+            return render(request, 'web/create_archive.html', context)
         
         try:
             # Get custom shortcode from form if provided
             custom_shortcode = request.POST.get('custom_shortcode', '').strip()
+            
+            # Check if user can use custom shortcodes
+            if custom_shortcode and user.current_plan not in ['professional', 'sovereign']:
+                messages.error(request, 'Custom shortcodes are only available for Professional and Sovereign plans.')
+                return render(request, 'web/create_archive.html', context)
             
             # Generate or validate shortcode
             if custom_shortcode:
@@ -311,11 +330,11 @@ def create_archive(request):
             # Start asset extraction after a short delay (gives archiving time to start)
             extract_assets_task.apply_async(args=[shortcode.pk], countdown=30)
             
-            messages.success(
-                request, 
-                f'Archive created successfully! Shortcode: {shortcode.shortcode}. '
-                f'Archiving is in progress and will complete shortly.'
-            )
+            success_msg = f'Archive created successfully! Shortcode: {shortcode.shortcode}. Archiving is in progress and will complete shortly.'
+            if user.is_student and user.current_plan == 'free':
+                success_msg += f' (Student bonus: {monthly_usage + 1}/{effective_limit} used this month)'
+            
+            messages.success(request, success_msg)
             return redirect('web:shortcode_detail', shortcode=shortcode.shortcode)
             
         except Exception as e:

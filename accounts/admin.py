@@ -21,13 +21,13 @@ class CustomUserAdmin(UserAdmin):
     
     # Fields to display in the user list
     list_display = (
-        'email', 'username', 'display_name', 'is_premium', 
+        'email', 'username', 'display_name', 'current_plan', 'is_student',
         'monthly_shortcode_limit', 'is_staff', 'is_active', 'created_at'
     )
     
     # Fields that can be used for filtering
     list_filter = (
-        'is_premium', 'is_staff', 'is_active', 'is_superuser',
+        'current_plan', 'is_premium', 'is_student', 'is_staff', 'is_active', 'is_superuser',
         'default_archive_method', 'created_at', 'last_login'
     )
     
@@ -38,17 +38,35 @@ class CustomUserAdmin(UserAdmin):
     ordering = ('-created_at',)
     
     # Fields that should be read-only
-    readonly_fields = ('created_at', 'last_login', 'date_joined')
+    readonly_fields = ('created_at', 'last_login', 'date_joined', 'student_verified_at')
     
     # Add date hierarchy for easy filtering by creation date
     date_hierarchy = 'created_at'
     
     # Customize the fieldsets for the user detail page
     fieldsets = UserAdmin.fieldsets + (
-        ('cit.is Settings', {
+        ('cit.is Plan & Settings', {
             'fields': (
-                'display_name', 'default_archive_method', 'is_premium', 
-                'monthly_shortcode_limit', 'created_at'
+                'display_name', 'default_archive_method', 'current_plan', 'is_premium'
+            ),
+            'classes': ('wide',),
+        }),
+        ('Quota Management', {
+            'fields': (
+                'monthly_shortcode_limit', 'monthly_redirect_limit', 
+                'max_archive_size_mb', 'shortcode_length'
+            ),
+            'classes': ('wide',),
+        }),
+        ('Student Status', {
+            'fields': (
+                'is_student', 'student_verified_at'
+            ),
+            'classes': ('wide',),
+        }),
+        ('Timestamps', {
+            'fields': (
+                'created_at', 'last_login', 'date_joined'
             ),
             'classes': ('wide',),
         }),
@@ -58,8 +76,9 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('cit.is Settings', {
             'fields': (
-                'display_name', 'default_archive_method', 'is_premium',
-                'monthly_shortcode_limit'
+                'display_name', 'default_archive_method', 'current_plan',
+                'monthly_shortcode_limit', 'monthly_redirect_limit',
+                'max_archive_size_mb', 'shortcode_length'
             ),
             'classes': ('wide',),
         }),
@@ -67,22 +86,61 @@ class CustomUserAdmin(UserAdmin):
     
     def get_monthly_usage(self, obj):
         """Display current monthly shortcode usage"""
-        return obj.get_monthly_shortcode_count()
+        usage = obj.get_monthly_shortcode_count()
+        limit = obj.get_effective_monthly_limit()
+        return f"{usage}/{limit}"
     get_monthly_usage.short_description = 'Monthly Usage'
     
-    def premium_status(self, obj):
-        """Display premium status with visual indicator"""
-        if obj.is_premium:
+    def plan_status(self, obj):
+        """Display plan status with visual indicator"""
+        plan_colors = {
+            'free': '#6c757d',
+            'professional': '#0d6efd', 
+            'sovereign': '#6f42c1'
+        }
+        color = plan_colors.get(obj.current_plan, '#6c757d')
+        plan_name = obj.get_current_plan_display()
+        
+        if obj.is_student and obj.current_plan == 'free':
             return format_html(
-                '<span style="color: #28a745;"><strong>Premium</strong></span>'
+                '<span style="color: {};"><strong>{}</strong></span> '
+                '<span style="color: #28a745; font-size: 0.8em;">📚 Student</span>',
+                color, plan_name
             )
+        
         return format_html(
-            '<span style="color: #6c757d;">Free</span>'
+            '<span style="color: {};"><strong>{}</strong></span>',
+            color, plan_name
         )
-    premium_status.short_description = 'Plan'
+    plan_status.short_description = 'Plan'
     
-    # Add custom fields to list display
-    list_display = list_display + ('get_monthly_usage', 'premium_status')
+    def student_badge(self, obj):
+        """Display student status with badge"""
+        if obj.is_student:
+            return format_html(
+                '<span style="color: #28a745;">📚 Student</span>'
+            )
+        return '-'
+    student_badge.short_description = 'Student'
+    
+    def quota_summary(self, obj):
+        """Display quota summary"""
+        return format_html(
+            'Archives: {}/{}<br>'
+            'Size: {}MB<br>' 
+            'Length: {}',
+            obj.get_monthly_shortcode_count(),
+            obj.get_effective_monthly_limit(),
+            obj.max_archive_size_mb,
+            obj.shortcode_length
+        )
+    quota_summary.short_description = 'Quota Summary'
+    
+    # Update list display to include new methods
+    list_display = (
+        'email', 'username', 'display_name', 'plan_status', 'student_badge',
+        'get_monthly_usage', 'is_staff', 'is_active', 'created_at'
+    )
 
 
 # Inline for displaying user's API keys on the user admin page

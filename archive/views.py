@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 
 from core.permissions import (
     IsAuthenticatedWithApiKey, IsMasterApiKey, IsMasterOrCreatorApiKey,
-    IsOwnerOrMasterKey, IsPublicOrAuthenticated
+    IsOwnerOrMasterKey, IsPublicOrAuthenticated, IsAuthenticatedOrReadOnly
 )
 from core.services import get_archive_managers
 from core.utils import generate_shortcode, get_client_ip, clean_text_fragment, parse_ts_str, generate_api_key, validate_shortcode, generate_unique_shortcode
@@ -48,9 +48,33 @@ class AddArchiveView(APIView):
         custom_shortcode = serializer.validated_data.get('shortcode')
         text_fragment = serializer.validated_data.get('text_fragment', '')
 
-        # Get user from API key for shortcode length
+        # Get user from API key for quota checking
         api_key = getattr(request, 'api_key', None)
         creator_user = api_key.user if api_key else None
+        is_master_key = getattr(request, 'is_master_key', False)
+        
+        # Skip quota checks for master key
+        if not is_master_key and creator_user:
+            # Check if user can create another shortcode
+            if not creator_user.can_create_shortcode():
+                return Response(
+                    {"error": f"Monthly archive limit reached ({creator_user.get_effective_monthly_limit()}). Upgrade for higher limits."},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS
+                )
+            
+            # Check redirect quota 
+            if not creator_user.can_create_redirect():
+                return Response(
+                    {"error": f"Monthly redirect limit reached ({creator_user.monthly_redirect_limit}). Upgrade for higher limits."},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS
+                )
+            
+            # Check custom shortcode permissions
+            if custom_shortcode and creator_user.current_plan not in ['professional', 'sovereign']:
+                return Response(
+                    {"error": "Custom shortcodes are only available for Professional and Sovereign plans."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
         # Get user's allowed shortcode length
         if creator_user:
@@ -105,6 +129,11 @@ class AddArchiveView(APIView):
             
             if result.successful() and result.result.get('success', False):
                 message = "Archive created successfully."
+                # Add quota info for regular users
+                if creator_user and not is_master_key:
+                    monthly_usage = creator_user.get_monthly_shortcode_count()
+                    effective_limit = creator_user.get_effective_monthly_limit()
+                    message += f" ({monthly_usage}/{effective_limit} used this month)"
             else:
                 error_details = result.result.get('error', 'Unknown error') if result.result else 'Task failed'
                 message = f"Archive creation failed: {error_details}"
@@ -129,6 +158,94 @@ class AddArchiveView(APIView):
 
         response_serializer = AddResponseSerializer(response_data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class VerificationView(APIView):
+    """
+    Get verification information for a shortcode.
+    
+    This implements the "Basic Proof" feature from the Free tier,
+    allowing users to verify archive integrity.
+    """
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get(self, request, shortcode):
+        """Get verification details for a shortcode"""
+        try:
+            shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
+        except Shortcode.DoesNotExist:
+            return Response(
+                {"error": "Shortcode not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if user has permission to view verification info
+        if not shortcode_obj.is_archived():
+            return Response(
+                {"error": "Archive not available for verification"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Build verification response based on user's plan
+        verification_data = {
+            "shortcode": shortcode_obj.shortcode,
+            "url": shortcode_obj.url,
+            "created_at": shortcode_obj.created_at.isoformat(),
+            "archive_method": shortcode_obj.archive_method,
+        }
+
+        # Basic proof (available to all)
+        if shortcode_obj.archive_checksum:
+            verification_data["integrity"] = {
+                "checksum": shortcode_obj.archive_checksum,
+                "algorithm": "SHA256",
+                "size_bytes": shortcode_obj.archive_size_bytes,
+                "verification_url": f"{settings.SERVER_BASE_URL}/verify/{shortcode}"
+            }
+
+        # Trust information based on plan
+        if shortcode_obj.trust_timestamp:
+            trust_info = {
+                "timestamp": shortcode_obj.trust_timestamp.isoformat(),
+                "metadata": shortcode_obj.trust_metadata
+            }
+            
+            # Add plan-specific trust features
+            if shortcode_obj.creator_user:
+                plan = shortcode_obj.creator_user.current_plan
+                trust_info["plan"] = plan
+                
+                if plan == 'professional':
+                    trust_info["features"] = [
+                        "SHA256 integrity verification",
+                        "Trusted timestamp (enhanced)",
+                        "Archive preservation guarantee"
+                    ]
+                elif plan == 'sovereign':
+                    trust_info["features"] = [
+                        "SHA256 integrity verification", 
+                        "Commercial-grade timestamp",
+                        "Multi-source verification",
+                        "Legal-grade chain of custody",
+                        "Portable archive format"
+                    ]
+                else:  # free
+                    trust_info["features"] = [
+                        "SHA256 integrity verification",
+                        "Basic timestamp proof"
+                    ]
+            
+            verification_data["trust"] = trust_info
+
+        # Proxy information (if available)
+        if shortcode_obj.proxy_ip:
+            verification_data["proxy"] = {
+                "country": shortcode_obj.proxy_country,
+                "provider": shortcode_obj.proxy_provider,
+                "ip_masked": shortcode_obj.proxy_ip[:8] + "..."  # Mask IP for privacy
+            }
+
+        return Response(verification_data, status=status.HTTP_200_OK)
 
 
 class ShortcodeDetailView(APIView):

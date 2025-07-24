@@ -124,12 +124,29 @@
                                         <div>
                                             <strong>Usage This Month:</strong> 
                                             {{ monthly_usage }} of {{ monthly_limit }} archives
+                                            {% if is_student and user_plan == 'free' %}
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="bi bi-mortarboard me-1"></i>
+                                                    Student Bonus +20
+                                                </span>
+                                            {% endif %}
                                         </div>
                                     </div>
+                                    {% if user_plan != 'free' %}
+                                    <div class="mt-1">
+                                        <small class="text-muted">
+                                            <i class="bi bi-star me-1"></i>
+                                            {{ user_plan|title }} Plan
+                                            {% if user_plan == 'sovereign' %}
+                                                - Unlimited archives
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-auto">
                                     <div class="progress" style="width: 100px;">
-                                        <div class="progress-bar" 
+                                        <div class="progress-bar {% if is_student and user_plan == 'free' %}bg-success{% endif %}" 
                                              role="progressbar" 
                                              style="width: {{ usage_percentage }}%"
                                              aria-valuenow="{{ usage_percentage }}" 
@@ -139,16 +156,42 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Plan-specific messaging -->
                             {% if monthly_usage >= monthly_limit %}
                             <div class="mt-2">
                                 <small class="text-danger">
                                     <i class="bi bi-exclamation-triangle me-1"></i>
-                                    You've reached your monthly limit. 
-                                    <a href="{% url 'web:pricing' %}" class="text-decoration-none">Upgrade to Premium</a> 
-                                    for unlimited archives.
+                                    {% if user_plan == 'free' %}
+                                        You've reached your monthly limit.
+                                        <a href="{% url 'web:pricing' %}" class="text-decoration-none">Upgrade to Professional</a> 
+                                        for 100 archives per month, or Sovereign for unlimited.
+                                    {% else %}
+                                        Monthly limit reached. Contact support if you need a higher limit.
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% elif user_plan == 'free' and monthly_usage >= monthly_limit * 0.8 %}
+                            <div class="mt-2">
+                                <small class="text-warning">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    You're approaching your monthly limit. 
+                                    <a href="{% url 'web:pricing' %}" class="text-decoration-none">Consider upgrading</a> 
+                                    for higher limits.
                                 </small>
                             </div>
                             {% endif %}
+                            
+                            <!-- Additional quota info -->
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Max file size: {{ max_file_size_mb }}MB
+                                    • Shortcode length: {{ user_shortcode_length }} characters
+                                    {% if user_can_use_custom_shortcodes %}
+                                        • Custom shortcodes available
+                                    {% endif %}
+                                </small>
+                            </div>
                         </div>
                         
                         <div class="d-grid gap-2">

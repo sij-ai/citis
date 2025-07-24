@@ -68,29 +68,26 @@ class IsAuthenticatedWithApiKey(permissions.BasePermission):
 
 class IsMasterApiKey(permissions.BasePermission):
     """
-    Permission class that requires the master API key for access.
+    Permission class that only allows access with the master API key.
     
-    Used for administrative endpoints that require the highest level of access.
+    This provides system-level access for administrative operations.
     """
     
     def has_permission(self, request, view):
-        """Check if request uses the master API key"""
-        if not settings.MASTER_API_KEY:
-            return False  # Master key not configured
-            
+        """Check if request has master API key"""
         auth_header = request.META.get('HTTP_AUTHORIZATION')
         if not auth_header or not auth_header.startswith('Bearer '):
             return False
         
         provided_key = auth_header[7:]  # Remove 'Bearer ' prefix
-        return provided_key == settings.MASTER_API_KEY
+        return settings.MASTER_API_KEY and provided_key == settings.MASTER_API_KEY
 
 
 class IsMasterOrCreatorApiKey(permissions.BasePermission):
     """
-    Permission class that allows access with either master key or creator API key.
+    Permission class that allows access with either master API key or valid creator API key.
     
-    For endpoints that should be accessible to both administrators and regular API users.
+    Used for endpoints that need to track creators but also allow system access.
     """
     
     def has_permission(self, request, view):
@@ -101,13 +98,13 @@ class IsMasterOrCreatorApiKey(permissions.BasePermission):
         
         provided_key = auth_header[7:]  # Remove 'Bearer ' prefix
         
-        # Check if it's the master key
+        # Check master key first
         if settings.MASTER_API_KEY and provided_key == settings.MASTER_API_KEY:
             request.is_master_key = True
             request.api_key = None
             return True
         
-        # Check if it's a valid API key
+        # Check regular API key
         api_key_permission = IsAuthenticatedWithApiKey()
         api_key = api_key_permission._validate_api_key(provided_key)
         if api_key:
@@ -122,32 +119,18 @@ class IsOwnerOrMasterKey(permissions.BasePermission):
     """
     Permission class that allows access to resource owners or master key holders.
     
-    For object-level permissions where users can only access their own resources
-    unless they have the master key.
+    Used for object-level permissions where users can only access their own resources.
     """
     
     def has_object_permission(self, request, view, obj):
         """Check if user owns the object or has master key"""
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return False
-        
-        provided_key = auth_header[7:]  # Remove 'Bearer ' prefix
-        
-        # Check if it's the master key (full access)
-        if settings.MASTER_API_KEY and provided_key == settings.MASTER_API_KEY:
+        # Check master key first
+        if hasattr(request, 'is_master_key') and request.is_master_key:
             return True
         
-        # Check if user owns the object
-        if hasattr(obj, 'creator_api_key') and obj.creator_api_key:
-            return obj.creator_api_key.key == provided_key
-        elif hasattr(obj, 'creator_user') and obj.creator_user:
-            # Check if the API key belongs to the creator user
-            try:
-                api_key = ApiKey.objects.get(key=provided_key, is_active=True)
-                return api_key.user == obj.creator_user
-            except ApiKey.DoesNotExist:
-                return False
+        # Check ownership
+        if hasattr(obj, 'creator_user') and hasattr(request, 'api_key'):
+            return obj.creator_user == request.api_key.user
         
         return False
 
@@ -183,6 +166,44 @@ class IsPublicOrAuthenticated(permissions.BasePermission):
             return True
         
         # Check if it's a valid API key
+        api_key_permission = IsAuthenticatedWithApiKey()
+        api_key = api_key_permission._validate_api_key(provided_key)
+        if api_key:
+            request.is_master_key = False
+            request.api_key = api_key
+            return True
+        
+        return False
+
+
+class IsAuthenticatedOrReadOnly(permissions.BasePermission):
+    """
+    Permission class that allows read-only access to anyone, but requires authentication for write operations.
+    
+    Used for verification endpoints where anyone should be able to verify archives,
+    but only authenticated users can create them.
+    """
+    
+    def has_permission(self, request, view):
+        """Allow read-only access to all, require auth for writes"""
+        # Allow read operations (GET, HEAD, OPTIONS) for anyone
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # For write operations, require authentication
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return False
+        
+        provided_key = auth_header[7:]  # Remove 'Bearer ' prefix
+        
+        # Check master key
+        if settings.MASTER_API_KEY and provided_key == settings.MASTER_API_KEY:
+            request.is_master_key = True
+            request.api_key = None
+            return True
+        
+        # Check API key
         api_key_permission = IsAuthenticatedWithApiKey()
         api_key = api_key_permission._validate_api_key(provided_key)
         if api_key:
