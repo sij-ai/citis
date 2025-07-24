@@ -360,6 +360,9 @@ if not OVERLAY_SERVER_DOMAIN:
     parsed = urlparse(SERVER_BASE_URL)
     OVERLAY_SERVER_DOMAIN = parsed.netloc or 'localhost'
 
+# Contact email for sales/support (uses server domain)
+SALES_EMAIL = os.getenv('SALES_EMAIL', f'sales@{OVERLAY_SERVER_DOMAIN}')
+
 # ArchiveBox Configuration (for overlay links)
 ARCHIVEBOX_EXPOSE_URL = os.getenv('ARCHIVEBOX_EXPOSE_URL', 'False').lower() == 'true'
 ARCHIVEBOX_BASE_URL = os.getenv('ARCHIVEBOX_BASE_URL', '')

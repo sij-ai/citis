@@ -51,7 +51,11 @@ def pricing_page(request):
     """
     Pricing page showing available plans.
     """
-    context = {}
+    from django.conf import settings
+    
+    context = {
+        'sales_email': settings.SALES_EMAIL
+    }
     
     # Add user subscription status if authenticated
     if request.user.is_authenticated:

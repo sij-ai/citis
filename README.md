@@ -58,6 +58,9 @@ MASTER_USER_EMAIL=admin@yourdomain.com
 MASTER_USER_PASSWORD=your-secure-password
 MASTER_API_KEY=your-master-api-key
 
+# Contact Information (optional)
+SALES_EMAIL=sales@yourdomain.com
+
 # Archive Engines  
 ARCHIVE_MODE=singlefile  # singlefile, archivebox, or both
 SINGLEFILE_EXECUTABLE_PATH=/path/to/single-file
