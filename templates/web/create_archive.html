@@ -92,6 +92,29 @@
                             {% endif %}
                         </div>
                         
+                        <!-- Custom Shortcode (Premium Only) -->
+                        {% if user_can_use_custom_shortcodes %}
+                        <div class="mb-4">
+                            <label for="custom_shortcode" class="form-label">
+                                <i class="bi bi-pencil-square me-2"></i>
+                                Custom Shortcode (Optional)
+                                <span class="badge bg-primary ms-2">Premium</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="custom_shortcode" 
+                                   name="custom_shortcode" 
+                                   placeholder="Your custom shortcode"
+                                   maxlength="{{ user_shortcode_length }}"
+                                   pattern="[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+"
+                                   title="Only Base58 characters allowed (no I, l, 0, O)">
+                            <div class="form-text">
+                                Choose your own {{ user_shortcode_length }}-character shortcode. Leave blank to auto-generate.
+                                <br><small style="color: var(--text-subtle);">Allowed characters: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
                         <!-- Usage Information -->
                         <div class="alert alert-info">
                             <div class="row align-items-center">
@@ -164,7 +187,7 @@
                                 </div>
                                 <div class="flex-grow-1 ms-3">
                                     <h6>Enter URL</h6>
-                                    <p class="text-muted mb-0">
+                                    <p class="mb-0" style="color: var(--text-subtle);">
                                         Paste the URL of the webpage you want to archive permanently.
                                     </p>
                                 </div>
@@ -181,7 +204,7 @@
                                 </div>
                                 <div class="flex-grow-1 ms-3">
                                     <h6>Choose Method</h6>
-                                    <p class="text-muted mb-0">
+                                    <p class="mb-0" style="color: var(--text-subtle);">
                                         Select how you want the page archived (SingleFile or ArchiveBox).
                                     </p>
                                 </div>
@@ -198,7 +221,7 @@
                                 </div>
                                 <div class="flex-grow-1 ms-3">
                                     <h6>Get Shortcode</h6>
-                                    <p class="text-muted mb-0">
+                                    <p class="mb-0" style="color: var(--text-subtle);">
                                         Receive a permanent shortcode to access your archived content.
                                     </p>
                                 </div>
@@ -215,7 +238,7 @@
                                 </div>
                                 <div class="flex-grow-1 ms-3">
                                     <h6>Share & Cite</h6>
-                                    <p class="text-muted mb-0">
+                                    <p class="mb-0" style="color: var(--text-subtle);">
                                         Use the shortcode URL in your research, articles, or documentation.
                                     </p>
                                 </div>
@@ -257,6 +280,49 @@ document.addEventListener('DOMContentLoaded', function() {
             this.setCustomValidity('');
         }
     });
+    
+    // Custom shortcode validation (if field exists)
+    const customShortcodeInput = document.getElementById('custom_shortcode');
+    if (customShortcodeInput) {
+        const maxLength = parseInt(customShortcodeInput.getAttribute('maxlength'));
+        const base58Pattern = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]*$/;
+        
+        customShortcodeInput.addEventListener('input', function() {
+            const value = this.value;
+            
+            if (value === '') {
+                this.setCustomValidity('');
+                return;
+            }
+            
+            if (value.length !== maxLength) {
+                this.setCustomValidity(`Shortcode must be exactly ${maxLength} characters long`);
+                return;
+            }
+            
+            if (!base58Pattern.test(value)) {
+                this.setCustomValidity('Only Base58 characters allowed (no I, l, 0, O)');
+                return;
+            }
+            
+            this.setCustomValidity('');
+        });
+        
+        // Real-time length indicator
+        const lengthIndicator = document.createElement('small');
+        lengthIndicator.className = 'form-text text-end';
+        lengthIndicator.style.color = 'var(--text-subtle)';
+        customShortcodeInput.parentNode.appendChild(lengthIndicator);
+        
+        function updateLengthIndicator() {
+            const current = customShortcodeInput.value.length;
+            lengthIndicator.textContent = `${current}/${maxLength} characters`;
+            lengthIndicator.style.color = current === maxLength ? 'var(--accent-cyan)' : 'var(--text-subtle)';
+        }
+        
+        customShortcodeInput.addEventListener('input', updateLengthIndicator);
+        updateLengthIndicator(); // Initialize
+    }
 });
 </script>
 {% endblock %} 

@@ -253,6 +253,8 @@ def create_archive(request):
         'monthly_usage': monthly_usage,
         'monthly_limit': monthly_limit,
         'usage_percentage': usage_percentage,
+        'user_can_use_custom_shortcodes': user.is_premium,  # Based on pricing page - Professional+ plans get custom slugs
+        'user_shortcode_length': user.shortcode_length,
     }
     
     if request.method == 'POST':
@@ -270,8 +272,29 @@ def create_archive(request):
                 return render(request, 'web/create_archive.html', context)
         
         try:
-            # Create the shortcode 
+            # Get custom shortcode from form if provided
+            custom_shortcode = request.POST.get('custom_shortcode', '').strip()
+            
+            # Generate or validate shortcode
+            if custom_shortcode:
+                # Validate custom shortcode
+                from core.utils import validate_shortcode
+                is_valid, error_message = validate_shortcode(custom_shortcode, user.shortcode_length)
+                if not is_valid:
+                    messages.error(request, error_message)
+                    return render(request, 'web/create_archive.html', context)
+                shortcode_value = custom_shortcode
+            else:
+                # Generate unique shortcode
+                from core.utils import generate_unique_shortcode
+                shortcode_value = generate_unique_shortcode(user.shortcode_length)
+                if not shortcode_value:
+                    messages.error(request, 'Could not generate a unique shortcode. Please try again.')
+                    return render(request, 'web/create_archive.html', context)
+            
+            # Create the shortcode object
             shortcode = Shortcode.objects.create(
+                shortcode=shortcode_value,
                 url=url,
                 text_fragment=text_fragment,
                 creator_user=user,
