@@ -30,3 +30,6 @@ deepcite.db
 config.yaml
 *.bak
 *.pid
+*.pid.lock
+*.lock
+pids/

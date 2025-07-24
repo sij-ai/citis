@@ -353,13 +353,13 @@ def create_api_key(request):
 
 @login_required
 @require_http_methods(["DELETE"])
-def delete_api_key(request, api_key_id):
+def delete_api_key(request, api_key):
     """
     HTMX endpoint to delete an API key.
     """
     try:
-        api_key = get_object_or_404(ApiKey, id=api_key_id, user=request.user)
-        api_key.delete()
+        api_key_obj = get_object_or_404(ApiKey, key=api_key, user=request.user)
+        api_key_obj.delete()
         return HttpResponse('', status=200)
         
     except Exception as e:
@@ -368,20 +368,20 @@ def delete_api_key(request, api_key_id):
 
 @login_required
 @require_http_methods(["POST"])
-def update_api_key(request, api_key_id):
+def update_api_key(request, api_key):
     """
     HTMX endpoint to update an API key.
     """
     try:
-        api_key = get_object_or_404(ApiKey, id=api_key_id, user=request.user)
+        api_key_obj = get_object_or_404(ApiKey, key=api_key, user=request.user)
         
         name = request.POST.get('name', '').strip()
         if name:
-            api_key.name = name
-            api_key.save()
+            api_key_obj.name = name
+            api_key_obj.save()
         
         # Return the updated API key as HTML for HTMX
-        context = {'api_key': api_key}
+        context = {'api_key': api_key_obj}
         return render(request, 'web/partials/api_key_card.html', context)
         
     except Exception as e:

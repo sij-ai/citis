@@ -18,8 +18,8 @@ urlpatterns = [
     
     # HTMX endpoints for API key management
     path('api-keys/create/', views.create_api_key, name='create_api_key'),
-    path('api-keys/<int:api_key_id>/update/', views.update_api_key, name='update_api_key'),
-    path('api-keys/<int:api_key_id>/delete/', views.delete_api_key, name='delete_api_key'),
+    path('api-keys/<str:api_key>/update/', views.update_api_key, name='update_api_key'),
+    path('api-keys/<str:api_key>/delete/', views.delete_api_key, name='delete_api_key'),
     
     # Utility endpoints
     path('highlight/', views.highlight_text, name='highlight_text'),
