@@ -64,9 +64,9 @@ class CustomUserAdmin(UserAdmin):
             ),
             'classes': ('wide',),
         }),
-        ('Timestamps', {
+        ('Additional Timestamps', {
             'fields': (
-                'created_at', 'last_login', 'date_joined'
+                'created_at',
             ),
             'classes': ('wide',),
         }),

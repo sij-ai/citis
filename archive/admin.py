@@ -14,6 +14,12 @@ from django.utils.safestring import mark_safe
 
 from .models import Shortcode, Visit, ApiKey, HealthCheck
 
+# Import TaskResult for Celery monitoring
+try:
+    from django_celery_results.models import TaskResult
+except ImportError:
+    TaskResult = None
+
 
 # Enhanced TaskResult admin for Celery task monitoring
 class TaskResultAdmin(admin.ModelAdmin):
@@ -507,8 +513,9 @@ class ApiKeyAdmin(admin.ModelAdmin):
 
 
 # Register TaskResult admin safely
-try:
-    admin.site.unregister(TaskResult)
-except admin.sites.NotRegistered:
-    pass
-admin.site.register(TaskResult, TaskResultAdmin)
+if TaskResult is not None:
+    try:
+        admin.site.unregister(TaskResult)
+    except admin.sites.NotRegistered:
+        pass
+    admin.site.register(TaskResult, TaskResultAdmin)
