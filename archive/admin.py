@@ -176,7 +176,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
                 )
             
             return format_html('{} {}{}<br><small>{}</small>', 
-                             obj.creator_user.get_display_name(), 
+                             obj.creator_user.get_full_display_name(), 
                              plan_badge, student_badge,
                              obj.creator_user.email)
         elif obj.creator_api_key:
@@ -483,7 +483,7 @@ class ApiKeyAdmin(admin.ModelAdmin):
             )
             
             return format_html('{} {}<br><small>{}</small>', 
-                             obj.user.get_display_name(), plan_badge, obj.user.email)
+                             obj.user.get_full_display_name(), plan_badge, obj.user.email)
         return 'No user assigned'
     user_display.short_description = 'User'
     user_display.admin_order_field = 'user__email'
@@ -497,8 +497,8 @@ class ApiKeyAdmin(admin.ModelAdmin):
     
     def usage_info(self, obj):
         """Display usage statistics."""
-        total = getattr(obj, 'total_usage', obj.get_total_usage())
-        daily = getattr(obj, 'daily_usage', obj.get_daily_usage())
+        total = getattr(obj, 'total_usage', obj.get_total_uses())
+        daily = getattr(obj, 'daily_usage', obj.get_daily_uses())
         
         usage_text = f'Total: {total}'
         if obj.max_uses_total:

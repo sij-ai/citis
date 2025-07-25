@@ -43,7 +43,13 @@
                         {% endif %}
                     </div>
                 </div>
-                <div>
+                <div class="d-flex gap-2">
+                    {% if user.is_superuser %}
+                    <a href="/admin/" class="btn btn-outline-warning">
+                        <i class="bi bi-gear-fill me-2"></i>
+                        Admin Panel
+                    </a>
+                    {% endif %}
                     <a href="{% url 'web:create_archive' %}" class="btn btn-primary">
                         <i class="bi bi-plus-circle me-2"></i>
                         Create Archive
