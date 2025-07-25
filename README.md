@@ -42,6 +42,17 @@ A Django-based SaaS for creating permanent, citable archives of web content. Per
 
 Visit `http://localhost:8000` to access the web interface, or `/admin/` for administration.
 
+## Documentation
+
+Detailed guides are available in the [`docs/`](docs/) directory:
+
+- **[`DEVELOPMENT.md`](docs/DEVELOPMENT.md)** - Development workflow, Celery setup, and health monitoring
+- **[`STRIPE_SETUP.md`](docs/STRIPE_SETUP.md)** - Complete Stripe billing integration guide  
+- **[`IMPLEMENTATION_SUMMARY.md`](docs/IMPLEMENTATION_SUMMARY.md)** - Quota system and student detection details
+- **[`QUOTA_AND_MONITORING_SUMMARY.md`](docs/QUOTA_AND_MONITORING_SUMMARY.md)** - Health monitoring implementation
+- **[`PROXY_CONFIGURATION.md`](docs/PROXY_CONFIGURATION.md)** - Residential proxy setup for geo-specific archiving
+- **[`TRUST_FEATURES_ANALYSIS.md`](docs/TRUST_FEATURES_ANALYSIS.md)** - Trust and verification features
+
 ## Configuration
 
 Key environment variables in `.env`:
@@ -207,17 +218,23 @@ services:
 - Web interface with Bootstrap 5 + HTMX
 - Archive service integration (SingleFile/ArchiveBox)
 - Admin interface and analytics
+- **Celery integration for background processing**
+- **Health monitoring system with plan-based intervals**
+- **Quota enforcement and student detection**
+- **Custom shortcode support for paid plans**
+- Stripe billing integration
 
 🚧 **In Progress**  
-- Celery integration for background processing
-- Stripe billing integration
 - Enhanced analytics and reporting
+- Trust features (timestamping, verification)
 
 📋 **Planned**
 - Team collaboration features
 - Webhook notifications
 - Custom domain support
 - Enhanced text fragment highlighting
+- Full-text search
+- Device simulation features
 
 ## Contributing
 

@@ -105,11 +105,10 @@
                                    id="custom_shortcode" 
                                    name="custom_shortcode" 
                                    placeholder="Your custom shortcode"
-                                   maxlength="{{ user_shortcode_length }}"
                                    pattern="[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+"
                                    title="Only Base58 characters allowed (no I, l, 0, O)">
                             <div class="form-text">
-                                Choose your own {{ user_shortcode_length }}-character shortcode. Leave blank to auto-generate.
+                                Choose your own shortcode (minimum {{ user_shortcode_length }} characters). Leave blank to auto-generate.
                                 <br><small style="color: var(--text-subtle);">Allowed characters: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz</small>
                             </div>
                         </div>

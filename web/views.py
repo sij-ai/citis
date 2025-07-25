@@ -298,7 +298,11 @@ def create_archive(request):
             if custom_shortcode:
                 # Validate custom shortcode
                 from core.utils import validate_shortcode
-                is_valid, error_message = validate_shortcode(custom_shortcode, user.shortcode_length)
+                is_valid, error_message = validate_shortcode(
+                    custom_shortcode, 
+                    user.shortcode_length, 
+                    is_admin=user.is_staff or user.is_superuser
+                )
                 if not is_valid:
                     messages.error(request, error_message)
                     return render(request, 'web/create_archive.html', context)

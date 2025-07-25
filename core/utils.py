@@ -51,17 +51,24 @@ def is_reserved_shortcode(shortcode: str) -> bool:
     return shortcode.lower() in RESERVED_SHORTCODES
 
 
-def validate_shortcode_format(shortcode: str, required_length: int) -> tuple[bool, str]:
+def validate_shortcode_format(shortcode: str, min_length: int, is_admin: bool = False) -> tuple[bool, str]:
     """
     Validate shortcode format against requirements.
+    
+    Args:
+        shortcode: The shortcode to validate
+        min_length: Minimum required length based on user's plan
+        is_admin: Whether the user is an admin (bypasses length restrictions)
     
     Returns (is_valid, error_message)
     """
     if not shortcode:
         return False, "Shortcode cannot be empty"
     
-    if len(shortcode) != required_length:
-        return False, f"Shortcode must be exactly {required_length} characters long"
+    # Admins can create shortcodes of any length
+    if not is_admin:
+        if len(shortcode) < min_length:
+            return False, f"Shortcode must be at least {min_length} characters long for your plan"
     
     if not is_valid_base58(shortcode):
         return False, "Shortcode contains invalid characters. Only alphanumeric characters allowed (excluding I, l, 0, O)"
@@ -87,14 +94,19 @@ def validate_shortcode_collision(shortcode: str) -> tuple[bool, str]:
     return True, ""
 
 
-def validate_shortcode(shortcode: str, required_length: int) -> tuple[bool, str]:
+def validate_shortcode(shortcode: str, min_length: int, is_admin: bool = False) -> tuple[bool, str]:
     """
     Complete shortcode validation including format and collision checks.
+    
+    Args:
+        shortcode: The shortcode to validate
+        min_length: Minimum required length based on user's plan  
+        is_admin: Whether the user is an admin (bypasses length restrictions)
     
     Returns (is_valid, error_message)
     """
     # Check format first
-    is_valid_format, format_error = validate_shortcode_format(shortcode, required_length)
+    is_valid_format, format_error = validate_shortcode_format(shortcode, min_length, is_admin)
     if not is_valid_format:
         return False, format_error
     

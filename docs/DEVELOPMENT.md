@@ -149,4 +149,55 @@ REDIS_URL=redis://localhost:6379/0
 
 # Optional: Celery monitoring
 CELERY_FLOWER_PASSWORD=your-flower-password
+```
+
+## Health Monitoring Setup
+
+### 1. Setup Periodic Tasks
+
+Configure health monitoring for different plan tiers:
+
+```bash
+# Setup health monitoring tasks (run once)
+python manage.py setup_health_monitoring
+
+# Reset and recreate all tasks if needed
+python manage.py setup_health_monitoring --reset
+```
+
+This creates the following monitoring schedule:
+- **Free Plan**: Daily link health checks (02:00 AM)
+- **Professional Plan**: Link health every 5 minutes + content integrity hourly
+- **Sovereign Plan**: Link health every minute + content integrity every 5 minutes
+
+### 2. Start Celery Beat Scheduler
+
+```bash
+# Terminal 4: Start the periodic task scheduler
+python manage_celery.py beat
+```
+
+### 3. Monitor Health Check Status
+
+Check the status of your monitoring tasks:
+```bash
+# View current periodic tasks
+python manage.py setup_health_monitoring
+
+# Check task execution in admin interface
+# Visit: http://localhost:8000/admin/django_celery_results/taskresult/
+```
+
+### Manual Health Checks
+
+You can also trigger health checks manually:
+```bash
+# Check specific shortcode health
+python manage.py shell
+>>> from archive.tasks import check_link_health_task
+>>> check_link_health_task.delay('ABC123')
+
+# Run content integrity scan
+>>> from archive.tasks import content_integrity_scan_task  
+>>> content_integrity_scan_task.delay('ABC123')
 ``` 

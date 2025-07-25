@@ -168,7 +168,10 @@ class Command(BaseCommand):
             if task.interval:
                 schedule_info = f"every {task.interval.every} {task.interval.period}"
             elif task.crontab:
-                schedule_info = f"daily at {task.crontab.hour:02d}:{task.crontab.minute:02d}"
+                # Convert to int in case they're stored as strings
+                hour = int(task.crontab.hour) if task.crontab.hour.isdigit() else task.crontab.hour
+                minute = int(task.crontab.minute) if task.crontab.minute.isdigit() else task.crontab.minute
+                schedule_info = f"daily at {hour:02d}:{minute:02d}"
             else:
                 schedule_info = "unknown schedule"
             

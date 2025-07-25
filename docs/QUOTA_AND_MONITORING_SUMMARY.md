@@ -168,18 +168,32 @@ python manage.py update_user_quotas
 ## 🔄 **Background Processing**
 
 The system now runs autonomously with:
+- **✅ Automated celery beat scheduling** - Complete with `django-celery-beat` integration
 - **Automatic file size enforcement** during archive creation
 - **Scheduled health monitoring** based on user plan tiers
 - **Content change detection** with configurable sensitivity
 - **Failed archive cleanup** to prevent disk bloat
 - **Plan-aware task scheduling** for optimal resource usage
 
+### **Setup Commands**
+```bash
+# Configure all periodic health monitoring tasks
+python manage.py setup_health_monitoring
+
+# Start the scheduler (run in separate terminal)
+python manage_celery.py beat
+
+# Monitor task execution
+# Visit: /admin/django_celery_results/taskresult/
+```
+
 ## 🎉 **Ready for Production**
 
-Your quota enforcement and health monitoring systems are now production-ready with:
+Your quota enforcement and health monitoring systems are now **100% complete and production-ready** with:
 - ✅ Complete file size validation
 - ✅ Tiered health monitoring as promised in pricing
-- ✅ Automated background processing  
+- ✅ **Automated celery beat scheduling** 
+- ✅ **Custom shortcode support with flexible length validation**
 - ✅ Comprehensive admin interface
 - ✅ Plan-aware feature gating
 - ✅ Performance optimizations

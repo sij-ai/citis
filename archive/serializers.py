@@ -24,8 +24,7 @@ class AddRequestSerializer(serializers.Serializer):
         if not value:
             return value  # Empty/None is fine - will be auto-generated
         
-        # We need the request context to get the user's shortcode length
-        # For now, we'll validate basic format and let the view handle user-specific validation
+        # Basic validation that doesn't require user context
         from core.utils import is_valid_base58, is_reserved_shortcode
         
         if not is_valid_base58(value):
@@ -36,7 +35,7 @@ class AddRequestSerializer(serializers.Serializer):
         if is_reserved_shortcode(value):
             raise serializers.ValidationError(f"'{value}' is a reserved word and cannot be used as a shortcode")
         
-        # Basic collision check (detailed validation happens in view with user context)
+        # Basic collision check (detailed validation with user context happens in view)
         if Shortcode.objects.filter(shortcode=value).exists():
             raise serializers.ValidationError("Shortcode already exists")
         

@@ -85,7 +85,8 @@ class AddArchiveView(APIView):
         # Generate shortcode if not provided
         if custom_shortcode:
             # Validate custom shortcode with user's length requirement
-            is_valid, error_message = validate_shortcode(custom_shortcode, shortcode_length)
+            is_admin = creator_user and (creator_user.is_staff or creator_user.is_superuser)
+            is_valid, error_message = validate_shortcode(custom_shortcode, shortcode_length, is_admin)
             if not is_valid:
                 return Response(
                     {"error": error_message},
