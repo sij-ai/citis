@@ -1,0 +1,165 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: citis_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-citis}
+      POSTGRES_USER: ${POSTGRES_USER:-citis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-md5}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./logs:/var/log/postgresql
+    networks:
+      - citis_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-citis} -d ${POSTGRES_DB:-citis}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: citis_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+      - ./logs:/var/log/redis
+    networks:
+      - citis_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # cit.is Web Application (optional - for full containerized deployment)
+  web:
+    build: .
+    container_name: citis_web
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citis}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-citis}
+      
+      # Redis Configuration  
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      
+      # Django Settings
+      DEBUG: ${DEBUG:-False}
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      
+      # Application Settings
+      SERVER_BASE_URL: ${SERVER_BASE_URL:-http://localhost:8000}
+      MASTER_API_KEY: ${MASTER_API_KEY}
+      MASTER_USER_EMAIL: ${MASTER_USER_EMAIL}
+      MASTER_USER_PASSWORD: ${MASTER_USER_PASSWORD}
+      
+      # Archive Settings
+      ARCHIVE_MODE: ${ARCHIVE_MODE:-singlefile}
+      SINGLEFILE_EXECUTABLE_PATH: ${SINGLEFILE_EXECUTABLE_PATH:-single-file}
+      SINGLEFILE_DATA_PATH: ${SINGLEFILE_DATA_PATH:-/app/archives}
+      
+      # Email Settings
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      
+      # Stripe Settings
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    volumes:
+      - ./archives:/app/archives
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - citis_network
+    profiles:
+      - full-stack  # Only start with --profile full-stack
+
+  # Celery Worker (optional - for full containerized deployment)
+  celery:
+    build: .
+    container_name: citis_celery
+    restart: unless-stopped
+    command: celery -A citis worker --loglevel=info --concurrency=4 --queues=archive,assets,analytics,celery
+    environment:
+      # Same environment as web service
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citis}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-citis}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG:-False}
+      MASTER_API_KEY: ${MASTER_API_KEY}
+      SINGLEFILE_EXECUTABLE_PATH: ${SINGLEFILE_EXECUTABLE_PATH:-single-file}
+      SINGLEFILE_DATA_PATH: ${SINGLEFILE_DATA_PATH:-/app/archives}
+    volumes:
+      - ./archives:/app/archives
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - citis_network
+    profiles:
+      - full-stack  # Only start with --profile full-stack
+
+  # Celery Beat Scheduler (optional - for full containerized deployment)
+  celery-beat:
+    build: .
+    container_name: citis_celery_beat
+    restart: unless-stopped
+    command: celery -A citis beat --loglevel=info --scheduler=django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      # Same environment as web service
+      DATABASE_URL: postgresql://${POSTGRES_USER:-citis}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-citis}
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG:-False}
+      MASTER_API_KEY: ${MASTER_API_KEY}
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - citis_network
+    profiles:
+      - full-stack  # Only start with --profile full-stack
+
+# Named volumes for data persistence
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Network for service communication
+networks:
+  citis_network:
+    driver: bridge

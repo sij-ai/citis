@@ -10,11 +10,17 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PID_DIR="${PROJECT_DIR}/pids"
 LOG_DIR="${PROJECT_DIR}/logs"
 
+# Load environment variables if .env exists
+if [ -f "${PROJECT_DIR}/.env" ]; then
+    export $(grep -v '^#' "${PROJECT_DIR}/.env" | xargs)
+fi
+
 # Service configuration
 GUNICORN_HOST="127.0.0.1"
 GUNICORN_PORT="8998"
 GUNICORN_WORKERS="10"
-REDIS_PORT="6379"
+REDIS_PORT="${REDIS_PORT:-6379}"
+POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 
 # Create directories
 mkdir -p "${PID_DIR}" "${LOG_DIR}"
@@ -30,6 +36,37 @@ NC='\033[0m' # No Color
 log() { echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"; }
 warn() { echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING:${NC} $1"; }
 error() { echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1"; }
+
+# Database detection
+get_database_type() {
+    if [ -n "${DATABASE_URL:-}" ]; then
+        case "${DATABASE_URL}" in
+            postgresql://*|postgres://*)
+                echo "postgresql"
+                ;;
+            sqlite://*)
+                echo "sqlite"
+                ;;
+            *)
+                echo "unknown"
+                ;;
+        esac
+    else
+        echo "sqlite"  # Default
+    fi
+}
+
+# Check if we should use Docker for services
+use_docker_services() {
+    # Use Docker if docker-compose.yaml exists and Docker is available
+    if [ -f "${PROJECT_DIR}/docker-compose.yaml" ] && command -v docker-compose >/dev/null 2>&1; then
+        return 0
+    elif [ -f "${PROJECT_DIR}/docker-compose.yaml" ] && command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
 
 # Murder function for killing processes on ports
 murder() {
@@ -335,17 +372,161 @@ stop_beat() {
     fi
 }
 
+# Start PostgreSQL (via Docker)
+start_postgres() {
+    if [ "$(get_database_type)" != "postgresql" ]; then
+        log "PostgreSQL not configured - using $(get_database_type) database"
+        return 0
+    fi
+    
+    if ! use_docker_services; then
+        warn "Docker not available or docker-compose.yaml missing"
+        log "Please start PostgreSQL manually or install Docker"
+        return 1
+    fi
+    
+    # Check if PostgreSQL container is already running
+    if docker ps --format '{{.Names}}' | grep -q "citis_postgres"; then
+        log "PostgreSQL is already running (Docker container)"
+        return 0
+    fi
+    
+    log "Starting PostgreSQL via Docker Compose..."
+    cd "$PROJECT_DIR"
+    
+    # Start only PostgreSQL service
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose up -d postgres
+    else
+        docker compose up -d postgres
+    fi
+    
+    # Wait for PostgreSQL to be ready
+    log "Waiting for PostgreSQL to be ready..."
+    local count=0
+    while [ $count -lt 30 ]; do
+        if docker exec citis_postgres pg_isready -U "${POSTGRES_USER:-citis}" -d "${POSTGRES_DB:-citis}" >/dev/null 2>&1; then
+            log "PostgreSQL started successfully"
+            return 0
+        fi
+        sleep 2
+        count=$((count + 1))
+    done
+    
+    error "PostgreSQL failed to start within 60 seconds"
+    return 1
+}
+
+# Stop PostgreSQL (via Docker)
+stop_postgres() {
+    if [ "$(get_database_type)" != "postgresql" ]; then
+        return 0
+    fi
+    
+    if ! use_docker_services; then
+        warn "Docker not available - cannot stop PostgreSQL container"
+        return 1
+    fi
+    
+    if docker ps --format '{{.Names}}' | grep -q "citis_postgres"; then
+        log "Stopping PostgreSQL..."
+        cd "$PROJECT_DIR"
+        
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker-compose stop postgres
+        else
+            docker compose stop postgres
+        fi
+        
+        log "PostgreSQL stopped"
+    else
+        warn "PostgreSQL container is not running"
+    fi
+}
+
+# Start Redis (updated to handle Docker Compose)
+start_redis_updated() {
+    if ! use_docker_services; then
+        # Fall back to original Redis start function
+        start_redis
+        return $?
+    fi
+    
+    # Check if Redis container is already running
+    if docker ps --format '{{.Names}}' | grep -q "citis_redis"; then
+        log "Redis is already running (Docker container)"
+        return 0
+    fi
+    
+    log "Starting Redis via Docker Compose..."
+    cd "$PROJECT_DIR"
+    
+    # Start only Redis service
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose up -d redis
+    else
+        docker compose up -d redis
+    fi
+    
+    # Wait for Redis to be ready
+    sleep 3
+    if docker exec citis_redis redis-cli ping >/dev/null 2>&1; then
+        log "Redis started successfully"
+    else
+        error "Failed to start Redis"
+        return 1
+    fi
+}
+
+# Stop Redis (updated to handle Docker Compose)
+stop_redis_updated() {
+    if ! use_docker_services; then
+        # Fall back to original Redis stop function
+        stop_redis
+        return $?
+    fi
+    
+    if docker ps --format '{{.Names}}' | grep -q "citis_redis"; then
+        log "Stopping Redis..."
+        cd "$PROJECT_DIR"
+        
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker-compose stop redis
+        else
+            docker compose stop redis
+        fi
+        
+        log "Redis stopped"
+    else
+        warn "Redis container is not running"
+    fi
+}
+
 # Status check
 status() {
     echo -e "\n${BLUE}=== cit.is Service Status ===${NC}"
     
-    # Redis (Docker)
-    if docker exec redis redis-cli ping >/dev/null 2>&1; then
+    # Database status
+    local db_type=$(get_database_type)
+    echo -e "Database:       ${BLUE}${db_type}${NC}"
+    
+    if [ "$db_type" = "postgresql" ]; then
+        if docker exec citis_postgres pg_isready -U "${POSTGRES_USER:-citis}" -d "${POSTGRES_DB:-citis}" >/dev/null 2>&1; then
+            echo -e "PostgreSQL:     ${GREEN}✓ Running${NC} (Docker)"
+        else
+            echo -e "PostgreSQL:     ${RED}✗ Stopped${NC} (Start with: ./deploy.sh start-db)"
+        fi
+    fi
+    
+    # Redis status
+    if docker exec citis_redis redis-cli ping >/dev/null 2>&1; then
+        echo -e "Redis:          ${GREEN}✓ Running${NC} (Docker Compose)"
+    elif docker exec redis redis-cli ping >/dev/null 2>&1; then
         echo -e "Redis:          ${GREEN}✓ Running${NC} (Docker)"
     elif redis-cli -p $REDIS_PORT ping >/dev/null 2>&1; then
         echo -e "Redis:          ${GREEN}✓ Running${NC} (System)"
     else
-        echo -e "Redis:          ${RED}✗ Stopped${NC} (Start with: docker start redis)"
+        echo -e "Redis:          ${RED}✗ Stopped${NC} (Start with: ./deploy.sh start)"
     fi
     
     # Gunicorn
@@ -380,15 +561,26 @@ status() {
 start_all() {
     log "Starting all cit.is services..."
     
-    # Check if Redis is already running (via Docker or system)
-    if docker exec redis redis-cli ping >/dev/null 2>&1; then
-        log "Redis is already running (Docker container)"
-    elif redis-cli -p $REDIS_PORT ping >/dev/null 2>&1; then
-        log "Redis is already running (system service)"
+    # Start database if PostgreSQL is configured
+    if [ "$(get_database_type)" = "postgresql" ]; then
+        start_postgres || return 1
     else
-        warn "Redis is not running! Start it manually with: docker start redis"
-        return 1
+        log "Using SQLite database - no database service to start"
     fi
+    
+    # Start Redis
+    start_redis_updated || {
+        warn "Failed to start Redis - trying fallback methods..."
+        if docker exec redis redis-cli ping >/dev/null 2>&1; then
+            log "Redis is already running (Docker container)"
+        elif redis-cli -p $REDIS_PORT ping >/dev/null 2>&1; then
+            log "Redis is already running (system service)"
+        else
+            error "Redis is not running and could not be started!"
+            error "Please start Redis manually: docker start redis or systemctl start redis"
+            return 1
+        fi
+    }
     
     start_gunicorn
     start_celery
@@ -402,8 +594,17 @@ stop_all() {
     stop_celery
     stop_gunicorn
     
-    # Note: Redis is managed by Docker, not stopping it
-    log "Note: Redis (Docker) left running - stop manually if needed: docker stop redis"
+    # Stop Redis if using Docker Compose
+    if use_docker_services; then
+        stop_redis_updated
+    else
+        log "Note: Redis left running - stop manually if needed: docker stop redis or systemctl stop redis"
+    fi
+    
+    # Stop PostgreSQL if configured
+    if [ "$(get_database_type)" = "postgresql" ]; then
+        stop_postgres
+    fi
     
     # Clean up any remaining processes
     murder $GUNICORN_PORT
@@ -447,7 +648,7 @@ usage() {
     echo "Usage: $0 [COMMAND] [OPTIONS]"
     echo ""
     echo "Commands:"
-    echo "  start           Start all services (redis, gunicorn, celery)"
+    echo "  start           Start all services (database, redis, gunicorn, celery)"
     echo "  stop            Stop all services"
     echo "  restart         Restart all services"
     echo "  status          Show service status"
@@ -461,17 +662,27 @@ usage() {
     echo "  start-beat      Start Celery beat scheduler"
     echo "  stop-beat       Stop Celery beat scheduler"
     echo ""
-    echo "Docker Redis commands:"
-    echo "  docker start redis    Start Redis container"
-    echo "  docker stop redis     Stop Redis container"
+    echo "Database commands:"
+    echo "  start-db        Start database (PostgreSQL if configured)"
+    echo "  stop-db         Stop database"
+    echo "  start-redis     Start Redis"
+    echo "  stop-redis      Stop Redis"
+    echo ""
+    echo "Docker Compose commands (if available):"
+    echo "  docker-compose up -d postgres    Start PostgreSQL"
+    echo "  docker-compose up -d redis       Start Redis"
+    echo "  docker-compose down              Stop all containers"
     echo ""
     echo "Utility commands:"
     echo "  murder PORT     Kill all processes on specified port"
     echo ""
     echo "Configuration:"
+    echo "  Database: $(get_database_type)"
     echo "  Host: $GUNICORN_HOST"
     echo "  Port: $GUNICORN_PORT"
     echo "  Workers: $GUNICORN_WORKERS"
+    echo "  Redis Port: $REDIS_PORT"
+    echo "  Postgres Port: $POSTGRES_PORT"
 }
 
 # Main command handling
@@ -508,6 +719,26 @@ case "${1:-}" in
         ;;
     "stop-beat")
         stop_beat
+        ;;
+    "start-db")
+        if [ "$(get_database_type)" = "postgresql" ]; then
+            start_postgres
+        else
+            log "Using SQLite database - no database service to start"
+        fi
+        ;;
+    "stop-db")
+        if [ "$(get_database_type)" = "postgresql" ]; then
+            stop_postgres
+        else
+            log "Using SQLite database - no database service to stop"
+        fi
+        ;;
+    "start-redis")
+        start_redis_updated
+        ;;
+    "stop-redis")
+        stop_redis_updated
         ;;
     "murder")
         if [ -n "${2:-}" ]; then
