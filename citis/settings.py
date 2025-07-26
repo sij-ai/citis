@@ -118,9 +118,25 @@ WSGI_APPLICATION = 'citis.wsgi.application'
 # DATABASE CONFIGURATION
 # =============================================================================
 
-DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{BASE_DIR}/db.sqlite3')
-DATABASES = {'default': dj_database_url.config(default=DATABASE_URL)}
+# Determine database type and construct URL dynamically
+DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
 
+if DB_TYPE in ['postgres', 'postgresql']:
+    # PostgreSQL configuration
+    PG_HOST = os.getenv('POSTGRES_HOST', 'localhost')
+    PG_PORT = os.getenv('POSTGRES_PORT', '5432')
+    PG_DB = os.getenv('POSTGRES_DB', 'citis')
+    PG_USER = os.getenv('POSTGRES_USER', 'citis')
+    PG_PASS = os.getenv('POSTGRES_PASSWORD', '')
+    
+    DATABASE_URL = f"postgresql://{PG_USER}:{PG_PASS}@{PG_HOST}:{PG_PORT}/{PG_DB}"
+else:
+    # SQLite configuration (default)
+    SQLITE_PATH = os.getenv('SQLITE_PATH', str(BASE_DIR / 'db.sqlite3'))
+    DATABASE_URL = f"sqlite:///{SQLITE_PATH}"
+
+# Use dj-database-url to parse the constructed URL
+DATABASES = {'default': dj_database_url.config(default=DATABASE_URL)}
 
 # =============================================================================
 # AUTHENTICATION & USER MODEL
@@ -403,9 +419,20 @@ PROXY_MAX_DISTANCE_KM = int(os.getenv('PROXY_MAX_DISTANCE_KM', 500))
 # CELERY CONFIGURATION
 # =============================================================================
 
+# Construct Redis URL dynamically
+REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+REDIS_PORT = os.getenv('REDIS_PORT', '6379')
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
+REDIS_DB = os.getenv('REDIS_DB', '0')
+
+if REDIS_PASSWORD:
+    REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+else:
+    REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+
 # Celery Broker Configuration
-CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_BROKER_URL = os.getenv('REDIS_URL', REDIS_URL)
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', REDIS_URL)
 
 # Celery Task Configuration
 CELERY_ACCEPT_CONTENT = ['application/json']

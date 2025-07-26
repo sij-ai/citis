@@ -39,21 +39,18 @@ error() { echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR:${NC} $1"; }
 
 # Database detection
 get_database_type() {
-    if [ -n "${DATABASE_URL:-}" ]; then
-        case "${DATABASE_URL}" in
-            postgresql://*|postgres://*)
-                echo "postgresql"
-                ;;
-            sqlite://*)
-                echo "sqlite"
-                ;;
-            *)
-                echo "unknown"
-                ;;
-        esac
-    else
-        echo "sqlite"  # Default
-    fi
+    local db_type="${DB_TYPE:-sqlite}"
+    case "${db_type,,}" in  # Convert to lowercase
+        postgres|postgresql)
+            echo "postgresql"
+            ;;
+        sqlite|sqlite3)
+            echo "sqlite"
+            ;;
+        *)
+            echo "sqlite"  # Default fallback
+            ;;
+    esac
 }
 
 # Check if we should use Docker for services

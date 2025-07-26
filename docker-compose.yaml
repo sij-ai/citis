@@ -30,7 +30,14 @@ services:
     image: redis:7-alpine
     container_name: citis_redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    command: >
+      sh -c "
+      if [ -n '${REDIS_PASSWORD:-}' ]; then
+        redis-server --appendonly yes --requirepass '${REDIS_PASSWORD}'
+      else
+        redis-server --appendonly yes
+      fi
+      "
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -39,7 +46,14 @@ services:
     networks:
       - citis_network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: >
+        sh -c "
+        if [ -n '${REDIS_PASSWORD:-}' ]; then
+          redis-cli -a '${REDIS_PASSWORD}' ping
+        else
+          redis-cli ping
+        fi
+        "
       interval: 30s
       timeout: 10s
       retries: 3
@@ -51,10 +65,18 @@ services:
     restart: unless-stopped
     environment:
       # Database Configuration
-      DATABASE_URL: postgresql://${POSTGRES_USER:-citis}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-citis}
+      DB_TYPE: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-citis}
+      POSTGRES_USER: ${POSTGRES_USER:-citis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       
       # Redis Configuration  
-      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: 0
       
       # Django Settings
       DEBUG: ${DEBUG:-False}
@@ -107,8 +129,16 @@ services:
     command: celery -A citis worker --loglevel=info --concurrency=4 --queues=archive,assets,analytics,celery
     environment:
       # Same environment as web service
-      DATABASE_URL: postgresql://${POSTGRES_USER:-citis}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-citis}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      DB_TYPE: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-citis}
+      POSTGRES_USER: ${POSTGRES_USER:-citis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: 0
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}
       MASTER_API_KEY: ${MASTER_API_KEY}
@@ -135,8 +165,16 @@ services:
     command: celery -A citis beat --loglevel=info --scheduler=django_celery_beat.schedulers:DatabaseScheduler
     environment:
       # Same environment as web service
-      DATABASE_URL: postgresql://${POSTGRES_USER:-citis}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-citis}
-      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      DB_TYPE: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-citis}
+      POSTGRES_USER: ${POSTGRES_USER:-citis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: 0
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}
       MASTER_API_KEY: ${MASTER_API_KEY}
