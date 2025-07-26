@@ -242,7 +242,7 @@ This project is in active development. The core archiving functionality is compl
 
 ## License
 
-*License to be determined*
+*License announcement coming soon. For now it is **AGPL-3.0.** See [License] for more details.*
 
 ---
 
