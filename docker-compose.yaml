@@ -58,6 +58,70 @@ services:
       timeout: 10s
       retries: 3
 
+  # ChangeDetection.io - Content Integrity Monitoring
+  changedetection:
+    image: ghcr.io/dgtlmoon/changedetection.io
+    container_name: citis_changedetection
+    restart: unless-stopped
+    environment:
+      # Basic configuration
+      PUID: 1000
+      PGID: 1000
+      
+      # Optional: Set API key via environment
+      CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
+      
+      # Optional: Set base URL for external access
+      BASE_URL: ${CHANGEDETECTION_BASE_URL:-}
+      
+      # Performance tuning
+      WEBDRIVER_URL: "http://browser-chrome:4444/wd/hub"
+      
+      # Security settings
+      HIDE_REFERER: "true"
+      
+    ports:
+      - "${CHANGEDETECTION_PORT:-5000}:5000"
+    volumes:
+      - changedetection_data:/datastore
+      - ./logs:/var/log/changedetection
+    networks:
+      - citis_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/systeminfo"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - changedetection  # Only start when --profile changedetection is used
+
+  # Browser for ChangeDetection.io (optional, for JavaScript rendering)
+  browser-chrome:
+    image: selenium/standalone-chrome:4
+    container_name: citis_browser_chrome
+    restart: unless-stopped
+    environment:
+      VNC_NO_PASSWORD: 1
+      SCREEN_WIDTH: 1920
+      SCREEN_HEIGHT: 1080
+      SCREEN_DEPTH: 24
+    ports:
+      - "${SELENIUM_PORT:-4444}:4444"
+      - "${VNC_PORT:-7900}:7900"  # VNC access for debugging
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - citis_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - changedetection  # Only start when --profile changedetection is used
+
   # cit.is Web Application (optional - for full containerized deployment)
   web:
     build: .
@@ -104,6 +168,11 @@ services:
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      
+      # ChangeDetection.io Settings
+      CHANGEDETECTION_ENABLED: ${CHANGEDETECTION_ENABLED:-False}
+      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_BASE_URL:-http://changedetection:5000}
+      CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
     ports:
       - "${WEB_PORT:-8000}:8000"
     volumes:
@@ -144,6 +213,10 @@ services:
       MASTER_API_KEY: ${MASTER_API_KEY}
       SINGLEFILE_EXECUTABLE_PATH: ${SINGLEFILE_EXECUTABLE_PATH:-single-file}
       SINGLEFILE_DATA_PATH: ${SINGLEFILE_DATA_PATH:-/app/archives}
+      # ChangeDetection.io Settings
+      CHANGEDETECTION_ENABLED: ${CHANGEDETECTION_ENABLED:-False}
+      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_BASE_URL:-http://changedetection:5000}
+      CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
     volumes:
       - ./archives:/app/archives
       - ./logs:/app/logs
@@ -178,6 +251,10 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG:-False}
       MASTER_API_KEY: ${MASTER_API_KEY}
+      # ChangeDetection.io Settings  
+      CHANGEDETECTION_ENABLED: ${CHANGEDETECTION_ENABLED:-False}
+      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_BASE_URL:-http://changedetection:5000}
+      CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
     volumes:
       - ./logs:/app/logs
     depends_on:
@@ -195,6 +272,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  changedetection_data:
     driver: local
 
 # Network for service communication

@@ -499,6 +499,92 @@ stop_redis_updated() {
     fi
 }
 
+# Start ChangeDetection.io (via Docker Compose)
+start_changedetection() {
+    # Check if ChangeDetection.io is enabled
+    if [ "${CHANGEDETECTION_ENABLED:-false}" != "true" ]; then
+        log "ChangeDetection.io is disabled (CHANGEDETECTION_ENABLED=false)"
+        return 0
+    fi
+    
+    if ! use_docker_services; then
+        warn "Docker not available - cannot start ChangeDetection.io container"
+        return 1
+    fi
+    
+    # Check if ChangeDetection.io container is already running
+    if docker ps --format '{{.Names}}' | grep -q "citis_changedetection"; then
+        log "ChangeDetection.io is already running"
+        return 0
+    fi
+    
+    log "Starting ChangeDetection.io via Docker Compose..."
+    cd "$PROJECT_DIR"
+    
+    # Start ChangeDetection.io with the changedetection profile
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose --profile changedetection up -d changedetection browser-chrome
+    else
+        docker compose --profile changedetection up -d changedetection browser-chrome
+    fi
+    
+    # Wait for ChangeDetection.io to be ready
+    log "Waiting for ChangeDetection.io to be ready..."
+    local count=0
+    while [ $count -lt 30 ]; do
+        if curl -f "http://localhost:${CHANGEDETECTION_PORT:-5000}/api/v1/systeminfo" >/dev/null 2>&1; then
+            log "ChangeDetection.io started successfully"
+            
+            # Automatically run setup if API key is configured
+            if [ -n "${CHANGEDETECTION_API_KEY:-}" ]; then
+                log "Running ChangeDetection.io webhook setup..."
+                if python manage.py setup_changedetection --verify; then
+                    log "ChangeDetection.io setup completed successfully"
+                else
+                    warn "ChangeDetection.io setup verification failed - check configuration"
+                fi
+            else
+                warn "CHANGEDETECTION_API_KEY not configured - skipping automatic setup"
+                log "Configure your API key and run: python manage.py setup_changedetection"
+            fi
+            
+            return 0
+        fi
+        sleep 2
+        count=$((count + 1))
+    done
+    
+    error "ChangeDetection.io failed to start within 60 seconds"
+    return 1
+}
+
+# Stop ChangeDetection.io (via Docker Compose)
+stop_changedetection() {
+    if [ "${CHANGEDETECTION_ENABLED:-false}" != "true" ]; then
+        return 0
+    fi
+    
+    if ! use_docker_services; then
+        warn "Docker not available - cannot stop ChangeDetection.io container"
+        return 1
+    fi
+    
+    if docker ps --format '{{.Names}}' | grep -q "citis_changedetection\|citis_browser_chrome"; then
+        log "Stopping ChangeDetection.io..."
+        cd "$PROJECT_DIR"
+        
+        if command -v docker-compose >/dev/null 2>&1; then
+            docker-compose --profile changedetection stop changedetection browser-chrome
+        else
+            docker compose --profile changedetection stop changedetection browser-chrome
+        fi
+        
+        log "ChangeDetection.io stopped"
+    else
+        log "ChangeDetection.io is not running"
+    fi
+}
+
 # Status check
 status() {
     echo -e "\n${BLUE}=== cit.is Service Status ===${NC}"
@@ -551,6 +637,18 @@ status() {
         echo -e "Celery Beat:    ${YELLOW}⚬ Stopped${NC} (optional)"
     fi
     
+    # ChangeDetection.io
+    if [ "${CHANGEDETECTION_ENABLED:-false}" = "true" ]; then
+        if docker ps --format '{{.Names}}' | grep -q "citis_changedetection"; then
+            echo -e "ChangeDetection: ${GREEN}✓ Running${NC} (Docker)"
+            echo -e "URL:            ${BLUE}http://localhost:${CHANGEDETECTION_PORT:-5000}${NC}"
+        else
+            echo -e "ChangeDetection: ${RED}✗ Stopped${NC} (Start with: ./deploy.sh start-changedetection)"
+        fi
+    else
+        echo -e "ChangeDetection: ${YELLOW}⚬ Disabled${NC} (CHANGEDETECTION_ENABLED=false)"
+    fi
+    
     echo ""
 }
 
@@ -565,7 +663,7 @@ start_all() {
         log "Using SQLite database - no database service to start"
     fi
     
-    # Start Redis
+        # Start Redis
     start_redis_updated || {
         warn "Failed to start Redis - trying fallback methods..."
         if docker exec redis redis-cli ping >/dev/null 2>&1; then
@@ -578,7 +676,10 @@ start_all() {
             return 1
         fi
     }
-    
+
+    # Start ChangeDetection.io if enabled
+    start_changedetection
+
     start_gunicorn
     start_celery
     status
@@ -590,6 +691,9 @@ stop_all() {
     stop_beat
     stop_celery
     stop_gunicorn
+    
+    # Stop ChangeDetection.io if enabled
+    stop_changedetection
     
     # Stop Redis if using Docker Compose
     if use_docker_services; then
@@ -664,6 +768,8 @@ usage() {
     echo "  stop-db         Stop database"
     echo "  start-redis     Start Redis"
     echo "  stop-redis      Stop Redis"
+    echo "  start-changedetection  Start ChangeDetection.io (if enabled)"
+    echo "  stop-changedetection   Stop ChangeDetection.io"
     echo ""
     echo "Docker Compose commands (if available):"
     echo "  docker-compose up -d postgres    Start PostgreSQL"
@@ -736,6 +842,12 @@ case "${1:-}" in
         ;;
     "stop-redis")
         stop_redis_updated
+        ;;
+    "start-changedetection")
+        start_changedetection
+        ;;
+    "stop-changedetection")
+        stop_changedetection
         ;;
     "murder")
         if [ -n "${2:-}" ]; then

@@ -19,44 +19,63 @@ Add these environment variables to your `.env` file:
 ```bash
 # ChangeDetection.io Integration
 CHANGEDETECTION_ENABLED=True
-CHANGEDETECTION_BASE_URL=http://localhost:5000
+CHANGEDETECTION_BASE_URL=http://localhost:5000  # Or http://changedetection:5000 for Docker Compose
 CHANGEDETECTION_API_KEY=your-api-key-here
+CHANGEDETECTION_PORT=5000  # Port to expose ChangeDetection.io on
 ```
+
+**Note**: When using Docker Compose (recommended), services communicate via internal Docker network. The `CHANGEDETECTION_BASE_URL` should be `http://changedetection:5000` for internal communication.
 
 ## Setup Steps
 
 ### 1. Install and Configure ChangeDetection.io
 
-First, set up your ChangeDetection.io instance. You can use Docker:
+ChangeDetection.io is automatically managed via Docker Compose. Simply enable it in your configuration:
 
 ```bash
-# Run ChangeDetection.io
-docker run -d \
-  --name changedetection \
-  -p 5000:5000 \
-  -v datastore-volume:/datastore \
-  ghcr.io/dgtlmoon/changedetection.io
+# Enable ChangeDetection.io in your .env file
+CHANGEDETECTION_ENABLED=True
+CHANGEDETECTION_API_KEY=your-api-key-here
 ```
 
-### 2. Get API Key
+The deployment script will automatically start ChangeDetection.io when you start your services:
 
-1. Open ChangeDetection.io web interface (http://localhost:5000)
-2. Go to Settings → API
-3. Generate an API key
-4. Add it to your `.env` file as `CHANGEDETECTION_API_KEY`
+```bash
+# Start all services (including ChangeDetection.io if enabled)
+./deploy.sh start
 
-### 3. Configure Webhook
+# Or start ChangeDetection.io individually
+./deploy.sh start-changedetection
+```
 
-Run the setup command to configure ChangeDetection.io to send notifications to cit.is:
+### 2. Start Services and Get API Key
+
+1. Start ChangeDetection.io via the deployment script:
+   ```bash
+   ./deploy.sh start-changedetection
+   ```
+
+2. Open ChangeDetection.io web interface at http://localhost:5000
+3. Go to Settings → API
+4. Generate an API key
+5. Add it to your `.env` file as `CHANGEDETECTION_API_KEY`
+6. Restart the services to pick up the new API key:
+   ```bash
+   ./deploy.sh restart
+   ```
+
+### 3. Automatic Setup
+
+When you start ChangeDetection.io with a configured API key, the deployment script automatically:
+- Verifies the ChangeDetection.io configuration
+- Sets up the webhook URL: `{SERVER_BASE_URL}/api/internal/webhook/changedetection`
+- Displays setup status
+
+For manual setup or verification:
 
 ```bash
 python manage.py setup_changedetection
 ```
-
-This will:
-- Verify your ChangeDetection.io configuration
-- Set up the webhook URL: `{SERVER_BASE_URL}/api/internal/webhook/changedetection`
-- Display the plan-based frequency configuration
 
 ### 4. Verify Configuration
 
@@ -66,7 +85,32 @@ Check that everything is working:
 python manage.py setup_changedetection --verify
 ```
 
+Or check the service status:
+
+```bash
+./deploy.sh status
+```
+
 ## Management Commands
+
+### Deployment Script Commands
+
+```bash
+# Start all services (including ChangeDetection.io if enabled)
+./deploy.sh start
+
+# Start only ChangeDetection.io
+./deploy.sh start-changedetection
+
+# Stop ChangeDetection.io
+./deploy.sh stop-changedetection
+
+# Check service status
+./deploy.sh status
+
+# Restart all services
+./deploy.sh restart
+```
 
 ### Setup and Configuration
 
