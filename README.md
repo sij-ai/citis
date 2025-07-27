@@ -1,4 +1,4 @@
-# cit.is - Permanent Web Archiving
+![Citis Pixel Art](static/citis-pixelart.png)
 
 A Django-based SaaS for creating permanent, citable archives of web content. Perfect for researchers, journalists, and anyone who needs reliable citations that won't break.
 
