@@ -19,6 +19,7 @@ urlpatterns = [
 
     # API Endpoints
     path('api/v1/', include('archive.urls')),
+    path('api/internal/', include('archive.webhook_urls')),
 
     # API Schema & Docs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

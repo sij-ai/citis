@@ -397,6 +397,29 @@ SINGLEFILE_SCREENSHOT_HEIGHT = int(os.getenv('SINGLEFILE_SCREENSHOT_HEIGHT', 108
 GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
 
 # =============================================================================
+# CHANGEDETECTION.IO CONFIGURATION
+# =============================================================================
+
+# ChangeDetection.io API configuration
+CHANGEDETECTION_ENABLED = os.getenv('CHANGEDETECTION_ENABLED', 'False').lower() == 'true'
+CHANGEDETECTION_BASE_URL = os.getenv('CHANGEDETECTION_BASE_URL', 'http://localhost:5000')
+CHANGEDETECTION_API_KEY = os.getenv('CHANGEDETECTION_API_KEY', '')
+
+# Plan-based monitoring frequency configuration (in seconds)
+CHANGEDETECTION_PLAN_FREQUENCIES = {
+    'free': {'days': 1},              # Daily checks (86400 seconds)
+    'professional': {'hours': 1},     # Every hour for content integrity
+    'sovereign': {'minutes': 5}       # Every 5 minutes
+}
+
+# Link health check frequencies (separate from content integrity)
+CHANGEDETECTION_HEALTH_FREQUENCIES = {
+    'free': {'days': 1},              # Daily health checks
+    'professional': {'minutes': 5},   # Every 5 minutes
+    'sovereign': {'minutes': 1}       # Real-time (every minute)
+}
+
+# =============================================================================
 # RESIDENTIAL PROXY CONFIGURATION
 # =============================================================================
 

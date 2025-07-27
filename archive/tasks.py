@@ -1,19 +1,28 @@
 """
-Celery tasks for archive operations.
+Archive service tasks for background processing.
+
+This module contains Celery tasks for archiving URLs, extracting assets,
+and performing health monitoring operations.
 """
+
 import asyncio
 import logging
-import shutil
 import hashlib
-from datetime import datetime, timezone as dt_timezone
+import shutil
 from pathlib import Path
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional, List, Tuple
+from urllib.parse import urlparse, urljoin
 
 from celery import shared_task
+from django.conf import settings
 from django.utils import timezone
+from django.contrib.gis.geoip2 import GeoIP2
+from django.core.exceptions import ObjectDoesNotExist
 
-from .models import Shortcode, Visit
-from core.services import get_archive_managers
-from core.utils import get_client_ip
+from core.services import get_archive_managers, get_singlefile_manager
+from core.changedetection_service import get_changedetection_service
+from .models import Shortcode, Visit, HealthCheck
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +269,25 @@ def archive_url_task(self, shortcode_id, requester_ip=None):
                     
             except Exception as e:
                 logger.error(f"Error calculating archive checksum for {shortcode.shortcode}: {e}")
+        
+        # Integrate with ChangeDetection.io for content integrity monitoring
+        try:
+            changedetection_service = get_changedetection_service()
+            if changedetection_service.is_configured():
+                logger.info(f"Setting up ChangeDetection.io monitoring for {shortcode.shortcode}")
+                
+                # Process archive creation with ChangeDetection.io
+                success, message = changedetection_service.process_archive_creation(shortcode)
+                
+                if success:
+                    logger.info(f"ChangeDetection.io integration successful for {shortcode.shortcode}: {message}")
+                else:
+                    logger.warning(f"ChangeDetection.io integration failed for {shortcode.shortcode}: {message}")
+            else:
+                logger.debug(f"ChangeDetection.io not configured, skipping monitoring setup for {shortcode.shortcode}")
+                
+        except Exception as e:
+            logger.error(f"Error integrating with ChangeDetection.io for {shortcode.shortcode}: {e}")
         
         logger.info(f"Archive task completed successfully for {shortcode.shortcode}")
         return {
