@@ -15,6 +15,20 @@ if [ -f "${PROJECT_DIR}/.env" ]; then
     export $(grep -v '^#' "${PROJECT_DIR}/.env" | xargs)
 fi
 
+# Debug function to show environment variables
+debug_env() {
+    echo "Environment Variables Debug:"
+    echo "  CHANGEDETECTION_ENABLED: '${CHANGEDETECTION_ENABLED:-<not set>}'"
+    echo "  CHANGEDETECTION_INTERNAL_URL: '${CHANGEDETECTION_INTERNAL_URL:-<not set>}'"
+    echo "  CHANGEDETECTION_EXTERNAL_URL: '${CHANGEDETECTION_EXTERNAL_URL:-<not set>}'"
+    echo "  CHANGEDETECTION_EXTERNAL_PORT: '${CHANGEDETECTION_EXTERNAL_PORT:-<not set>}'"
+    echo "  CHANGEDETECTION_API_KEY: '${CHANGEDETECTION_API_KEY:-<not set>}'"
+    echo ""
+    echo "Legacy variables (for reference):"
+    echo "  CHANGEDETECTION_BASE_URL: '${CHANGEDETECTION_BASE_URL:-<not set>}'"
+    echo "  CHANGEDETECTION_PORT: '${CHANGEDETECTION_PORT:-<not set>}'"
+}
+
 # Service configuration
 GUNICORN_HOST="127.0.0.1"
 GUNICORN_PORT="8998"
@@ -56,9 +70,7 @@ get_database_type() {
 # Check if we should use Docker for services
 use_docker_services() {
     # Use Docker if docker-compose.yaml exists and Docker is available
-    if [ -f "${PROJECT_DIR}/docker-compose.yaml" ] && command -v docker-compose >/dev/null 2>&1; then
-        return 0
-    elif [ -f "${PROJECT_DIR}/docker-compose.yaml" ] && command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+if [ -f "${PROJECT_DIR}/docker-compose.yaml" ] && command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
         return 0
     else
         return 1
@@ -392,11 +404,7 @@ start_postgres() {
     cd "$PROJECT_DIR"
     
     # Start only PostgreSQL service
-    if command -v docker-compose >/dev/null 2>&1; then
-        docker-compose up -d postgres
-    else
-        docker compose up -d postgres
-    fi
+    docker compose up -d postgres
     
     # Wait for PostgreSQL to be ready
     log "Waiting for PostgreSQL to be ready..."
@@ -429,11 +437,7 @@ stop_postgres() {
         log "Stopping PostgreSQL..."
         cd "$PROJECT_DIR"
         
-        if command -v docker-compose >/dev/null 2>&1; then
-            docker-compose stop postgres
-        else
             docker compose stop postgres
-        fi
         
         log "PostgreSQL stopped"
     else
@@ -459,11 +463,7 @@ start_redis_updated() {
     cd "$PROJECT_DIR"
     
     # Start only Redis service
-    if command -v docker-compose >/dev/null 2>&1; then
-        docker-compose up -d redis
-    else
-        docker compose up -d redis
-    fi
+    docker compose up -d redis
     
     # Wait for Redis to be ready
     sleep 3
@@ -487,11 +487,7 @@ stop_redis_updated() {
         log "Stopping Redis..."
         cd "$PROJECT_DIR"
         
-        if command -v docker-compose >/dev/null 2>&1; then
-            docker-compose stop redis
-        else
             docker compose stop redis
-        fi
         
         log "Redis stopped"
     else
@@ -501,9 +497,11 @@ stop_redis_updated() {
 
 # Start ChangeDetection.io (via Docker Compose)
 start_changedetection() {
-    # Check if ChangeDetection.io is enabled
-    if [ "${CHANGEDETECTION_ENABLED:-false}" != "true" ]; then
-        log "ChangeDetection.io is disabled (CHANGEDETECTION_ENABLED=false)"
+    # Check if ChangeDetection.io is enabled (case-insensitive)
+    local enabled="${CHANGEDETECTION_ENABLED:-false}"
+    enabled="${enabled,,}"  # Convert to lowercase
+    if [ "$enabled" != "true" ]; then
+        log "ChangeDetection.io is disabled (CHANGEDETECTION_ENABLED=${CHANGEDETECTION_ENABLED:-false})"
         return 0
     fi
     
@@ -521,18 +519,14 @@ start_changedetection() {
     log "Starting ChangeDetection.io via Docker Compose..."
     cd "$PROJECT_DIR"
     
-    # Start ChangeDetection.io with the changedetection profile
-    if command -v docker-compose >/dev/null 2>&1; then
-        docker-compose --profile changedetection up -d changedetection browser-chrome
-    else
-        docker compose --profile changedetection up -d changedetection browser-chrome
-    fi
+    # Start ChangeDetection.io with the changedetection profile (Chrome browser optional)
+    docker compose --profile changedetection up -d changedetection
     
     # Wait for ChangeDetection.io to be ready
     log "Waiting for ChangeDetection.io to be ready..."
     local count=0
     while [ $count -lt 30 ]; do
-        if curl -f "http://localhost:${CHANGEDETECTION_PORT:-5000}/api/v1/systeminfo" >/dev/null 2>&1; then
+        if curl -f "http://localhost:${CHANGEDETECTION_EXTERNAL_PORT:-5001}/" >/dev/null 2>&1; then
             log "ChangeDetection.io started successfully"
             
             # Automatically run setup if API key is configured
@@ -560,7 +554,10 @@ start_changedetection() {
 
 # Stop ChangeDetection.io (via Docker Compose)
 stop_changedetection() {
-    if [ "${CHANGEDETECTION_ENABLED:-false}" != "true" ]; then
+    # Check if ChangeDetection.io is enabled (case-insensitive)
+    local enabled="${CHANGEDETECTION_ENABLED:-false}"
+    enabled="${enabled,,}"  # Convert to lowercase
+    if [ "$enabled" != "true" ]; then
         return 0
     fi
     
@@ -569,19 +566,79 @@ stop_changedetection() {
         return 1
     fi
     
-    if docker ps --format '{{.Names}}' | grep -q "citis_changedetection\|citis_browser_chrome"; then
+    if docker ps --format '{{.Names}}' | grep -q "citis_changedetection"; then
         log "Stopping ChangeDetection.io..."
         cd "$PROJECT_DIR"
         
-        if command -v docker-compose >/dev/null 2>&1; then
-            docker-compose --profile changedetection stop changedetection browser-chrome
-        else
-            docker compose --profile changedetection stop changedetection browser-chrome
-        fi
+        docker compose --profile changedetection stop changedetection
         
         log "ChangeDetection.io stopped"
     else
         log "ChangeDetection.io is not running"
+    fi
+}
+
+# Start Chrome browser for ChangeDetection.io (optional)
+start_chrome() {
+    # Check if ChangeDetection.io is enabled
+    local enabled="${CHANGEDETECTION_ENABLED:-false}"
+    enabled="${enabled,,}"  # Convert to lowercase
+    if [ "$enabled" != "true" ]; then
+        log "ChangeDetection.io is disabled - Chrome browser not needed"
+        return 0
+    fi
+    
+    if ! use_docker_services; then
+        warn "Docker not available - cannot start Chrome browser container"
+        return 1
+    fi
+    
+    # Check if Chrome container is already running
+    if docker ps --format '{{.Names}}' | grep -q "citis_browser_chrome"; then
+        log "Chrome browser is already running"
+        return 0
+    fi
+    
+    log "Starting Chrome browser for ChangeDetection.io..."
+    cd "$PROJECT_DIR"
+    
+    # Start Chrome browser with the changedetection profile
+    docker compose --profile changedetection up -d citis-browser-chrome
+    
+    # Wait for Chrome to be ready
+    log "Waiting for Chrome browser to be ready..."
+    local count=0
+    while [ $count -lt 20 ]; do
+        if docker exec citis_browser_chrome curl -f "http://localhost:4444/status" >/dev/null 2>&1; then
+            log "Chrome browser started successfully"
+            
+            # Update ChangeDetection.io to use Chrome
+            log "Configuring ChangeDetection.io to use Chrome browser..."
+            # This would require updating the container environment or config
+            # For now, just inform the user
+            log "Chrome browser is available at http://citis-browser-chrome:4444/wd/hub (internal)"
+            
+            return 0
+        fi
+        sleep 3
+        count=$((count + 1))
+    done
+    
+    error "Chrome browser failed to start within 60 seconds"
+    return 1
+}
+
+# Stop Chrome browser
+stop_chrome() {
+    if docker ps --format '{{.Names}}' | grep -q "citis_browser_chrome"; then
+        log "Stopping Chrome browser..."
+        cd "$PROJECT_DIR"
+        
+        docker compose --profile changedetection stop citis-browser-chrome
+        
+        log "Chrome browser stopped"
+    else
+        log "Chrome browser is not running"
     fi
 }
 
@@ -638,15 +695,24 @@ status() {
     fi
     
     # ChangeDetection.io
-    if [ "${CHANGEDETECTION_ENABLED:-false}" = "true" ]; then
+    local enabled="${CHANGEDETECTION_ENABLED:-false}"
+    enabled="${enabled,,}"  # Convert to lowercase
+    if [ "$enabled" = "true" ]; then
         if docker ps --format '{{.Names}}' | grep -q "citis_changedetection"; then
             echo -e "ChangeDetection: ${GREEN}✓ Running${NC} (Docker)"
-            echo -e "URL:            ${BLUE}http://localhost:${CHANGEDETECTION_PORT:-5000}${NC}"
+            echo -e "URL:            ${BLUE}http://localhost:${CHANGEDETECTION_EXTERNAL_PORT:-5001}${NC}"
         else
             echo -e "ChangeDetection: ${RED}✗ Stopped${NC} (Start with: ./deploy.sh start-changedetection)"
         fi
+        
+        # Chrome browser status (optional)
+        if docker ps --format '{{.Names}}' | grep -q "citis_browser_chrome"; then
+            echo -e "Chrome Browser: ${GREEN}✓ Running${NC} (Internal)"
+        else
+            echo -e "Chrome Browser: ${YELLOW}⚬ Stopped${NC} (Optional - start with: ./deploy.sh start-chrome)"
+        fi
     else
-        echo -e "ChangeDetection: ${YELLOW}⚬ Disabled${NC} (CHANGEDETECTION_ENABLED=false)"
+        echo -e "ChangeDetection: ${YELLOW}⚬ Disabled${NC} (CHANGEDETECTION_ENABLED=${CHANGEDETECTION_ENABLED:-false})"
     fi
     
     echo ""
@@ -770,14 +836,17 @@ usage() {
     echo "  stop-redis      Stop Redis"
     echo "  start-changedetection  Start ChangeDetection.io (if enabled)"
     echo "  stop-changedetection   Stop ChangeDetection.io"
+    echo "  start-chrome           Start Chrome browser for ChangeDetection.io (optional)"
+    echo "  stop-chrome            Stop Chrome browser"
     echo ""
     echo "Docker Compose commands (if available):"
-    echo "  docker-compose up -d postgres    Start PostgreSQL"
-    echo "  docker-compose up -d redis       Start Redis"
-    echo "  docker-compose down              Stop all containers"
+    echo "  docker compose up -d postgres    Start PostgreSQL"
+    echo "  docker compose up -d redis       Start Redis"
+    echo "  docker compose down              Stop all containers"
     echo ""
     echo "Utility commands:"
     echo "  murder PORT     Kill all processes on specified port"
+    echo "  debug-env       Show ChangeDetection.io environment variables"
     echo ""
     echo "Configuration:"
     echo "  Database: $(get_database_type)"
@@ -786,6 +855,7 @@ usage() {
     echo "  Workers: $GUNICORN_WORKERS"
     echo "  Redis Port: $REDIS_PORT"
     echo "  Postgres Port: $POSTGRES_PORT"
+    echo "  ChangeDetection.io: ${CHANGEDETECTION_ENABLED:-false} (External Port: ${CHANGEDETECTION_EXTERNAL_PORT:-5001})"
 }
 
 # Main command handling
@@ -849,6 +919,12 @@ case "${1:-}" in
     "stop-changedetection")
         stop_changedetection
         ;;
+    "start-chrome")
+        start_chrome
+        ;;
+    "stop-chrome")
+        stop_chrome
+        ;;
     "murder")
         if [ -n "${2:-}" ]; then
             murder "$2"
@@ -857,6 +933,9 @@ case "${1:-}" in
             echo "Usage: $0 murder <port>"
             exit 1
         fi
+        ;;
+    "debug-env")
+        debug_env
         ;;
     ""|"-h"|"--help"|"help")
         usage

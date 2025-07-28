@@ -402,8 +402,19 @@ GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
 
 # ChangeDetection.io API configuration
 CHANGEDETECTION_ENABLED = os.getenv('CHANGEDETECTION_ENABLED', 'False').lower() == 'true'
-CHANGEDETECTION_BASE_URL = os.getenv('CHANGEDETECTION_BASE_URL', 'http://localhost:5000')
+
+# Support both new and legacy environment variable names
+CHANGEDETECTION_BASE_URL = (
+    os.getenv('CHANGEDETECTION_INTERNAL_URL') or  # New variable for Docker internal communication
+    os.getenv('CHANGEDETECTION_BASE_URL') or      # Legacy variable for backward compatibility
+    'http://changedetection:5000'                 # Default for Docker Compose
+)
+
 CHANGEDETECTION_API_KEY = os.getenv('CHANGEDETECTION_API_KEY', '')
+
+# External access configuration (for documentation and setup)
+CHANGEDETECTION_EXTERNAL_PORT = os.getenv('CHANGEDETECTION_EXTERNAL_PORT', '5001')
+CHANGEDETECTION_EXTERNAL_URL = os.getenv('CHANGEDETECTION_EXTERNAL_URL', f'http://localhost:{CHANGEDETECTION_EXTERNAL_PORT}')
 
 # Plan-based monitoring frequency configuration (in seconds)
 CHANGEDETECTION_PLAN_FREQUENCIES = {

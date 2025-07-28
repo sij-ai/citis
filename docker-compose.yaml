@@ -72,43 +72,48 @@ services:
       CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
       
       # Optional: Set base URL for external access
-      BASE_URL: ${CHANGEDETECTION_BASE_URL:-}
+      BASE_URL: ${CHANGEDETECTION_EXTERNAL_URL:-}
       
-      # Performance tuning
-      WEBDRIVER_URL: "http://browser-chrome:4444/wd/hub"
+      # Performance tuning - Chrome browser optional for JavaScript sites
+      # WEBDRIVER_URL: "http://citis-browser-chrome:4444/wd/hub"
       
       # Security settings
       HIDE_REFERER: "true"
       
     ports:
-      - "${CHANGEDETECTION_PORT:-5000}:5000"
+      - "${CHANGEDETECTION_EXTERNAL_PORT:-5001}:5000"  # Use port 5001 externally to avoid conflicts
     volumes:
       - changedetection_data:/datastore
       - ./logs:/var/log/changedetection
     networks:
       - citis_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/systeminfo"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 30s
     profiles:
       - changedetection  # Only start when --profile changedetection is used
+    # Remove Chrome dependency for now - ChangeDetection.io can work without browser for basic monitoring
 
-  # Browser for ChangeDetection.io (optional, for JavaScript rendering)
-  browser-chrome:
+  # Browser for ChangeDetection.io (internal only, no external ports)
+  citis-browser-chrome:
     image: selenium/standalone-chrome:4
     container_name: citis_browser_chrome
     restart: unless-stopped
     environment:
-      VNC_NO_PASSWORD: 1
-      SCREEN_WIDTH: 1920
-      SCREEN_HEIGHT: 1080
-      SCREEN_DEPTH: 24
-    ports:
-      - "${SELENIUM_PORT:-4444}:4444"
-      - "${VNC_PORT:-7900}:7900"  # VNC access for debugging
+      # Basic configuration
+      SE_VNC_NO_PASSWORD: 1
+      SE_SCREEN_WIDTH: 1920
+      SE_SCREEN_HEIGHT: 1080
+      SE_SCREEN_DEPTH: 24
+      # Optimize for headless operation - use correct environment variables
+      SE_OPTS: "--log-level INFO"
+      # Chrome-specific options
+      SE_NODE_MAX_SESSIONS: 1
+      SE_NODE_SESSION_TIMEOUT: 300
+    # No external ports - internal Docker network only
     volumes:
       - /dev/shm:/dev/shm
     networks:
@@ -171,7 +176,7 @@ services:
       
       # ChangeDetection.io Settings
       CHANGEDETECTION_ENABLED: ${CHANGEDETECTION_ENABLED:-False}
-      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_BASE_URL:-http://changedetection:5000}
+      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_INTERNAL_URL:-http://changedetection:5000}
       CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
     ports:
       - "${WEB_PORT:-8000}:8000"
@@ -215,7 +220,7 @@ services:
       SINGLEFILE_DATA_PATH: ${SINGLEFILE_DATA_PATH:-/app/archives}
       # ChangeDetection.io Settings
       CHANGEDETECTION_ENABLED: ${CHANGEDETECTION_ENABLED:-False}
-      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_BASE_URL:-http://changedetection:5000}
+      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_INTERNAL_URL:-http://changedetection:5000}
       CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
     volumes:
       - ./archives:/app/archives
@@ -253,7 +258,7 @@ services:
       MASTER_API_KEY: ${MASTER_API_KEY}
       # ChangeDetection.io Settings  
       CHANGEDETECTION_ENABLED: ${CHANGEDETECTION_ENABLED:-False}
-      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_BASE_URL:-http://changedetection:5000}
+      CHANGEDETECTION_BASE_URL: ${CHANGEDETECTION_INTERNAL_URL:-http://changedetection:5000}
       CHANGEDETECTION_API_KEY: ${CHANGEDETECTION_API_KEY:-}
     volumes:
       - ./logs:/app/logs

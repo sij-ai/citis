@@ -19,12 +19,32 @@ Add these environment variables to your `.env` file:
 ```bash
 # ChangeDetection.io Integration
 CHANGEDETECTION_ENABLED=True
-CHANGEDETECTION_BASE_URL=http://localhost:5000  # Or http://changedetection:5000 for Docker Compose
+
+# Internal communication (between Docker containers)
+CHANGEDETECTION_INTERNAL_URL=http://changedetection:5000
+
+# External access (for web UI and setup)
+CHANGEDETECTION_EXTERNAL_PORT=5001  # Use port 5001 to avoid conflicts with other instances
+CHANGEDETECTION_EXTERNAL_URL=http://localhost:5001
+
+# API Key (get from ChangeDetection.io web UI)
 CHANGEDETECTION_API_KEY=your-api-key-here
-CHANGEDETECTION_PORT=5000  # Port to expose ChangeDetection.io on
 ```
 
-**Note**: When using Docker Compose (recommended), services communicate via internal Docker network. The `CHANGEDETECTION_BASE_URL` should be `http://changedetection:5000` for internal communication.
+**Note**: 
+- **Port 5001**: Uses external port 5001 to avoid conflicts with other ChangeDetection.io instances you may have running
+- **Internal Communication**: Docker services communicate via `http://changedetection:5000` 
+- **External Access**: Web UI accessible at `http://localhost:5001`
+- **Chrome Browser**: Runs internally with no external ports (won't conflict with your existing Chrome containers)
+
+**Backward Compatibility**: If you already have:
+```bash
+# Old configuration (still works)
+CHANGEDETECTION_BASE_URL=http://changedetection:5000
+CHANGEDETECTION_PORT=5000
+```
+
+You can either keep the old configuration (it will use port 5001 externally but keep internal communication working) or migrate to the new format above.
 
 ## Setup Steps
 
@@ -55,7 +75,7 @@ The deployment script will automatically start ChangeDetection.io when you start
    ./deploy.sh start-changedetection
    ```
 
-2. Open ChangeDetection.io web interface at http://localhost:5000
+2. Open ChangeDetection.io web interface at http://localhost:5001
 3. Go to Settings → API
 4. Generate an API key
 5. Add it to your `.env` file as `CHANGEDETECTION_API_KEY`
@@ -175,33 +195,46 @@ The monitoring frequencies are configured in `settings.py`:
 
 ```python
 CHANGEDETECTION_PLAN_FREQUENCIES = {
-    'free': {'days': 1},              # Daily (not used for content integrity)
-    'professional': {'hours': 1},     # Every hour
-    'sovereign': {'minutes': 5}       # Every 5 minutes
+    'free': {'days': 1},               # Daily (not used for content integrity)
+    'professional': {'hours': 1},      # Every hour
+    'sovereign': {'minutes': 5}        # Every 5 minutes
 }
 
-CHANGEDETECTION_HEALTH_FREQUENCIES = {
-    'free': {'days': 1},              # Daily health checks
-    'professional': {'minutes': 5},   # Every 5 minutes
-    'sovereign': {'minutes': 1}       # Every minute
+CHANGEDETECTION_HEALTH_FREQUENCIES = { 
+    'free': {'days': 1},               # Daily health checks
+    'professional': {'minutes': 5},    # Every 5 minutes
+    'sovereign': {'minutes': 1}        # Every minute
 }
 ```
 
 ## Troubleshooting
-
 ### Common Issues
 
-1. **API Connection Failed**
+1. **ChangeDetection.io Shows as Disabled Despite CHANGEDETECTION_ENABLED=True**
+   - Check environment variable case: use `CHANGEDETECTION_ENABLED=True` (any case works)
+   - Verify .env file is in the project root directory
+   - Run `./deploy.sh debug-env` to check if variables are loaded correctly
+   - Ensure no spaces around the `=` in your .env file
+
+1a. **Port Conflicts with Existing ChangeDetection.io Instances**
+   - The new configuration uses port 5001 externally to avoid conflicts
+   - Chrome browser runs internally only (no external ports)
+   - Update your `.env` to use the new variable names (see Configuration section above)
+   - Legacy `CHANGEDETECTION_BASE_URL` and `CHANGEDETECTION_PORT` still work but are deprecated
+
+2. **API Connection Failed**
    - Check `CHANGEDETECTION_BASE_URL` is correct
+   - For Docker Compose: use `http://changedetection:5000` for internal communication
+   - For external access: use `http://localhost:5000` or your external domain
    - Verify ChangeDetection.io is running and accessible
    - Check firewall settings
 
-2. **Authentication Failed**
+3. **Authentication Failed**
    - Verify `CHANGEDETECTION_API_KEY` is correct
    - Check API key hasn't expired
    - Ensure API access is enabled in ChangeDetection.io settings
 
-3. **Webhook Not Receiving Notifications**
+4. **Webhook Not Receiving Notifications**
    - Check webhook URL is accessible from ChangeDetection.io
    - Verify `SERVER_BASE_URL` is correct
    - Check logs for webhook processing errors
@@ -217,6 +250,9 @@ python manage.py manage_changedetection_watches stats
 
 # List all watches in JSON format
 python manage.py manage_changedetection_watches list --format json
+
+# Debug environment variables (deployment script)
+./deploy.sh debug-env
 ```
 
 ### Log Monitoring
