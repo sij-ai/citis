@@ -93,8 +93,8 @@ def generate_dynamic_overlay_css() -> str:
     css_vars = f"""
 :root {{
     --style-background-color: {settings.OVERLAY_STYLE_BACKGROUND_COLOR} !important;
-    --style-link-color: {settings.OVERLAY_STYLE_LINK_COLOR} !important;
-    --style-accent-color: {settings.OVERLAY_STYLE_ACCENT_COLOR} !important;
+    --style-link-color: {settings.BUTTON_COLOR} !important;
+    --style-accent-color: {settings.ACCENT_COLOR} !important;
 }}
 """
     
@@ -556,8 +556,8 @@ def generate_overlay_scripts(
         cleaned_fragment=cleaned_fragment_escaped,
         analytics_data_json=json.dumps(analytics_data),
         style_background_color=settings.OVERLAY_STYLE_BACKGROUND_COLOR,
-        style_link_color=settings.OVERLAY_STYLE_LINK_COLOR,
-        style_accent_color=settings.OVERLAY_STYLE_ACCENT_COLOR
+        style_link_color=settings.BUTTON_COLOR,
+        style_accent_color=settings.ACCENT_COLOR
     )
 
 

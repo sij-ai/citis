@@ -89,8 +89,8 @@ REDIS_URL=redis://localhost:6379  # For caching/Celery
 
 # Overlay Styling (optional)
 OVERLAY_STYLE_BACKGROUND_COLOR=#000000
-OVERLAY_STYLE_LINK_COLOR=#ffe100
-OVERLAY_STYLE_ACCENT_COLOR=#ffe100
+BUTTON_COLOR=#ffe100
+ACCENT_COLOR=#ffe100
 ```
 
 ## Architecture
