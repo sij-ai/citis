@@ -34,7 +34,7 @@ GUNICORN_HOST="127.0.0.1"
 GUNICORN_PORT="8998"
 GUNICORN_WORKERS="10"
 REDIS_PORT="${REDIS_PORT:-6379}"
-POSTGRES_PORT="${POSTGRES_PORT:-5432}"
+POSTGRES_PORT="${POSTGRES_PORT:-5433}"  # Use 5433 to avoid conflict with system PostgreSQL
 
 # Create directories
 mkdir -p "${PID_DIR}" "${LOG_DIR}"

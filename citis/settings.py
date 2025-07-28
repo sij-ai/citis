@@ -124,7 +124,7 @@ DB_TYPE = os.getenv('DB_TYPE', 'sqlite').lower()
 if DB_TYPE in ['postgres', 'postgresql']:
     # PostgreSQL configuration
     PG_HOST = os.getenv('POSTGRES_HOST', 'localhost')
-    PG_PORT = os.getenv('POSTGRES_PORT', '5432')
+    PG_PORT = os.getenv('POSTGRES_PORT', '5433')  # Use 5433 to avoid conflict with system PostgreSQL
     PG_DB = os.getenv('POSTGRES_DB', 'citis')
     PG_USER = os.getenv('POSTGRES_USER', 'citis')
     PG_PASS = os.getenv('POSTGRES_PASSWORD', '')
@@ -404,11 +404,27 @@ GEOLITE_DB_PATH = os.getenv('GEOLITE_DB_PATH')
 CHANGEDETECTION_ENABLED = os.getenv('CHANGEDETECTION_ENABLED', 'False').lower() == 'true'
 
 # Support both new and legacy environment variable names
-CHANGEDETECTION_BASE_URL = (
-    os.getenv('CHANGEDETECTION_INTERNAL_URL') or  # New variable for Docker internal communication
-    os.getenv('CHANGEDETECTION_BASE_URL') or      # Legacy variable for backward compatibility
-    'http://changedetection:5000'                 # Default for Docker Compose
-)
+# Determine if we're running inside Docker or on host system
+def _get_changedetection_url():
+    # Check for explicit environment variables first
+    if os.getenv('CHANGEDETECTION_BASE_URL'):
+        return os.getenv('CHANGEDETECTION_BASE_URL')
+    
+    # Try Docker internal URL if set, but fall back to localhost if hostname resolution fails
+    internal_url = os.getenv('CHANGEDETECTION_INTERNAL_URL')
+    if internal_url:
+        try:
+            import socket
+            hostname = internal_url.split('://')[1].split(':')[0]
+            socket.gethostbyname(hostname)
+            return internal_url  # Docker hostname resolves, use internal URL
+        except (socket.gaierror, IndexError):
+            pass  # Fall back to localhost
+    
+    # Default to localhost for host-based management commands
+    return f'http://localhost:{os.getenv("CHANGEDETECTION_EXTERNAL_PORT", "5001")}'
+
+CHANGEDETECTION_BASE_URL = _get_changedetection_url()
 
 CHANGEDETECTION_API_KEY = os.getenv('CHANGEDETECTION_API_KEY', '')
 
@@ -457,7 +473,7 @@ PROXY_MAX_DISTANCE_KM = int(os.getenv('PROXY_MAX_DISTANCE_KM', 500))
 REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
 REDIS_PORT = os.getenv('REDIS_PORT', '6379')
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
-REDIS_DB = os.getenv('REDIS_DB', '0')
+REDIS_DB = os.getenv('REDIS_DB', '0')  # Redis database number (0-15), most apps use 0
 
 if REDIS_PASSWORD:
     REDIS_URL = f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"

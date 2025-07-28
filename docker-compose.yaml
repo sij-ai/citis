@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -12,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_HOST_AUTH_METHOD: ${POSTGRES_HOST_AUTH_METHOD:-md5}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./logs:/var/log/postgresql
@@ -81,7 +79,7 @@ services:
       HIDE_REFERER: "true"
       
     ports:
-      - "${CHANGEDETECTION_EXTERNAL_PORT:-5001}:5000"  # Use port 5001 externally to avoid conflicts
+      - "127.0.0.1:${CHANGEDETECTION_EXTERNAL_PORT:-5001}:5000"  # Bind to localhost only for security
     volumes:
       - changedetection_data:/datastore
       - ./logs:/var/log/changedetection
