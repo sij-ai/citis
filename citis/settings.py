@@ -235,7 +235,7 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['true', '1']
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
-# Default email addresses (will be updated after SERVER_BASE_URL is defined)
+# Email addresses - must be explicitly configured in .env, no automatic inference
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@localhost')
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
@@ -247,6 +247,11 @@ SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 # Basic Stripe settings (also used by our custom views)
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+# Stripe Price IDs for subscription plans
+STRIPE_PRICE_PREMIUM_MONTHLY = os.getenv('STRIPE_PRICE_PREMIUM_MONTHLY', '')
+STRIPE_PRICE_PREMIUM_YEARLY = os.getenv('STRIPE_PRICE_PREMIUM_YEARLY', '')
 
 # dj-stripe specific settings
 DJSTRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
@@ -294,17 +299,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 
-# =============================================================================
-# STRIPE CONFIGURATION
-# =============================================================================
 
-STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
-STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-
-# Stripe Price IDs for subscription plans
-STRIPE_PRICE_PREMIUM_MONTHLY = os.getenv('STRIPE_PRICE_PREMIUM_MONTHLY', '')
-STRIPE_PRICE_PREMIUM_YEARLY = os.getenv('STRIPE_PRICE_PREMIUM_YEARLY', '')
 
 # =============================================================================
 # LOGGING CONFIGURATION
@@ -336,8 +331,22 @@ LOGGING = {
 # CITIS-SPECIFIC SETTINGS
 # =============================================================================
 
+# =============================================================================
+# SITE DOMAIN & SERVER CONFIGURATION  
+# =============================================================================
+
+# Core site domain - all other domain-related settings derive from this
+SITE_DOMAIN = os.getenv('SITE_DOMAIN', 'localhost:8000')
+
 # Server Configuration
-SERVER_BASE_URL = os.getenv('SERVER_BASE_URL', 'http://localhost:8000')
+# If SERVER_BASE_URL not explicitly set, derive from SITE_DOMAIN
+if os.getenv('SERVER_BASE_URL'):
+    SERVER_BASE_URL = os.getenv('SERVER_BASE_URL')
+else:
+    # Use HTTPS in production, HTTP in development
+    protocol = 'https' if not DEBUG else 'http'
+    SERVER_BASE_URL = f'{protocol}://{SITE_DOMAIN}'
+
 SERVER_URL_PREFIX = os.getenv('SERVER_URL_PREFIX', '')
 SERVER_REQUIRE_API_KEY = os.getenv('SERVER_REQUIRE_API_KEY', 'True').lower() in ['true', '1', 'yes']
 MASTER_API_KEY = os.getenv('MASTER_API_KEY')
@@ -345,17 +354,6 @@ MASTER_API_KEY = os.getenv('MASTER_API_KEY')
 # Master user configuration (for master API key)
 MASTER_USER_EMAIL = os.getenv('MASTER_USER_EMAIL', 'admin@example.com')
 MASTER_USER_PASSWORD = os.getenv('MASTER_USER_PASSWORD', 'changeme123')
-
-# Update email settings with proper domain if not explicitly set
-if not os.getenv('DEFAULT_FROM_EMAIL'):
-    _domain = os.getenv('SITE_DOMAIN')
-    if not _domain:
-        # Extract from SERVER_BASE_URL
-        from urllib.parse import urlparse
-        parsed = urlparse(SERVER_BASE_URL)
-        _domain = parsed.netloc or 'localhost'
-    DEFAULT_FROM_EMAIL = f'noreply@{_domain}'
-    SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Archive Configuration
 ARCHIVE_MODE = os.getenv('ARCHIVE_MODE', 'singlefile')
@@ -365,19 +363,15 @@ TIMEDIFF_WARNING_THRESHOLD = int(os.getenv('TIMEDIFF_WARNING_THRESHOLD', 7200))
 # Overlay Configuration
 OVERLAY_STYLE_BACKGROUND_COLOR = os.getenv('OVERLAY_STYLE_BACKGROUND_COLOR', '#000000')
 OVERLAY_STYLE_LINK_COLOR = os.getenv('OVERLAY_STYLE_LINK_COLOR', '#ffe100')
-OVERLAY_STYLE_ACCENT_COLOR = os.getenv('OVERLAY_STYLE_ACCENT_COLOR', '#ffe100')
 OVERLAY_STYLE_ICON = os.getenv('OVERLAY_STYLE_ICON', '')
 OVERLAY_STYLE_COPY_GRAPHIC = os.getenv('OVERLAY_STYLE_COPY_GRAPHIC', '📋')
-OVERLAY_SERVER_DOMAIN = os.getenv('OVERLAY_SERVER_DOMAIN', '')
 
-# Derived server domain for overlay display
-if not OVERLAY_SERVER_DOMAIN:
-    from urllib.parse import urlparse
-    parsed = urlparse(SERVER_BASE_URL)
-    OVERLAY_SERVER_DOMAIN = parsed.netloc or 'localhost'
+# UI Color Configuration
+ACCENT_COLOR = os.getenv('ACCENT_COLOR', '#4ECDC4')  # Main accent color (cyan/teal)
+BUTTON_COLOR = os.getenv('BUTTON_COLOR', '#3BA8A1')  # Slightly dimmed accent for button resting state
 
-# Contact email for sales/support (uses server domain)
-SALES_EMAIL = os.getenv('SALES_EMAIL', f'sales@{OVERLAY_SERVER_DOMAIN}')
+# Contact email for sales/support - must be explicitly configured
+SALES_EMAIL = os.getenv('SALES_EMAIL', f'sales@{SITE_DOMAIN}')
 
 # ArchiveBox Configuration (for overlay links)
 ARCHIVEBOX_EXPOSE_URL = os.getenv('ARCHIVEBOX_EXPOSE_URL', 'False').lower() == 'true'

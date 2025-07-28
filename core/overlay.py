@@ -382,8 +382,8 @@ def prepare_server_info() -> Tuple[str, str]:
             link_url=settings.SERVER_BASE_URL
         )
     
-    if settings.OVERLAY_SERVER_DOMAIN:
-        server_domain_html = f'<a href="{settings.SERVER_BASE_URL}" target="_blank">{settings.OVERLAY_SERVER_DOMAIN}</a>'
+    if settings.SITE_DOMAIN:
+        server_domain_html = f'<a href="{settings.SERVER_BASE_URL}" target="_blank">{settings.SITE_DOMAIN}</a>'
     
     return server_icon_html, server_domain_html
 

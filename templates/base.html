@@ -31,6 +31,7 @@
             --accent-cyan: #4ECDC4;
             --accent-teal: #45B7B8;
             --accent-hover: #6BCCC7;
+            --button-color: #3BA8A1; /* Dimmed accent for button resting state */
             --border-subtle: #3A4A4F;
             --shadow-color: rgba(0, 0, 0, 0.4);
             
@@ -229,8 +230,8 @@
         }
         
         .btn-primary {
-            background: var(--accent-cyan);
-            border-color: var(--accent-cyan);
+            background: var(--button-color);
+            border-color: var(--button-color);
             color: var(--bg-primary);
             font-weight: bold;
         }
@@ -238,15 +239,15 @@
         .btn-primary:hover,
         .btn-primary:focus,
         .btn-primary:active {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
             color: var(--bg-primary);
-            box-shadow: none;
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
         }
         
         .btn-outline-primary {
-            color: var(--accent-cyan);
-            border-color: var(--accent-cyan);
+            color: var(--button-color);
+            border-color: var(--button-color);
             background: transparent;
         }
         
@@ -256,7 +257,7 @@
             background: var(--accent-cyan);
             border-color: var(--accent-cyan);
             color: var(--bg-primary);
-            box-shadow: none;
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
         }
         
         .btn-secondary {
@@ -342,25 +343,72 @@
             color: var(--text-subtle);
         }
         
+        /* Form controls - checkboxes and radio buttons */
+        .form-check-input {
+            background-color: transparent;
+            border: 1px solid var(--border-subtle);
+            color: var(--accent-cyan);
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+        
+        .form-check-input:focus {
+            border-color: var(--accent-cyan);
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+        }
+        
+        .form-check-input:checked:focus {
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+        }
+        
+        .form-check-label {
+            color: var(--text-dimmed);
+        }
+        
         /* Tables */
         .table {
             color: var(--text-dimmed);
             background: var(--bg-secondary);
+            --bs-table-bg: var(--bg-secondary);
+            --bs-table-hover-bg: var(--bg-tertiary);
+            --bs-table-hover-color: var(--text-bone);
+            border-color: var(--border-subtle);
         }
         
         .table th {
             color: var(--text-bone);
             border-bottom: 1px solid var(--border-subtle);
             background: var(--bg-tertiary);
+            border-color: var(--border-subtle);
         }
         
         .table td {
             border-bottom: 1px solid var(--border-subtle);
+            border-color: var(--border-subtle);
         }
         
         .table-hover tbody tr:hover {
             background: var(--bg-tertiary);
             color: var(--text-bone);
+        }
+        
+        /* Override Bootstrap table variants */
+        .table-light {
+            --bs-table-bg: var(--bg-tertiary);
+            --bs-table-color: var(--text-bone);
+            background: var(--bg-tertiary);
+            color: var(--text-bone);
+        }
+        
+        .table-light th,
+        .table-light td {
+            background: var(--bg-tertiary);
+            color: var(--text-bone);
+            border-color: var(--border-subtle);
         }
         
         /* Links */
@@ -410,15 +458,24 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-subtle);
             box-shadow: 0 4px 12px var(--shadow-color);
+            --bs-dropdown-bg: var(--bg-secondary);
+            --bs-dropdown-border-color: var(--border-subtle);
+            --bs-dropdown-color: var(--text-dimmed);
         }
         
         .dropdown-item {
             color: var(--text-dimmed);
         }
         
-        .dropdown-item:hover {
+        .dropdown-item:hover,
+        .dropdown-item:focus {
             background: var(--bg-tertiary);
             color: var(--text-bone);
+        }
+        
+        .dropdown-item:active {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
         }
         
         /* Accordion styling */
@@ -456,8 +513,21 @@
         
         /* Fix Bootstrap's blue focus colors */
         .btn:focus,
-        .form-control:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+        }
+        
+        /* Override all Bootstrap focus states */
+        *:focus {
+            outline: none;
+        }
+        
+        .btn:focus,
+        .btn.focus,
+        .btn:not(:disabled):not(.disabled):active:focus,
+        .btn:not(:disabled):not(.disabled).active:focus {
             box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
         }
         
@@ -472,6 +542,13 @@
         
         .bg-primary {
             background-color: var(--accent-cyan) !important;
+        }
+        
+        /* Override Bootstrap's CSS custom properties */
+        :root {
+            --bs-primary: var(--accent-cyan);
+            --bs-primary-rgb: 78, 205, 196;
+            --bs-btn-focus-shadow-rgb: 78, 205, 196;
         }
         
         /* Footer */
@@ -538,6 +615,44 @@
         
         .badge.bg-success {
             background: #2ed573 !important;
+            color: var(--bg-primary);
+        }
+        
+        /* Table responsive containers */
+        .table-responsive {
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        /* Pagination */
+        .pagination {
+            --bs-pagination-bg: var(--bg-secondary);
+            --bs-pagination-border-color: var(--border-subtle);
+            --bs-pagination-color: var(--text-dimmed);
+            --bs-pagination-hover-bg: var(--bg-tertiary);
+            --bs-pagination-hover-color: var(--text-bone);
+            --bs-pagination-active-bg: var(--accent-cyan);
+            --bs-pagination-active-color: var(--bg-primary);
+            --bs-pagination-active-border-color: var(--accent-cyan);
+            --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+        }
+        
+        .page-link {
+            background: var(--bg-secondary);
+            border-color: var(--border-subtle);
+            color: var(--text-dimmed);
+        }
+        
+        .page-link:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-subtle);
+            color: var(--text-bone);
+        }
+        
+        .page-item.active .page-link {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
             color: var(--bg-primary);
         }
         
