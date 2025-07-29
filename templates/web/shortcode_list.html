@@ -64,17 +64,29 @@
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>URL</th>
-                                <th>Shortcode</th>
-                                <th>Created</th>
-                                <th>Views</th>
-                                <th>Text Fragment</th>
-                                <th>Actions</th>
+                                <th style="width: 20%;"><a href="?{% if search_query %}q={{ search_query }}&{% endif %}sort={% if current_sort == 'shortcode' %}-shortcode{% else %}shortcode{% endif %}" class="text-decoration-none" style="color: var(--text-bone);">Artifact</a></th>
+                                <th style="width: 20%;"><a href="?{% if search_query %}q={{ search_query }}&{% endif %}sort={% if current_sort == 'url' %}-url{% else %}url{% endif %}" class="text-decoration-none" style="color: var(--text-bone);">Source</a></th>
+                                <th style="width: 35%;"><a href="?{% if search_query %}q={{ search_query }}&{% endif %}sort={% if current_sort == 'text_fragment' %}-text_fragment{% else %}text_fragment{% endif %}" class="text-decoration-none" style="color: var(--text-bone);">Fragment</a></th>
+                                <th style="width: 10%;"><a href="?{% if search_query %}q={{ search_query }}&{% endif %}sort={% if current_sort == 'visit_count' %}-visit_count{% else %}visit_count{% endif %}" class="text-decoration-none" style="color: var(--text-bone);">Views</a></th>
+                                <th style="width: 10%;"><a href="?{% if search_query %}q={{ search_query }}&{% endif %}sort={% if current_sort == 'created_at' %}-created_at{% else %}created_at{% endif %}" class="text-decoration-none" style="color: var(--text-bone);">Created</a></th>
+                                <th style="width: 5%;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for shortcode in page_obj.object_list %}
                             <tr>
+                                <!-- Artifact Column (formerly Shortcode) -->
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-sm btn-outline-secondary" 
+                                                onclick="copyArchiveUrl('{{ shortcode.shortcode }}')"
+                                                title="Copy archive URL">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                        <code style="font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace;">{{ shortcode.shortcode }}</code>
+                                    </div>
+                                </td>
+                                <!-- Source Column (formerly URL) -->
                                 <td>
                                     <div class="text-truncate" style="max-width: 300px;">
                                         <a href="{{ shortcode.url }}" 
@@ -85,25 +97,7 @@
                                         </a>
                                     </div>
                                 </td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <code>{{ shortcode.shortcode }}</code>
-                                        <button class="btn btn-sm btn-outline-secondary" 
-                                                onclick="copyToClipboard('{{ shortcode.shortcode }}')"
-                                                title="Copy shortcode">
-                                            <i class="bi bi-clipboard"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="text-nowrap">
-                                        <div class="fw-medium">{{ shortcode.created_at|date:"M d, Y" }}</div>
-                                        <small style="color: var(--text-subtle);">{{ shortcode.created_at|date:"g:i A" }}</small>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ shortcode.visit_count }}</span>
-                                </td>
+                                <!-- Fragment Column (formerly Text Fragment) -->
                                 <td>
                                     {% if shortcode.text_fragment %}
                                     <div class="text-truncate" style="max-width: 200px;" title="{{ shortcode.text_fragment }}">
@@ -113,24 +107,32 @@
                                     <small style="color: var(--text-subtle);">—</small>
                                     {% endif %}
                                 </td>
+                                <!-- Views Column -->
+                                <td>
+                                    <span class="badge bg-secondary">{{ shortcode.visit_count }}</span>
+                                </td>
+                                <!-- Created Column -->
+                                <td>
+                                    <div class="text-nowrap">
+                                        <div class="fw-medium" style="color: var(--text-dimmed);">{{ shortcode.created_at|date:"M d, Y" }}</div>
+                                        <small style="color: var(--text-subtle);">{{ shortcode.created_at|date:"g:i A" }}</small>
+                                    </div>
+                                </td>
+                                <!-- Actions Column -->
                                 <td>
                                     <div class="btn-group btn-group-sm">
                                         <a href="{% url 'web:shortcode_detail' shortcode.shortcode %}" 
-                                           class="btn btn-outline-primary"
+                                           class="text-decoration-none"
+                                           style="color: var(--text-dimmed); padding: 0.25rem 0.5rem;"
                                            title="View details">
-                                            <i class="bi bi-eye"></i>
+                                            ⓘ
                                         </a>
                                         <a href="/{{ shortcode.shortcode }}" 
                                            target="_blank"
                                            class="btn btn-outline-success"
                                            title="View archive">
-                                            <i class="bi bi-box-arrow-up-right"></i>
+                                            <i class="bi bi-eye"></i>
                                         </a>
-                                        <button class="btn btn-outline-secondary" 
-                                                onclick="copyArchiveUrl('{{ shortcode.shortcode }}')"
-                                                title="Copy archive URL">
-                                            <i class="bi bi-link-45deg"></i>
-                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -146,7 +148,7 @@
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}page={{ page_obj.previous_page_number }}">
                             Previous
                         </a>
                     </li>
@@ -159,14 +161,14 @@
                     </li>
                     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                     <li class="page-item">
-                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ num }}">{{ num }}</a>
+                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}page={{ num }}">{{ num }}</a>
                     </li>
                     {% endif %}
                     {% endfor %}
                     
                     {% if page_obj.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}">
+                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_sort %}sort={{ current_sort }}&{% endif %}page={{ page_obj.next_page_number }}">
                             Next
                         </a>
                     </li>
@@ -203,13 +205,13 @@
 
 <!-- Copy to Clipboard Toast -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="copy-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i class="bi bi-clipboard-check text-success me-2"></i>
-            <strong class="me-auto">Copied!</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+    <div id="copy-toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" style="background: var(--bg-secondary); border: 1px solid var(--border-subtle);">
+        <div class="toast-header" style="background: var(--bg-tertiary); border-bottom: 1px solid var(--border-subtle);">
+            <i class="bi bi-clipboard-check me-2" style="color: var(--accent-cyan);"></i>
+            <strong class="me-auto" style="color: var(--text-bone);">Copied!</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" style="filter: invert(1);"></button>
         </div>
-        <div class="toast-body">
+        <div class="toast-body" style="color: var(--text-dimmed);">
             Copied to clipboard successfully.
         </div>
     </div>

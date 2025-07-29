@@ -27,17 +27,11 @@
                         {% csrf_token %}
                         
                         <div class="mb-4">
-                            <label for="url" class="form-label">
+                            <label for="{{ form.url.id_for_label }}" class="form-label">
                                 <i class="bi bi-link-45deg me-2"></i>
                                 URL to Archive
                             </label>
-                            <input type="url" 
-                                   class="form-control form-control-lg" 
-                                   id="url" 
-                                   name="url" 
-                                   placeholder="https://example.com/article"
-                                   value="{{ form.url.value|default:'' }}"
-                                   required>
+                            {{ form.url }}
                             <div class="form-text">
                                 Enter the complete URL including http:// or https://
                             </div>
@@ -49,16 +43,11 @@
                         </div>
                         
                         <div class="mb-4">
-                            <label for="text_fragment" class="form-label">
+                            <label for="{{ form.text_fragment.id_for_label }}" class="form-label">
                                 <i class="bi bi-quote me-2"></i>
                                 Text Fragment (Optional)
                             </label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="text_fragment" 
-                                   name="text_fragment" 
-                                   placeholder="Important quote or text to highlight"
-                                   value="{{ form.text_fragment.value|default:'' }}">
+                            {{ form.text_fragment }}
                             <div class="form-text">
                                 Specify a text fragment to highlight in the archived page
                             </div>
@@ -70,18 +59,11 @@
                         </div>
                         
                         <div class="mb-4">
-                            <label for="archive_method" class="form-label">
+                            <label for="{{ form.archive_method.id_for_label }}" class="form-label">
                                 <i class="bi bi-gear me-2"></i>
                                 Archive Method
                             </label>
-                            <select class="form-select" id="archive_method" name="archive_method">
-                                <option value="singlefile" {% if form.archive_method.value == 'singlefile' %}selected{% endif %}>
-                                    SingleFile - Complete page with embedded resources
-                                </option>
-                                <option value="archivebox" {% if form.archive_method.value == 'archivebox' %}selected{% endif %}>
-                                    ArchiveBox - Multiple formats (HTML, PDF, screenshot)
-                                </option>
-                            </select>
+                            {{ form.archive_method }}
                             <div class="form-text">
                                 Choose how you want the page to be archived
                             </div>
@@ -100,13 +82,7 @@
                                 Custom Shortcode (Optional)
                                 <span class="badge bg-primary ms-2">Premium</span>
                             </label>
-                            <input type="text" 
-                                   class="form-control" 
-                                   id="custom_shortcode" 
-                                   name="custom_shortcode" 
-                                   placeholder="Your custom shortcode"
-                                   pattern="[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+"
-                                   title="Only Base58 characters allowed (no I, l, 0, O)">
+                            {{ form.custom_shortcode }}
                             <div class="form-text">
                                 Choose your own shortcode (minimum {{ user_shortcode_length }} characters). Leave blank to auto-generate.
                                 <br><small style="color: var(--text-subtle);">Allowed characters: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz</small>

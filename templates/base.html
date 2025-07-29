@@ -526,9 +526,30 @@
         
         .btn:focus,
         .btn.focus,
+        .btn:active,
+        .btn.active,
+        .btn:not(:disabled):not(.disabled):active,
+        .btn:not(:disabled):not(.disabled).active,
         .btn:not(:disabled):not(.disabled):active:focus,
         .btn:not(:disabled):not(.disabled).active:focus {
             box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25);
+        }
+        
+        /* Override Bootstrap's button active states */
+        .btn-primary:active,
+        .btn-primary.active,
+        .show > .btn-primary.dropdown-toggle {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+        
+        .btn-outline-primary:active,
+        .btn-outline-primary.active,
+        .show > .btn-outline-primary.dropdown-toggle {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
         }
         
         /* Override Bootstrap's primary color */
@@ -544,11 +565,65 @@
             background-color: var(--accent-cyan) !important;
         }
         
-        /* Override Bootstrap's CSS custom properties */
+        /* Kill all blue button flashes - comprehensive override */
         :root {
-            --bs-primary: var(--accent-cyan);
-            --bs-primary-rgb: 78, 205, 196;
-            --bs-btn-focus-shadow-rgb: 78, 205, 196;
+            --bs-primary: #4ECDC4 !important;
+            --bs-primary-rgb: 78, 205, 196 !important;
+            --bs-btn-focus-shadow-rgb: 78, 205, 196 !important;
+            --bs-btn-active-bg: #4ECDC4 !important;
+            --bs-btn-active-border-color: #4ECDC4 !important;
+            --bs-btn-active-color: #1A2A2E !important;
+        }
+        
+        /* Force override all button states */
+        .btn,
+        .btn:link,
+        .btn:visited,
+        .btn:hover,
+        .btn:focus,
+        .btn:active,
+        .btn.active,
+        .btn:not(:disabled):not(.disabled):active,
+        .btn:not(:disabled):not(.disabled).active,
+        button,
+        button:link,
+        button:visited,
+        button:hover,
+        button:focus,
+        button:active,
+        button.active {
+            outline: none !important;
+            box-shadow: 0 0 0 0.2rem rgba(78, 205, 196, 0.25) !important;
+        }
+        
+        /* Specifically target primary button states */
+        .btn-primary,
+        .btn-primary:link,
+        .btn-primary:visited,
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.active,
+        .btn-primary:not(:disabled):not(.disabled):active,
+        .btn-primary:not(:disabled):not(.disabled).active {
+            background-color: var(--button-color) !important;
+            border-color: var(--button-color) !important;
+            color: var(--bg-primary) !important;
+        }
+        
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background-color: var(--accent-cyan) !important;
+            border-color: var(--accent-cyan) !important;
+        }
+        
+        .btn-primary:active,
+        .btn-primary.active,
+        .btn-primary:not(:disabled):not(.disabled):active,
+        .btn-primary:not(:disabled):not(.disabled).active {
+            background-color: var(--accent-cyan) !important;
+            border-color: var(--accent-cyan) !important;
+            color: var(--bg-primary) !important;
         }
         
         /* Footer */
@@ -592,7 +667,7 @@
         /* Code elements */
         code {
             background: var(--bg-tertiary);
-            color: var(--accent-cyan);
+            color: var(--text-bone);
             padding: 0.2rem 0.4rem;
             border-radius: 3px;
             font-family: 'Roboto', 'Menlo', 'Monaco', monospace;
@@ -804,6 +879,11 @@
                         </g>
                     </svg>
                 </a>
+                <a href="https://github.com/sij-ai/citis" target="_blank" rel="noopener" style="margin: 0 1rem; text-decoration: none; color: var(--text-subtle); transition: color 0.3s ease;">
+                    <svg style="width: 20px; height: 20px; vertical-align: middle;" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
             </div>
             
             <p style="font-family: 'SF Mono', 'Monaco', 'Menlo', 'Roboto Mono', 'Consolas', 'Liberation Mono', 'Courier New', monospace; font-size: 0.6rem; color: var(--text-subtle); opacity: 0.5; margin: 0; text-transform: uppercase; letter-spacing: 1px;">
@@ -811,6 +891,7 @@
             </p>
         </div>
     </footer>
+
     
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

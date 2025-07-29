@@ -20,7 +20,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = BASE_DIR / 'logs'
 LOGS_DIR.mkdir(exist_ok=True)
 
-
 # =============================================================================
 # CORE DJANGO SETTINGS
 # =============================================================================
@@ -28,7 +27,6 @@ LOGS_DIR.mkdir(exist_ok=True)
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key')
 DEBUG = os.getenv('DEBUG', 'True').lower() in ['true', '1', 'yes']
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
 
 # =============================================================================
 # APPLICATION DEFINITION
@@ -68,7 +66,6 @@ LOCAL_APPS = [
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
-
 
 # =============================================================================
 # MIDDLEWARE CONFIGURATION
@@ -112,7 +109,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'citis.wsgi.application'
-
 
 # =============================================================================
 # DATABASE CONFIGURATION
@@ -206,7 +202,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-
 # =============================================================================
 # STATIC FILES & MEDIA CONFIGURATION
 # =============================================================================
@@ -218,27 +213,6 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
-
-# =============================================================================
-# EMAIL CONFIGURATION
-# =============================================================================
-
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-
-EMAIL_HOST = os.getenv('EMAIL_HOST')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['true', '1']
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-
-# Email addresses - must be explicitly configured in .env, no automatic inference
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@localhost')
-SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
-
 
 # =============================================================================
 # STRIPE CONFIGURATION (dj-stripe)
@@ -362,16 +336,13 @@ TIMEDIFF_WARNING_THRESHOLD = int(os.getenv('TIMEDIFF_WARNING_THRESHOLD', 7200))
 
 # Overlay Configuration
 OVERLAY_STYLE_BACKGROUND_COLOR = os.getenv('OVERLAY_STYLE_BACKGROUND_COLOR', '#000000')
-BUTTON_COLOR = os.getenv('BUTTON_COLOR', '#ffe100')
+
 OVERLAY_STYLE_ICON = os.getenv('OVERLAY_STYLE_ICON', '')
 OVERLAY_STYLE_COPY_GRAPHIC = os.getenv('OVERLAY_STYLE_COPY_GRAPHIC', '📋')
 
 # UI Color Configuration
 ACCENT_COLOR = os.getenv('ACCENT_COLOR', '#4ECDC4')  # Main accent color (cyan/teal)
 BUTTON_COLOR = os.getenv('BUTTON_COLOR', '#3BA8A1')  # Slightly dimmed accent for button resting state
-
-# Contact email for sales/support - must be explicitly configured
-SALES_EMAIL = os.getenv('SALES_EMAIL', f'sales@{SITE_DOMAIN}')
 
 # ArchiveBox Configuration (for overlay links)
 ARCHIVEBOX_EXPOSE_URL = os.getenv('ARCHIVEBOX_EXPOSE_URL', 'False').lower() == 'true'
@@ -506,3 +477,26 @@ CELERY_TASK_ROUTES = {
 # Task Time Limits
 CELERY_TASK_TIME_LIMIT = 300  # 5 minutes
 CELERY_TASK_SOFT_TIME_LIMIT = 240  # 4 minutes
+
+
+# =============================================================================
+# EMAIL CONFIGURATION
+# =============================================================================
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ['true', '1']
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+
+# Email addresses - must be explicitly configured in .env, no automatic inference
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@localhost')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
+# Contact email for sales/support - must be explicitly configured
+SALES_EMAIL = os.getenv('SALES_EMAIL', f'sales@{SITE_DOMAIN}')

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ shortcode.shortcode }} - Archive Details - cit.is{% endblock %}
+{% block title %}{{ shortcode.shortcode }} - Artifact Details - cit.is{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -10,14 +10,14 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{% url 'web:dashboard' %}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'web:shortcode_list' %}">Archives</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'web:shortcode_list' %}">Artifacts</a></li>
                     <li class="breadcrumb-item active">{{ shortcode.shortcode }}</li>
                 </ol>
             </nav>
             
             <div class="d-flex justify-content-between align-items-start mb-3">
                 <div>
-                    <h1 class="h3 mb-2">Archive Details</h1>
+                    <h1 class="h3 mb-2">Artifact Details</h1>
                     <div class="d-flex align-items-center gap-3">
                         <code class="fs-5">{{ shortcode.shortcode }}</code>
                         <button class="btn btn-outline-secondary btn-sm" 
@@ -59,7 +59,7 @@
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-info-circle me-2"></i>
-                        Archive Information
+                        Artifact Information
                     </h5>
                 </div>
                 <div class="card-body">
@@ -81,7 +81,7 @@
                         
                         <div class="col-md-6 mb-3">
                             <label class="form-label" style="color: var(--text-subtle);">Archive Method</label>
-                            <div class="form-control bg-light">
+                            <div class="form-control">
                                 <span class="badge bg-primary me-2">{{ shortcode.get_archive_method_display }}</span>
                                 {% if shortcode.is_archived %}
                                 <span class="badge bg-success">Archived</span>
@@ -93,14 +93,14 @@
                         
                         <div class="col-md-6 mb-3">
                             <label class="form-label" style="color: var(--text-subtle);">Created</label>
-                            <div class="form-control bg-light">
+                            <div class="form-control">
                                 {{ shortcode.created_at|date:"F d, Y \a\t g:i A" }}
                             </div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
                             <label class="form-label" style="color: var(--text-subtle);">Total Views</label>
-                            <div class="form-control bg-light">
+                            <div class="form-control">
                                 <span class="fw-bold">{{ visit_count }}</span> view{{ visit_count|pluralize }}
                             </div>
                         </div>
@@ -132,7 +132,7 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <div class="text-center">
-                                <div class="display-6 text-primary">{{ visit_count }}</div>
+                                <div class="display-6 text-bone">{{ visit_count }}</div>
                                 <small style="color: var(--text-subtle);">Total Views</small>
                             </div>
                         </div>
@@ -206,7 +206,7 @@
                                     </td>
                                     <td>
                                         {% if visit.user_agent %}
-                                        <div class="text-truncate" style="max-width: 200px;" title="{{ visit.user_agent }}">
+                                        <div class="text-truncate" style="max-width: 200px; color: var(--text-dimmed);" title="{{ visit.user_agent }}">
                                             {{ visit.user_agent|truncatechars:50 }}
                                         </div>
                                         {% else %}
@@ -215,7 +215,7 @@
                                     </td>
                                     <td>
                                         {% if visit.country %}
-                                        <span class="badge bg-light text-dark">{{ visit.country }}</span>
+                                        <span class="badge bg-secondary">{{ visit.country }}</span>
                                         {% else %}
                                         <span class="text-muted">—</span>
                                         {% endif %}
@@ -317,42 +317,92 @@ function showCopyToast() {
 }
 
 // Initialize chart if data is available
-{% if chart_data %}
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('visit-chart').getContext('2d');
+    const ctx = document.getElementById('visit-chart');
     
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: {{ chart_data.labels|safe }},
-            datasets: [{
-                label: 'Daily Views',
-                data: {{ chart_data.data|safe }},
-                borderColor: 'rgb(37, 99, 235)',
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                tension: 0.1,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        stepSize: 1
+    {% if chart_data %}
+    if (ctx) {
+        try {
+            const chartData = {
+                labels: {{ chart_data.labels|safe }},
+                data: {{ chart_data.data|safe }}
+            };
+            
+            // Check if we have any data
+            const hasData = chartData.data.some(val => val > 0);
+            
+            if (hasData) {
+                new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: [{
+                            label: 'Daily Views',
+                            data: chartData.data,
+                            borderColor: '#4ECDC4',
+                            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+                            tension: 0.2,
+                            fill: true,
+                            pointRadius: 3,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: 'var(--text-subtle)',
+                                    font: { size: 11 }
+                                },
+                                grid: {
+                                    color: 'var(--border-subtle)',
+                                    drawBorder: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    color: 'var(--text-subtle)',
+                                    font: { size: 11 }
+                                },
+                                grid: {
+                                    color: 'var(--border-subtle)',
+                                    drawBorder: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'var(--bg-secondary)',
+                                titleColor: 'var(--text-bone)',
+                                bodyColor: 'var(--text-dimmed)',
+                                borderColor: 'var(--border-subtle)',
+                                borderWidth: 1
+                            }
+                        }
                     }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
+                });
+            } else {
+                // Show no data message
+                ctx.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center"><i class="bi bi-graph-up text-subtle" style="font-size: 2rem;"></i><p class="text-subtle mt-2 mb-0">No view data yet</p></div></div>';
             }
+        } catch (error) {
+            console.error('Chart rendering error:', error);
+            ctx.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center"><i class="bi bi-exclamation-triangle text-subtle" style="font-size: 2rem;"></i><p class="text-subtle mt-2 mb-0">Chart failed to load</p></div></div>';
         }
-    });
+    }
+    {% else %}
+    // No chart data available
+    if (ctx) {
+        ctx.innerHTML = '<div class="d-flex align-items-center justify-content-center h-100"><div class="text-center"><i class="bi bi-graph-up text-subtle" style="font-size: 2rem;"></i><p class="text-subtle mt-2 mb-0">No data available</p></div></div>';
+    }
+    {% endif %}
 });
-{% endif %}
 </script>
 {% endblock %} 

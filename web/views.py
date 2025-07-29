@@ -100,7 +100,7 @@ def dashboard(request):
     
     # Get user's shortcodes and statistics
     user_shortcodes = Shortcode.objects.filter(creator_user=user)
-    recent_shortcodes = user_shortcodes.order_by('-created_at')[:5]
+    recent_shortcodes = user_shortcodes.order_by('-created_at')[:10]
     
     # Calculate user statistics
     total_shortcodes = user_shortcodes.count()
@@ -118,27 +118,36 @@ def dashboard(request):
     for shortcode in recent_shortcodes:
         shortcode.visit_count = Visit.objects.filter(shortcode=shortcode).count()
     
-    # Prepare chart data (last 30 days)
-    chart_data = None
-    if total_shortcodes > 0:
-        end_date = timezone.now().date()
-        start_date = end_date - timedelta(days=29)
+    # Prepare chart data (last 30 days) - always generate data
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=29)
+    
+    # Get daily counts for the last 30 days
+    daily_artifact_counts = []
+    daily_view_counts = []
+    labels = []
+    
+    for i in range(30):
+        date = start_date + timedelta(days=i)
+        # Count artifacts created on this date
+        artifact_count = user_shortcodes.filter(created_at__date=date).count()
+        daily_artifact_counts.append(artifact_count)
         
-        # Get daily counts for the last 30 days
-        daily_counts = []
-        labels = []
+        # Count views on this date
+        view_count = Visit.objects.filter(
+            shortcode__creator_user=user,
+            visited_at__date=date
+        ).count()
+        daily_view_counts.append(view_count)
         
-        for i in range(30):
-            date = start_date + timedelta(days=i)
-            count = user_shortcodes.filter(created_at__date=date).count()
-            daily_counts.append(count)
-            labels.append(date.strftime('%m/%d'))
-        
-        import json
-        chart_data = {
-            'labels': json.dumps(labels),
-            'data': json.dumps(daily_counts)
-        }
+        labels.append(date.strftime('%m/%d'))
+    
+    import json
+    chart_data = {
+        'labels': json.dumps(labels),
+        'artifact_data': json.dumps(daily_artifact_counts),
+        'view_data': json.dumps(daily_view_counts)
+    }
     
     user_stats = {
         'total_shortcodes': total_shortcodes,
@@ -160,10 +169,31 @@ def dashboard(request):
 @login_required
 def shortcode_list(request):
     """
-    List view for user's shortcodes with pagination and filtering.
+    List view for user's shortcodes with pagination, filtering, and sorting.
     """
     user = request.user
-    shortcodes = Shortcode.objects.filter(creator_user=user).order_by('-created_at')
+    shortcodes = Shortcode.objects.filter(creator_user=user)
+    
+    # Handle sorting with toggle functionality
+    sort_by = request.GET.get('sort', '-created_at')  # Default to newest first
+    
+    valid_sorts = {
+        'shortcode': 'shortcode',
+        '-shortcode': '-shortcode',
+        'url': 'url',
+        '-url': '-url',
+        'text_fragment': 'text_fragment',
+        '-text_fragment': '-text_fragment',
+        'visit_count': 'visit_count',  # This will be handled after adding visit counts
+        '-visit_count': '-visit_count',
+        'created_at': 'created_at',
+        '-created_at': '-created_at',
+    }
+    
+    if sort_by in valid_sorts and not sort_by.replace('-', '') == 'visit_count':
+        shortcodes = shortcodes.order_by(sort_by)
+    else:
+        shortcodes = shortcodes.order_by('-created_at')  # Default sort
     
     # Add search functionality
     search_query = request.GET.get('q', '').strip()
@@ -179,13 +209,20 @@ def shortcode_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    # Add visit counts
+    # Add visit counts and handle visit_count sorting
     for shortcode in page_obj:
         shortcode.visit_count = Visit.objects.filter(shortcode=shortcode).count()
+    
+    # Sort by visit count if requested (after counts are added)
+    if sort_by == 'visit_count':
+        page_obj.object_list = sorted(page_obj.object_list, key=lambda x: x.visit_count, reverse=False)
+    elif sort_by == '-visit_count':
+        page_obj.object_list = sorted(page_obj.object_list, key=lambda x: x.visit_count, reverse=True)
     
     context = {
         'page_obj': page_obj,
         'search_query': search_query,
+        'current_sort': sort_by,
     }
     
     return render(request, 'web/shortcode_list.html', context)
@@ -239,6 +276,8 @@ def create_archive(request):
     """
     Create a new archive page with form.
     """
+    from .forms import CreateArchiveForm
+    
     user = request.user
     
     # Calculate usage information for display using new quota system
@@ -247,7 +286,11 @@ def create_archive(request):
     
     usage_percentage = min((monthly_usage / effective_limit) * 100, 100) if effective_limit > 0 else 0
     
+    # Initialize form
+    form = CreateArchiveForm()
+    
     context = {
+        'form': form,
         'monthly_usage': monthly_usage,
         'monthly_limit': effective_limit,
         'usage_percentage': usage_percentage,
@@ -259,12 +302,17 @@ def create_archive(request):
     }
     
     if request.method == 'POST':
-        url = request.POST.get('url', '').strip()
-        text_fragment = request.POST.get('text_fragment', '').strip()
+        form = CreateArchiveForm(request.POST)
+        context['form'] = form  # Update context with the bound form
         
-        if not url:
-            messages.error(request, 'URL is required.')
+        if not form.is_valid():
             return render(request, 'web/create_archive.html', context)
+        
+        # Extract cleaned data from form
+        url = form.cleaned_data['url']
+        text_fragment = form.cleaned_data.get('text_fragment', '').strip()
+        archive_method = form.cleaned_data['archive_method']
+        custom_shortcode = form.cleaned_data.get('custom_shortcode', '').strip()
         
         # Check if user can create another shortcode using new quota system
         if not user.can_create_shortcode():
@@ -286,8 +334,6 @@ def create_archive(request):
             return render(request, 'web/create_archive.html', context)
         
         try:
-            # Get custom shortcode from form if provided
-            custom_shortcode = request.POST.get('custom_shortcode', '').strip()
             
             # Check if user can use custom shortcodes
             if custom_shortcode and user.current_plan not in ['professional', 'sovereign']:
@@ -321,7 +367,7 @@ def create_archive(request):
                 url=url,
                 text_fragment=text_fragment,
                 creator_user=user,
-                archive_method=user.default_archive_method,
+                archive_method=archive_method,
                 # Archive will be triggered by Celery task
             )
             

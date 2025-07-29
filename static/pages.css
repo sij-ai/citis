@@ -177,8 +177,8 @@
 .stat-card .stat-number {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--accent-cyan);
-    text-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+    color: var(--text-bone);
+    text-shadow: 0 0 8px rgba(255, 245, 235, 0.2);
 }
 
 .stat-card .stat-label {
