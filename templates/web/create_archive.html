@@ -146,7 +146,7 @@
                                     {% endif %}
                                 </small>
                             </div>
-                            {% elif user_plan == 'free' and monthly_usage >= monthly_limit * 0.8 %}
+                            {% elif user_plan == 'free' and monthly_usage >= usage_warning_threshold %}
                             <div class="mt-2">
                                 <small class="text-warning">
                                     <i class="bi bi-info-circle me-1"></i>

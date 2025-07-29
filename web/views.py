@@ -286,6 +286,9 @@ def create_archive(request):
     
     usage_percentage = min((monthly_usage / effective_limit) * 100, 100) if effective_limit > 0 else 0
     
+    # Calculate threshold for warning (80% of limit)
+    usage_warning_threshold = int(effective_limit * 0.8) if effective_limit > 0 else 0
+    
     # Initialize form
     form = CreateArchiveForm()
     
@@ -294,6 +297,7 @@ def create_archive(request):
         'monthly_usage': monthly_usage,
         'monthly_limit': effective_limit,
         'usage_percentage': usage_percentage,
+        'usage_warning_threshold': usage_warning_threshold,
         'user_can_use_custom_shortcodes': user.current_plan in ['professional', 'sovereign'],  # Professional+ plans get custom slugs
         'user_shortcode_length': user.shortcode_length,
         'user_plan': user.current_plan,
