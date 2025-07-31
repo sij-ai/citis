@@ -115,9 +115,8 @@ class CustomUser(AbstractUser):
     
     def get_monthly_shortcode_count(self):
         """Get the number of shortcodes created this month."""
-        from datetime import datetime
         
-        now = datetime.now()
+        now = timezone.now()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
         # Use apps.get_model to avoid circular import

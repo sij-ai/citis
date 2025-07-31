@@ -193,7 +193,8 @@ class ChangeDetectionWebhookView(View):
             try:
                 if change_detected_at:
                     # Convert Unix timestamp to datetime
-                    checked_at = datetime.fromtimestamp(int(change_detected_at), tz=timezone.utc)
+                    import datetime as dt
+                    checked_at = datetime.fromtimestamp(int(change_detected_at), tz=dt.timezone.utc)
                 else:
                     checked_at = timezone.now()
             except (ValueError, TypeError):

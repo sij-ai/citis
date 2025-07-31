@@ -6,7 +6,7 @@ functionality including shortcode creation, content serving, and analytics.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from django.conf import settings
