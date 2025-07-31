@@ -520,13 +520,13 @@ def shortcode_redirect(request, shortcode):
                 # Inject overlay banner
                 try:
                     from core.overlay import inject_overlay
-                    from datetime import datetime, timezone
+                    from datetime import datetime
+                    from django.utils import timezone as dj_timezone
                     
                     # Get visits for analytics
                     visits = shortcode_obj.visits.all().order_by('-visited_at')
                     
                     # Determine archive date from file modification time or creation time
-                    from django.utils import timezone as dj_timezone
                     archive_dt = datetime.fromtimestamp(singlefile_path.stat().st_mtime)
                     archive_dt = dj_timezone.make_aware(archive_dt)
                     
