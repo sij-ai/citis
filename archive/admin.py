@@ -14,6 +14,25 @@ from django.utils.safestring import mark_safe
 
 from .models import Shortcode, Visit, ApiKey, HealthCheck
 
+# Custom admin filters
+class AnonymousCreatorFilter(admin.SimpleListFilter):
+    """Custom filter to show shortcodes with no creator user (Anonymous)"""
+    title = 'creator status'
+    parameter_name = 'creator_status'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('anonymous', 'Anonymous (no user)'),
+            ('has_user', 'Has creator user'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'anonymous':
+            return queryset.filter(creator_user__isnull=True)
+        elif self.value() == 'has_user':
+            return queryset.filter(creator_user__isnull=False)
+        return queryset
+
 # Import TaskResult for Celery monitoring
 try:
     from django_celery_results.models import TaskResult
@@ -98,7 +117,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
     list_filter = (
         'created_at', 'archive_method', 'creator_user__current_plan',
         'health_checks__status', 'health_checks__check_type',
-        'creator_user__isnull'  # Filter for Anonymous shortcodes
+        AnonymousCreatorFilter  # Filter for Anonymous shortcodes
     )
     
     # Search fields
