@@ -453,4 +453,49 @@
 }
 .close-analytics:hover {
     color: #93a1a1 !important;
+}
+
+/* Iframe Wrapper Layout */
+#perma-overlay-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 2147483647 !important;
+    background: var(--style-background-color) !important;
+}
+
+#archived-content-iframe {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border: none !important;
+    z-index: 1 !important;
+    background: white !important;
+    /* top and height will be set by JavaScript */
+}
+
+/* Adjust body for iframe layout */
+body.iframe-layout {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    height: 100vh !important;
+}
+
+/* Overlay positioning for iframe layout */
+body.iframe-layout #perma-overlay {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: 2147483647 !important;
+}
+
+body.iframe-layout #analytics-section {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    z-index: 2147483646 !important;
 } 

@@ -82,6 +82,32 @@ def load_overlay_js_template() -> str:
         return ""
 
 
+def load_wrapper_html_template() -> str:
+    """Load the HTML template for the wrapper from static file with caching"""
+    # For now, use the same template as overlay_template.html but will be modified
+    template_path = Path(settings.BASE_DIR) / "static" / "wrapper_template.html"
+    
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        # Fallback to overlay template for now
+        return load_overlay_html_template()
+
+
+def load_wrapper_js_template() -> str:
+    """Load the JavaScript template for the wrapper from static file with caching"""
+    # For now, use a modified version of overlay_template.js for iframe interaction
+    template_path = Path(settings.BASE_DIR) / "static" / "wrapper_template.js"
+    
+    try:
+        with open(template_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        # Fallback to overlay template for now
+        return load_overlay_js_template()
+
+
 def generate_dynamic_overlay_css() -> str:
     """Generate overlay CSS with dynamic colors from Django settings"""
     # Clear cache to ensure fresh CSS generation
@@ -426,7 +452,7 @@ def prepare_overlay_links(shortcode_obj, archive_dt: datetime) -> Tuple[str, str
     return desktop_date, mobile_month_day, mobile_year, archivebox_link_html
 
 
-def create_text_fragment_html(cleaned_fragment: str) -> str:
+def create_text_fragment_html(cleaned_fragment: str, onclick_function: str = "highlightTextFragment") -> str:
     """Create the text fragment display HTML with protection against text fragment matching"""
     if not cleaned_fragment:
         return ""
@@ -445,7 +471,7 @@ def create_text_fragment_html(cleaned_fragment: str) -> str:
             <div class="fragment-quote">❝</div>
             <div class="fragment-text-container"
                  title="{cleaned_fragment}"
-                 onclick="highlightTextFragment()"
+                 onclick="{onclick_function}()"
                  data-original-text="{cleaned_fragment}">
                 <div class="fragment-text">{protected_text}</div>
             </div>
@@ -539,6 +565,74 @@ def generate_overlay_html(
     )
 
 
+def generate_wrapper_html(
+    original_url: str,
+    desktop_date: str,
+    mobile_month_day: str,
+    mobile_year: str,
+    archivebox_link_html: str,
+    warning_html: str,
+    text_fragment_html: str,
+    visit_graph: str,
+    total_visits: int,
+    overlay_styles: str,
+    formatted_hits: str,
+    server_icon_html: str,
+    server_domain_html: str,
+    copy_graphic: str,
+    url_line_html: str,
+    archive_date_text: str,
+    iframe_url: str,
+    shortcode: str
+) -> str:
+    """Generate the wrapper HTML with iframe from template"""
+    template = load_wrapper_html_template()
+    
+    return template.format(
+        original_url=original_url,
+        desktop_date=desktop_date,
+        mobile_month_day=mobile_month_day,
+        mobile_year=mobile_year,
+        archivebox_link_html=archivebox_link_html,
+        warning_html=warning_html,
+        text_fragment_html=text_fragment_html,
+        visit_graph=visit_graph,
+        total_visits=total_visits,
+        formatted_hits=formatted_hits,
+        server_icon_html=server_icon_html,
+        server_domain_html=server_domain_html,
+        copy_graphic=copy_graphic,
+        url_line_html=url_line_html,
+        archive_date_text=archive_date_text,
+        iframe_url=iframe_url,
+        shortcode=shortcode
+    )
+
+
+def generate_wrapper_scripts(
+    analytics_data: Dict[str, Any],
+    text_fragment: Optional[str],
+    cleaned_fragment: str,
+    shortcode: str
+) -> str:
+    """Generate the wrapper page JavaScript for iframe interaction"""
+    template = load_wrapper_js_template()
+    
+    # Escape text fragments for JavaScript
+    text_fragment_escaped = (text_fragment or "").replace("'", "\\'").replace('"', '\\"')
+    cleaned_fragment_escaped = cleaned_fragment.replace("'", "\\'").replace('"', '\\"')
+    
+    return template.format(
+        text_fragment=text_fragment_escaped,
+        cleaned_fragment=cleaned_fragment_escaped,
+        analytics_data_json=json.dumps(analytics_data),
+        style_background_color=settings.OVERLAY_STYLE_BACKGROUND_COLOR,
+        style_link_color=settings.BUTTON_COLOR,
+        style_accent_color=settings.ACCENT_COLOR,
+        shortcode=shortcode
+    )
+
+
 def generate_overlay_scripts(
     analytics_data: Dict[str, Any],
     text_fragment: Optional[str],
@@ -561,9 +655,114 @@ def generate_overlay_scripts(
     )
 
 
+def generate_wrapper_page(shortcode_obj, archive_dt: datetime, 
+                         requested_dt: Optional[datetime], visits, request) -> str:
+    """Generate a complete wrapper page with overlay and iframe for archived content"""
+    try:
+        # Prepare analytics data
+        analytics_data, visit_graph, total_visits, formatted_hits = prepare_analytics_data(shortcode_obj, visits)
+        
+        # Prepare overlay links
+        desktop_date, mobile_month_day, mobile_year, archivebox_link_html = prepare_overlay_links(shortcode_obj, archive_dt)
+        
+        # Prepare server info
+        server_icon_html, server_domain_html = prepare_server_info()
+        
+        # Prepare copy graphic
+        copy_graphic = prepare_copy_graphic()
+        
+        # Prepare URL line and archive date for top row
+        url_line_html, archive_date_text = prepare_url_line(shortcode_obj.url, archive_dt)
+        
+        # Generate warning if needed
+        warning_text = None
+        if requested_dt:
+            warning_text = generate_time_warning(requested_dt, archive_dt)
+        warning_html = f'<div class="perma-fallback-warning">note: {warning_text}</div>' if warning_text else ""
+        
+        # Prepare text fragment
+        cleaned_fragment = clean_text_fragment(shortcode_obj.text_fragment)
+        text_fragment_html = create_text_fragment_html(cleaned_fragment, "highlightTextFragmentInIframe")
+        
+        # Generate dynamic CSS with configured colors
+        overlay_styles = generate_dynamic_overlay_css()
+        
+        # Build iframe URL with text fragment if present
+        iframe_url = f"/{shortcode_obj.shortcode}/raw/"
+        if shortcode_obj.text_fragment:
+            # URL encode the text fragment for the iframe URL
+            encoded_fragment = shortcode_obj.text_fragment.replace(' ', '%20').replace('"', '%22')
+            iframe_url += f"#:~:text={encoded_fragment}"
+        
+        # Create wrapper HTML using template
+        wrapper_html = generate_wrapper_html(
+            original_url=shortcode_obj.url,
+            desktop_date=desktop_date,
+            mobile_month_day=mobile_month_day,
+            mobile_year=mobile_year,
+            archivebox_link_html=archivebox_link_html,
+            warning_html=warning_html,
+            text_fragment_html=text_fragment_html,
+            visit_graph=visit_graph,
+            total_visits=total_visits,
+            overlay_styles=overlay_styles,
+            formatted_hits=formatted_hits,
+            server_icon_html=server_icon_html,
+            server_domain_html=server_domain_html,
+            copy_graphic=copy_graphic,
+            url_line_html=url_line_html,
+            archive_date_text=archive_date_text,
+            iframe_url=iframe_url,
+            shortcode=shortcode_obj.shortcode
+        )
+        
+        # Generate and include scripts
+        wrapper_scripts = generate_wrapper_scripts(analytics_data, shortcode_obj.text_fragment, cleaned_fragment, shortcode_obj.shortcode)
+        
+        # Combine everything
+        complete_wrapper = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Archived: {shortcode_obj.url}</title>
+    <meta name="theme-color" content="{settings.OVERLAY_STYLE_BACKGROUND_COLOR}">
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" type="image/x-icon" href="/{shortcode_obj.shortcode}.favicon.ico">
+    
+    <style>{overlay_styles}</style>
+</head>
+<body style="margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif;">
+    {wrapper_html}
+    
+    <script>{wrapper_scripts}</script>
+</body>
+</html>"""
+        
+        return complete_wrapper
+        
+    except Exception as e:
+        # Log the error but don't break the page serving
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error generating wrapper page: {e}", exc_info=True)
+        # Return a basic fallback page
+        return f"""<!DOCTYPE html>
+<html>
+<head><title>Error loading archive</title></head>
+<body>
+    <div style="padding: 20px; text-align: center;">
+        <h1>Error loading archived content</h1>
+        <p><a href="{shortcode_obj.url}">Visit original URL</a></p>
+    </div>
+</body>
+</html>"""
+
+
 def inject_overlay(html_content: str, shortcode_obj, archive_dt: datetime, 
                   requested_dt: Optional[datetime], visits) -> str:
-    """Main function to inject overlay into archived content"""
+    """Main function to inject overlay into archived content (legacy approach)"""
     try:
         soup = BeautifulSoup(html_content, 'lxml')
         body_tag = soup.find('body')

@@ -483,9 +483,69 @@ def highlight_text(request):
     })
 
 
+def shortcode_raw(request, shortcode):
+    """
+    Serve raw archived singlefile.html content without overlay.
+    This is used for iframe embedding.
+    """
+    # Look up the shortcode
+    try:
+        shortcode_obj = Shortcode.objects.get(shortcode=shortcode)
+    except Shortcode.DoesNotExist:
+        raise Http404(f"Shortcode '{shortcode}' not found")
+    
+    # Check if archived content exists using filesystem
+    if shortcode_obj.is_archived():
+        try:
+            # Get the archive path dynamically from filesystem
+            archive_path = shortcode_obj.get_latest_archive_path()
+            singlefile_path = archive_path / "singlefile.html"
+            
+            if singlefile_path.exists():
+                with open(singlefile_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                # Apply text fragment to URL if provided
+                if shortcode_obj.text_fragment:
+                    # Modify the content to include text fragment in current URL
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(content, 'lxml')
+                    
+                    # Add text fragment handling script
+                    script_tag = soup.new_tag('script')
+                    script_tag.string = f'''
+                    (function() {{
+                        const textFragment = '{shortcode_obj.text_fragment}';
+                        if (textFragment && window.location.hash.includes(':~:text=')) {{
+                            // Browser will handle text fragment automatically
+                        }}
+                    }})();
+                    '''
+                    
+                    body_tag = soup.find('body')
+                    if body_tag:
+                        body_tag.append(script_tag)
+                    
+                    content = str(soup)
+                
+                response = HttpResponse(content, content_type='text/html')
+                response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
+                response['X-Frame-Options'] = 'SAMEORIGIN'  # Allow iframe from same origin
+                return response
+            else:
+                # Archive file not found, redirect to original
+                return redirect(shortcode_obj.url)
+        except Exception as e:
+            # Error reading archive, redirect to original
+            return redirect(shortcode_obj.url)
+    else:
+        # No archive path, redirect to original URL
+        return redirect(shortcode_obj.url)
+
+
 def shortcode_redirect(request, shortcode):
     """
-    Serve archived content for a given shortcode.
+    Serve archived content for a given shortcode with overlay wrapper.
     This is the main view that handles /{shortcode} URLs.
     """
     # Look up the shortcode
@@ -514,14 +574,10 @@ def shortcode_redirect(request, shortcode):
             singlefile_path = archive_path / "singlefile.html"
             
             if singlefile_path.exists():
-                with open(singlefile_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-                
-                # Inject overlay banner
+                # Generate wrapper page with overlay and iframe
                 try:
-                    from core.overlay import inject_overlay
+                    from core.overlay import generate_wrapper_page
                     from datetime import datetime
-                    # Use the already imported timezone from django.utils
                     
                     # Get visits for analytics
                     visits = shortcode_obj.visits.all().order_by('-visited_at')
@@ -530,22 +586,24 @@ def shortcode_redirect(request, shortcode):
                     archive_dt = datetime.fromtimestamp(singlefile_path.stat().st_mtime)
                     archive_dt = timezone.make_aware(archive_dt)
                     
-                    # Inject the overlay
-                    content = inject_overlay(
-                        html_content=content,
+                    # Generate the wrapper page with iframe
+                    wrapper_content = generate_wrapper_page(
                         shortcode_obj=shortcode_obj,
                         archive_dt=archive_dt,
                         requested_dt=None,  # We don't have a specific request time for this case
-                        visits=visits
+                        visits=visits,
+                        request=request
                     )
                     
                 except Exception as e:
-                    # Log overlay injection error but don't break page serving
+                    # Log overlay generation error but don't break page serving
                     import logging
                     logger = logging.getLogger(__name__)
-                    logger.error(f"Error injecting overlay for {shortcode}: {e}", exc_info=True)
+                    logger.error(f"Error generating wrapper page for {shortcode}: {e}", exc_info=True)
+                    # Fallback to redirect
+                    return redirect(shortcode_obj.url)
                 
-                response = HttpResponse(content, content_type='text/html')
+                response = HttpResponse(wrapper_content, content_type='text/html')
                 response['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
                 return response
             else:
