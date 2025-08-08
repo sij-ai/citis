@@ -75,73 +75,104 @@ function highlightTextFragmentInIframe() {{
     var cleanedFragment = '{cleaned_fragment}';
     var iframe = document.getElementById('archived-content-iframe');
     
-    if (!iframe || !textFragment) return;
+    if (!iframe || !cleanedFragment) return;
     
     try {{
-        // Method 1: Update iframe URL with text fragment
-        var currentSrc = iframe.src.split('#')[0];
-        if (!textFragment.startsWith('#:~:text=')) {{
-            textFragment = '#:~:text=' + encodeURIComponent(textFragment);
-        }}
-        iframe.src = currentSrc + textFragment;
+        var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        var iframeWindow = iframe.contentWindow;
         
-        // Method 2: Direct iframe content manipulation (same-origin only)
-        iframe.addEventListener('load', function() {{
-            try {{
-                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                var iframeWindow = iframe.contentWindow;
-                
-                if (iframeDoc && iframeWindow && cleanedFragment) {{
-                    setTimeout(function() {{
-                        var searchText = cleanedFragment.toLowerCase();
-                        var found = iframeWindow.find(searchText, false, false, true, false, true, false);
+        if (iframeDoc && iframeWindow) {{
+            // Clear any existing highlights first
+            clearExistingHighlights(iframeDoc);
+            
+            // Search for the text using window.find (case-insensitive)
+            var searchText = cleanedFragment;
+            var found = iframeWindow.find(searchText, false, false, true, false, true, false);
+            
+            if (found) {{
+                var selection = iframeWindow.getSelection();
+                if (selection.rangeCount > 0) {{
+                    var range = selection.getRangeAt(0);
+                    var rect = range.getBoundingClientRect();
+                    
+                    // Scroll iframe content to show the highlighted text
+                    iframeWindow.scrollTo({{
+                        top: rect.top + iframeWindow.pageYOffset - 100,
+                        behavior: 'smooth'
+                    }});
+                    
+                    // Create highlight span
+                    var span = iframeDoc.createElement('span');
+                    span.className = 'citis-text-highlight';
+                    span.style.backgroundColor = '#ffff00';
+                    span.style.color = '#000000';
+                    span.style.padding = '2px 4px';
+                    span.style.borderRadius = '3px';
+                    span.style.transition = 'all 0.5s ease';
+                    span.style.boxShadow = '0 0 8px rgba(255, 255, 0, 0.6)';
+                    
+                    try {{
+                        // Clone the range content and wrap it
+                        var contents = range.extractContents();
+                        span.appendChild(contents);
+                        range.insertNode(span);
                         
-                        if (found) {{
-                            var selection = iframeWindow.getSelection();
-                            if (selection.rangeCount > 0) {{
-                                var range = selection.getRangeAt(0);
-                                var rect = range.getBoundingClientRect();
-                                
-                                // Scroll iframe content to show the highlighted text
-                                iframeWindow.scrollTo({{
-                                    top: rect.top + iframeWindow.pageYOffset - 50,
-                                    behavior: 'smooth'
-                                }});
-                                
-                                // Create highlight span
-                                var span = iframeDoc.createElement('span');
-                                span.style.backgroundColor = '#b58900';
-                                span.style.color = '#002b36';
-                                span.style.transition = 'all 0.5s ease';
-                                
-                                try {{
-                                    range.surroundContents(span);
-                                    setTimeout(function() {{
-                                        span.style.backgroundColor = 'transparent';
-                                        span.style.color = 'inherit';
-                                        setTimeout(function() {{
-                                            var parent = span.parentNode;
-                                            while (span.firstChild) {{
-                                                parent.insertBefore(span.firstChild, span);
-                                            }}
-                                            parent.removeChild(span);
-                                        }}, 500);
-                                    }}, 3000);
-                                }} catch(e) {{
-                                    // Just scroll if surroundContents fails
-                                }}
-                            }}
-                        }}
-                    }}, 500);
+                        // Clear the selection to avoid blue highlight
+                        selection.removeAllRanges();
+                        
+                        // Animate the highlight
+                        setTimeout(function() {{
+                            span.style.backgroundColor = '#ffeb3b';
+                            span.style.boxShadow = '0 0 4px rgba(255, 235, 59, 0.4)';
+                        }}, 100);
+                        
+                        console.log('Successfully highlighted text fragment:', cleanedFragment);
+                        
+                    }} catch(e) {{
+                        console.log('Error creating highlight span:', e.message);
+                        // Fallback: just scroll to the selection
+                    }}
+                }} else {{
+                    console.log('Text found but no selection range available');
                 }}
-            }} catch(e) {{
-                // Cross-origin restrictions or other errors
-                console.log('Cannot access iframe content directly:', e);
+            }} else {{
+                console.log('Text fragment not found:', cleanedFragment);
+                // Try a case-insensitive search as fallback
+                var foundCaseInsensitive = iframeWindow.find(searchText, false, false, false, false, true, false);
+                if (foundCaseInsensitive) {{
+                    console.log('Found text with case-insensitive search');
+                    // Apply same highlighting logic
+                    var selection = iframeWindow.getSelection();
+                    if (selection.rangeCount > 0) {{
+                        var range = selection.getRangeAt(0);
+                        iframeWindow.scrollTo({{
+                            top: range.getBoundingClientRect().top + iframeWindow.pageYOffset - 100,
+                            behavior: 'smooth'
+                        }});
+                    }}
+                }}
             }}
-        }});
-        
+        }} else {{
+            console.log('Cannot access iframe content (cross-origin restrictions)');
+        }}
     }} catch(error) {{
         console.error('Error highlighting text fragment in iframe:', error);
+    }}
+}}
+
+function clearExistingHighlights(iframeDoc) {{
+    try {{
+        var existingHighlights = iframeDoc.querySelectorAll('.citis-text-highlight');
+        existingHighlights.forEach(function(highlight) {{
+            var parent = highlight.parentNode;
+            while (highlight.firstChild) {{
+                parent.insertBefore(highlight.firstChild, highlight);
+            }}
+            parent.removeChild(highlight);
+            parent.normalize(); // Merge adjacent text nodes
+        }});
+    }} catch(e) {{
+        console.log('Error clearing existing highlights:', e.message);
     }}
 }}
 
