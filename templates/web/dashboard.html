@@ -64,44 +64,44 @@
         <!-- Merged Statistics (1/3 width) -->
         <div class="col-lg-4 d-flex">
             <div class="dashboard-card w-100">
-                <h3 class="h5 mb-3 text-bone">Overview</h3>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="text-center">
-                            <div class="stat-number">{{ user_stats.total_shortcodes }}</div>
+                <h3 class="h5 mb-4 text-bone">Overview</h3>
+                <div class="row g-3 h-100">
+                    <div class="col-6 d-flex align-items-center">
+                        <div class="text-center w-100">
+                    <div class="stat-number">{{ user_stats.total_shortcodes }}</div>
                             <div class="stat-label">Artifacts</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-center">
-                            <div class="stat-number">{{ user_stats.total_visits }}</div>
+                </div>
+            </div>
+                    <div class="col-6 d-flex align-items-center">
+                        <div class="text-center w-100">
+                    <div class="stat-number">{{ user_stats.total_visits }}</div>
                             <div class="stat-label">Views</div>
-                        </div>
+                </div>
+            </div>
+                    <div class="col-6 d-flex align-items-center">
+                        <div class="text-center w-100">
+                    <div class="stat-number">{{ user_stats.api_keys_count }}</div>
+                    <div class="stat-label">API Keys</div>
+                </div>
                     </div>
-                    <div class="col-6">
-                        <div class="text-center">
-                            <div class="stat-number">{{ user_stats.api_keys_count }}</div>
-                            <div class="stat-label">API Keys</div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-center">
+                    <div class="col-6 d-flex align-items-center">
+                        <div class="text-center w-100">
                             <div class="stat-number">{{ user_stats.monthly_usage }}</div>
                             <div class="stat-label">This Month</div>
-                        </div>
-                    </div>
+            </div>
                 </div>
             </div>
         </div>
-        
+    </div>
+    
         <!-- Activity Chart (1/3 width) -->
         <div class="col-lg-4 d-flex">
             <div class="dashboard-card w-100">
                 <h3 class="h5 mb-3 text-bone">Activity</h3>
-                <div id="activity-chart" style="height: 200px;">
-                    <!-- Chart will be rendered here with Chart.js -->
+                <div style="height: 200px; position: relative;">
+                    <canvas id="activity-chart" style="width: 100%; height: 100%;"></canvas>
                 </div>
-                <div id="activity-chart-fallback" style="display: none; height: 200px; display: flex; align-items: center; justify-content: center;">
+                <div id="activity-chart-fallback" style="display: none; height: 200px; align-items: center; justify-content: center;">
                     <div class="text-center">
                         <i class="bi bi-graph-up text-subtle" style="font-size: 2rem;"></i>
                         <p class="text-subtle mt-2 mb-0 small">No activity data yet</p>
@@ -112,7 +112,7 @@
         
         <!-- API Keys Management (1/3 width) -->
         <div class="col-lg-4 d-flex">
-            {% if user.is_premium %}
+            {% if user.is_premium or user.is_superuser %}
             <div class="dashboard-card w-100">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="h5 mb-0 text-bone">API Keys</h3>
@@ -471,99 +471,111 @@ const fallbackElement = document.getElementById('activity-chart-fallback');
 if (chartElement) {
     try {
         const ctx = chartElement.getContext('2d');
-        const chartData = {
+        const rawData = {
             labels: JSON.parse('{{ user_stats.chart_data.labels|escapejs }}'),
             artifactData: JSON.parse('{{ user_stats.chart_data.artifact_data|escapejs }}'),
             viewData: JSON.parse('{{ user_stats.chart_data.view_data|escapejs }}')
         };
         
+        // Smooth data to show macro trends instead of daily fluctuations
+        function smoothData(data, windowSize = 3) {
+            if (data.length <= windowSize) return data;
+            
+            const smoothed = [];
+            for (let i = 0; i < data.length; i++) {
+                const start = Math.max(0, i - Math.floor(windowSize / 2));
+                const end = Math.min(data.length, i + Math.floor(windowSize / 2) + 1);
+                const window = data.slice(start, end);
+                const avg = window.reduce((sum, val) => sum + val, 0) / window.length;
+                smoothed.push(Math.round(avg * 100) / 100); // Round to 2 decimals
+            }
+            return smoothed;
+        }
+        
+        // Apply smoothing to create trend lines
+        const chartData = {
+            labels: rawData.labels,
+            artifactData: smoothData(rawData.artifactData, 5),
+            viewData: smoothData(rawData.viewData, 5)
+        };
+        
         // Check if we have any data
-        const hasData = chartData.artifactData.some(val => val > 0) || chartData.viewData.some(val => val > 0);
+        const hasArtifactData = rawData.artifactData.reduce((a,b) => a+b, 0) > 0;
+        const hasViewData = rawData.viewData.reduce((a,b) => a+b, 0) > 0;
+        const hasData = hasArtifactData || hasViewData;
         
         if (!hasData) {
             // Show fallback if no data
             chartElement.style.display = 'none';
             fallbackElement.style.display = 'flex';
         } else {
+            // Hide fallback and show chart
+            fallbackElement.style.display = 'none';
+            chartElement.style.display = 'block';
 
 const activityChart = new Chart(ctx, {
     type: 'line',
     data: {
         labels: chartData.labels,
         datasets: [{
-            label: 'Artifacts Created',
+            label: 'Artifacts',
             data: chartData.artifactData,
-            borderColor: '#4ECDC4',
-            backgroundColor: 'rgba(78, 205, 196, 0.1)',
-            tension: 0.2,
+            borderColor: '#CCBB88',
+            backgroundColor: 'rgba(204, 187, 136, 0.1)',
+            tension: 0.6,
             yAxisID: 'y',
-            pointRadius: 3,
-            pointHoverRadius: 6
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderWidth: 2,
+            fill: true
         }, {
             label: 'Views',
             data: chartData.viewData,
-            borderColor: '#45B7B8',
-            backgroundColor: 'rgba(69, 183, 184, 0.1)',
-            tension: 0.2,
+            borderColor: '#4ECDC4',
+            backgroundColor: 'rgba(78, 205, 196, 0.1)',
+            tension: 0.6,
             yAxisID: 'y1',
-            pointRadius: 3,
-            pointHoverRadius: 6
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            borderWidth: 2,
+            fill: true
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: {
-            mode: 'index',
             intersect: false,
         },
         plugins: {
             legend: {
                 labels: {
-                    color: 'var(--text-bone)',
+                    color: '#FFF5EB',
                     usePointStyle: true,
                     padding: 15,
                     font: {
                         size: 11
                     }
-                },
-                onHover: function(event, legendItem, legend) {
-                    const chart = legend.chart;
-                    const yAxisId = chart.data.datasets[legendItem.datasetIndex].yAxisID;
-                    
-                    // Highlight corresponding axis
-                    chart.options.scales[yAxisId].ticks.color = '#4ECDC4';
-                    chart.update('none');
-                },
-                onLeave: function(event, legendItem, legend) {
-                    const chart = legend.chart;
-                    
-                    // Reset axis colors
-                    chart.options.scales.y.ticks.color = 'var(--text-subtle)';
-                    chart.options.scales.y1.ticks.color = 'var(--text-subtle)';
-                    chart.update('none');
                 }
             },
             tooltip: {
-                backgroundColor: 'var(--bg-secondary)',
-                titleColor: 'var(--text-bone)',
-                bodyColor: 'var(--text-dimmed)',
-                borderColor: 'var(--border-subtle)',
-                borderWidth: 1
+                enabled: false
             }
         },
         scales: {
             x: {
                 ticks: {
-                    color: 'var(--text-subtle)',
+                    color: '#839496',
                     font: {
                         size: 10
                     },
                     maxTicksLimit: 8
                 },
                 grid: {
-                    color: 'var(--border-subtle)',
-                    drawBorder: false
+                    display: false
+                },
+                border: {
+                    display: false
                 }
             },
             y: {
@@ -572,7 +584,7 @@ const activityChart = new Chart(ctx, {
                 position: 'left',
                 beginAtZero: true,
                 ticks: {
-                    color: 'var(--text-subtle)',
+                    color: '#839496',
                     font: {
                         size: 10
                     },
@@ -580,13 +592,15 @@ const activityChart = new Chart(ctx, {
                     precision: 0
                 },
                 grid: {
-                    color: 'var(--border-subtle)',
-                    drawBorder: false
+                    display: false
+                },
+                border: {
+                    display: false
                 },
                 title: {
                     display: true,
                     text: 'Artifacts',
-                    color: '#4ECDC4',
+                    color: '#CCBB88',
                     font: {
                         size: 11,
                         weight: 'bold'
@@ -599,7 +613,7 @@ const activityChart = new Chart(ctx, {
                 position: 'right',
                 beginAtZero: true,
                 ticks: {
-                    color: 'var(--text-subtle)',
+                    color: '#839496',
                     font: {
                         size: 10
                     },
@@ -607,13 +621,15 @@ const activityChart = new Chart(ctx, {
                     precision: 0
                 },
                 grid: {
-                    drawOnChartArea: false,
-                    drawBorder: false
+                    display: false
+                },
+                border: {
+                    display: false
                 },
                 title: {
                     display: true,
                     text: 'Views',
-                    color: '#45B7B8',
+                    color: '#4ECDC4',
                     font: {
                         size: 11,
                         weight: 'bold'
@@ -624,43 +640,22 @@ const activityChart = new Chart(ctx, {
     }
 });
 
-// Add hover effects for axes
-document.getElementById('activity-chart').addEventListener('mousemove', function(event) {
-    const points = activityChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
-    
-    if (points.length) {
-        const datasetIndex = points[0].datasetIndex;
-        const yAxisId = activityChart.data.datasets[datasetIndex].yAxisID;
-        
-        // Reset all axis colors
-        activityChart.options.scales.y.title.color = '#4ECDC4';
-        activityChart.options.scales.y1.title.color = '#45B7B8';
-        
-        // Highlight the relevant axis
-        if (yAxisId === 'y') {
-            activityChart.options.scales.y.title.color = '#6BCCC7';
-        } else {
-            activityChart.options.scales.y1.title.color = '#6BCCC7';
+
         }
-        
-                 activityChart.update('none');
-     }
- });
-        }
-    } catch (error) {
-        console.error('Chart rendering error:', error);
-        chartElement.style.display = 'none';
-        fallbackElement.style.display = 'flex';
-    }
-}
-{% else %}
-// No chart data available, show fallback
-if (fallbackElement) {
-    fallbackElement.style.display = 'flex';
-}
-if (chartElement) {
-    chartElement.style.display = 'none';
-}
-{% endif %}
+                        } catch (error) {
+                        console.error('Chart rendering error:', error);
+                        chartElement.style.display = 'none';
+                        fallbackElement.style.display = 'flex';
+                    }
+                }
+                {% else %}
+                // No chart data available, show fallback
+                if (fallbackElement) {
+                    fallbackElement.style.display = 'flex';
+                }
+                if (chartElement) {
+                    chartElement.style.display = 'none';
+                }
+                {% endif %}
 </script>
 {% endblock %} 

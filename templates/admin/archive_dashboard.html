@@ -89,7 +89,7 @@
 <div class="dashboard-stats">
     <div class="stat-card">
         <div class="stat-number">{{ total_shortcodes }}</div>
-        <div class="stat-label">Total Archives</div>
+        <div class="stat-label">Total Artifacts</div>
     </div>
     
     <div class="stat-card">
@@ -111,7 +111,7 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
     <!-- Recent Shortcodes -->
     <div>
-        <h2>Recent Archives (24h)</h2>
+        <h2>Recent Artifacts (24h)</h2>
         {% if recent_shortcodes %}
         <table class="recent-table">
             <thead>
@@ -149,7 +149,7 @@
             </tbody>
         </table>
         {% else %}
-        <p>No recent archives found.</p>
+        <p>No recent artifacts found.</p>
         {% endif %}
     </div>
     
