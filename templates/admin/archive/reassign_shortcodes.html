@@ -1,0 +1,100 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls static admin_modify %}
+
+{% block title %}{{ title }} | {{ site_title|default:"Django site admin" }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">Home</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='archive' %}">Archive</a>
+&rsaquo; <a href="{% url 'admin:archive_shortcode_changelist' %}">Shortcodes</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<p>You are about to reassign <strong>{{ queryset|length }}</strong> shortcode{{ queryset|length|pluralize }} to a different user.</p>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <!-- Hidden form to preserve the selected items -->
+    {% for obj in queryset %}
+        <input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk }}" />
+    {% endfor %}
+    <input type="hidden" name="action" value="reassign_to_user" />
+    
+    <fieldset class="module aligned">
+        <h2>Reassignment Details</h2>
+        
+        <div class="form-row">
+            <div>
+                <label for="user_email" class="required">Target User Email:</label>
+                <input type="email" id="user_email" name="user_email" required 
+                       placeholder="user@example.com" class="vTextField" />
+                <p class="help">Enter the email address of the user you want to assign these shortcodes to.</p>
+            </div>
+        </div>
+    </fieldset>
+    
+    <div class="submit-row">
+        <input type="submit" value="Reassign Shortcodes" name="apply" class="default" />
+        <a href="{% url 'admin:archive_shortcode_changelist' %}" class="button cancel-link">Cancel</a>
+    </div>
+</form>
+
+<h2>Selected Shortcodes</h2>
+<div class="results">
+    <table id="result_list">
+        <thead>
+            <tr>
+                <th scope="col">Shortcode</th>
+                <th scope="col">URL</th>
+                <th scope="col">Current Creator</th>
+                <th scope="col">Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in queryset %}
+            <tr class="{% cycle 'row1' 'row2' %}">
+                <td>{{ obj.shortcode }}</td>
+                <td>
+                    {% if obj.url|length > 60 %}
+                        {{ obj.url|slice:":57" }}...
+                    {% else %}
+                        {{ obj.url }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if obj.creator_user %}
+                        {{ obj.creator_user.email }}
+                    {% elif obj.creator_api_key %}
+                        API Key: {{ obj.creator_api_key.name }}
+                    {% else %}
+                        <em>Anonymous</em>
+                    {% endif %}
+                </td>
+                <td>{{ obj.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.cancel-link {
+    margin-left: 10px;
+    text-decoration: none;
+    color: #333;
+    background: #ffc;
+    border: 1px solid #ccc;
+    padding: 8px 15px;
+    border-radius: 4px;
+}
+.cancel-link:hover {
+    background: #ff9;
+}
+</style>
+{% endblock %}

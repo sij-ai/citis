@@ -97,7 +97,8 @@ class ShortcodeAdmin(admin.ModelAdmin):
     # List filters
     list_filter = (
         'created_at', 'archive_method', 'creator_user__current_plan',
-        'health_checks__status', 'health_checks__check_type'
+        'health_checks__status', 'health_checks__check_type',
+        'creator_user__isnull'  # Filter for Anonymous shortcodes
     )
     
     # Search fields
@@ -182,7 +183,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
         elif obj.creator_api_key:
             return f'API Key: {obj.creator_api_key.name}'
         else:
-            return 'Anonymous'
+            return format_html('<span style="color: #dc3545; font-weight: bold;">❌ Anonymous</span>')
     creator_display.short_description = 'Creator'
     creator_display.admin_order_field = 'creator_user__email'
     
@@ -233,7 +234,7 @@ class ShortcodeAdmin(admin.ModelAdmin):
             return self.readonly_fields + ('shortcode',)
         return self.readonly_fields
     
-    actions = ['run_health_check', 'run_integrity_scan']
+    actions = ['run_health_check', 'run_integrity_scan', 'reassign_to_superuser', 'reassign_to_user']
     
     def run_health_check(self, request, queryset):
         """Admin action to run health checks on selected shortcodes."""
@@ -258,6 +259,66 @@ class ShortcodeAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'Scheduled integrity scans for {count} shortcodes.')
     run_integrity_scan.short_description = "Run integrity scan on selected shortcodes"
+    
+    def reassign_to_superuser(self, request, queryset):
+        """Admin action to reassign selected shortcodes to the first superuser."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        superuser = User.objects.filter(is_superuser=True).first()
+        if not superuser:
+            self.message_user(request, 'No superuser found. Please create a superuser first.', level='ERROR')
+            return
+        
+        count = 0
+        for shortcode in queryset:
+            old_user = shortcode.creator_user
+            shortcode.creator_user = superuser
+            shortcode.save(update_fields=['creator_user'])
+            count += 1
+        
+        self.message_user(request, f'Reassigned {count} shortcodes to superuser: {superuser.email}')
+    reassign_to_superuser.short_description = "Reassign selected shortcodes to superuser"
+    
+    def reassign_to_user(self, request, queryset):
+        """Admin action to reassign selected shortcodes to a specific user."""
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        
+        if 'apply' in request.POST:
+            # User has submitted the form
+            user_email = request.POST.get('user_email', '').strip()
+            if not user_email:
+                self.message_user(request, 'Please provide a user email address.', level='ERROR')
+                return
+            
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            try:
+                target_user = User.objects.get(email=user_email)
+            except User.DoesNotExist:
+                self.message_user(request, f'User with email "{user_email}" not found.', level='ERROR')
+                return
+            
+            count = 0
+            for shortcode in queryset:
+                shortcode.creator_user = target_user
+                shortcode.save(update_fields=['creator_user'])
+                count += 1
+            
+            self.message_user(request, f'Reassigned {count} shortcodes to user: {target_user.email}')
+            return HttpResponseRedirect(request.get_full_path())
+        
+        # Display the selection form
+        from django.shortcuts import render
+        context = {
+            'title': 'Reassign Shortcodes to User',
+            'queryset': queryset,
+            'action_checkbox_name': admin.ACTION_CHECKBOX_NAME,
+        }
+        return render(request, 'admin/archive/reassign_shortcodes.html', context)
+    reassign_to_user.short_description = "Reassign selected shortcodes to specific user"
 
 
 @admin.register(HealthCheck)

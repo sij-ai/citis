@@ -23,14 +23,30 @@
                     <h1 class="text-bone">Welcome back, {{ user.get_display_name|default:user.email }}</h1>
                     <div class="d-flex align-items-center gap-3">
                         <p class="text-subtle mb-0">
-                            {% if user.is_premium %}
+                            {% if user.is_superuser %}
+                            <i class="bi bi-shield-fill-check text-warning me-1"></i>
+                            Administrator Account
+                            {% elif user.current_plan == 'sovereign' %}
+                            <i class="bi bi-crown-fill text-purple me-1"></i>
+                            Sovereign Plan
+                            {% elif user.is_premium or user.current_plan == 'professional' %}
                             <i class="bi bi-star-fill text-cyan me-1"></i>
-                            Premium Account
+                            Professional Plan
                             {% else %}
-                            Free Account
+                            Free Plan
                             {% endif %}
                         </p>
-                        {% if user.is_premium %}
+                        {% if user.is_superuser %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-infinity me-1"></i>
+                            Unlimited Access
+                        </span>
+                        {% elif user.current_plan == 'sovereign' %}
+                        <button class="btn btn-outline-secondary btn-sm" onclick="openBillingPortal()">
+                            <i class="bi bi-gear me-1"></i>
+                            Manage Subscription
+                        </button>
+                        {% elif user.is_premium or user.current_plan == 'professional' %}
                         <button class="btn btn-outline-secondary btn-sm" onclick="openBillingPortal()">
                             <i class="bi bi-gear me-1"></i>
                             Manage Subscription
@@ -99,7 +115,7 @@
             <div class="dashboard-card w-100">
                 <h3 class="h5 mb-3 text-bone">Activity</h3>
                 <div style="height: 200px; position: relative;">
-                    <canvas id="activity-chart" style="width: 100%; height: 100%;"></canvas>
+                    <div id="activity-chart" style="width: 100%; height: 100%;"></div>
                 </div>
                 <div id="activity-chart-fallback" style="display: none; height: 200px; align-items: center; justify-content: center;">
                     <div class="text-center">
@@ -112,7 +128,7 @@
         
         <!-- API Keys Management (1/3 width) -->
         <div class="col-lg-4 d-flex">
-            {% if user.is_premium or user.is_superuser %}
+            {% if user.is_superuser or user.is_premium or user.current_plan == 'professional' or user.current_plan == 'sovereign' %}
             <div class="dashboard-card w-100">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3 class="h5 mb-0 text-bone">API Keys</h3>

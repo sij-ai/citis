@@ -63,6 +63,8 @@ def pricing_page(request):
         context['user_is_premium'] = request.user.is_premium
         context['user_current_plan'] = request.user.current_plan
         context['user_is_student'] = request.user.is_student
+        # Also make the full user object available to templates
+        context['user'] = request.user
         
         # Get current subscription info if premium
         if request.user.is_premium:
@@ -404,9 +406,10 @@ def create_api_key(request):
     """
     HTMX endpoint to create a new API key.
     """
-    # Check if user has premium access
-    if not request.user.is_premium:
-        return HttpResponse('API key creation requires a premium subscription.', status=403)
+    # Check if user has access to create API keys
+    if not (request.user.is_superuser or request.user.is_premium or 
+            request.user.current_plan in ['professional', 'sovereign']):
+        return HttpResponse('API key creation requires a premium subscription or higher plan.', status=403)
     
     try:
         api_key = ApiKey.objects.create(

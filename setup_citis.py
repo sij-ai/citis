@@ -94,12 +94,13 @@ def setup_site_configuration():
 
 
 def setup_master_user():
-    """Create master superuser if configured in environment."""
-    print_status("Setting up master user...")
+    """Create master superuser and master API key if configured in environment."""
+    print_status("Setting up master user and API key...")
     
     try:
         email = getattr(settings, 'MASTER_USER_EMAIL', None)
         password = getattr(settings, 'MASTER_USER_PASSWORD', None)
+        master_api_key = getattr(settings, 'MASTER_API_KEY', None)
         
         if not email or not password:
             print_status("MASTER_USER_EMAIL and MASTER_USER_PASSWORD not configured - skipping", "WARNING")
@@ -127,27 +128,65 @@ def setup_master_user():
                     print_status(f"Marked superuser email {existing_superuser.email} as verified", "SUCCESS")
                 else:
                     print_status(f"Superuser {existing_superuser.email} already exists and verified", "SUCCESS")
-            return True
+            
+            # Ensure superuser has unlimited privileges
+            existing_superuser.current_plan = 'sovereign'
+            existing_superuser.is_premium = True
+            existing_superuser.save(update_fields=['current_plan', 'is_premium'])
+            print_status(f"Updated superuser plan to sovereign with unlimited privileges", "SUCCESS")
+            
+            user = existing_superuser
+        else:
+            with transaction.atomic():
+                # Create superuser
+                user = User.objects.create_user(
+                    username='admin',
+                    email=email,
+                    password=password,
+                    is_superuser=True,
+                    is_staff=True,
+                    current_plan='sovereign',  # Superusers get unlimited sovereign plan
+                    is_premium=True
+                )
+                
+                # Mark email as verified
+                EmailAddress.objects.create(
+                    user=user,
+                    email=email,
+                    verified=True,
+                    primary=True
+                )
+                
+                print_status(f"Created master superuser: {email} (email verified, sovereign plan)", "SUCCESS")
         
-        with transaction.atomic():
-            # Create superuser
-            user = User.objects.create_user(
-                username='admin',
-                email=email,
-                password=password,
-                is_superuser=True,
-                is_staff=True
+        # Create or update master API key if configured
+        if master_api_key:
+            from archive.models import ApiKey
+            
+            master_api_record, created = ApiKey.objects.get_or_create(
+                key=master_api_key,
+                defaults={
+                    'user': user,
+                    'name': 'Master API Key',
+                    'description': 'System master API key for administrative access',
+                    'max_uses_total': None,  # Unlimited
+                    'max_uses_per_day': None,  # Unlimited
+                    'is_active': True
+                }
             )
             
-            # Mark email as verified
-            EmailAddress.objects.create(
-                user=user,
-                email=email,
-                verified=True,
-                primary=True
-            )
-            
-            print_status(f"Created master superuser: {email} (email verified)", "SUCCESS")
+            if created:
+                print_status(f"Created master API key record linked to superuser", "SUCCESS")
+            else:
+                # Update existing master API key to ensure it's linked to superuser
+                if master_api_record.user != user:
+                    master_api_record.user = user
+                    master_api_record.save()
+                    print_status(f"Updated master API key to link to superuser", "SUCCESS")
+                else:
+                    print_status(f"Master API key already linked to superuser", "SUCCESS")
+        else:
+            print_status("MASTER_API_KEY not configured - skipping API key creation", "WARNING")
             
         return True
         

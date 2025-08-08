@@ -50,8 +50,27 @@ class AddArchiveView(APIView):
 
         # Get user from API key for quota checking
         api_key = getattr(request, 'api_key', None)
-        creator_user = api_key.user if api_key else None
         is_master_key = getattr(request, 'is_master_key', False)
+        
+        if is_master_key:
+            # For master API key, get the first superuser
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            creator_user = User.objects.filter(is_superuser=True).first()
+            if not creator_user:
+                return Response(
+                    {"error": "No superuser found for master API key access. Please create a superuser."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        else:
+            creator_user = api_key.user if api_key else None
+            
+        # Prevent anonymous shortcode creation
+        if not creator_user:
+            return Response(
+                {"error": "Authentication required. Please provide a valid API key."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         
         # Skip quota checks for master key
         if not is_master_key and creator_user:

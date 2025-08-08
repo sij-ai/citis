@@ -168,14 +168,19 @@
 
                     <div class="mt-auto pt-4">
                         {% if user_is_authenticated %}
-                            {% if user_is_premium %}
-                                <button class="btn btn-outline-secondary w-100" disabled>
-                                    Current Plan
-                                </button>
-                            {% else %}
+                            {% if user.is_superuser %}
+                                <span class="btn btn-outline-warning w-100" style="cursor: default;">
+                                    <i class="bi bi-shield-fill-check me-2"></i>
+                                    Administrator Account
+                                </span>
+                            {% elif user_current_plan == 'free' and not user_is_premium %}
                                 <span class="btn btn-outline-secondary w-100" style="cursor: default;">
                                     Current Plan
                                 </span>
+                            {% else %}
+                                <button class="btn btn-outline-secondary w-100" disabled>
+                                    Not Available
+                                </button>
                             {% endif %}
                         {% else %}
                             <a href="{% url 'account_signup' %}" class="btn btn-outline-primary w-100">Get Started Free</a>
@@ -257,10 +262,20 @@
 
                     <div class="mt-auto pt-4">
                         {% if user_is_authenticated %}
-                            {% if user_is_premium %}
+                            {% if user.is_superuser %}
+                                <span class="btn btn-outline-warning w-100" style="cursor: default;">
+                                    <i class="bi bi-shield-fill-check me-2"></i>
+                                    Administrator Account
+                                </span>
+                            {% elif user_current_plan == 'professional' or user_is_premium %}
                                 <span class="btn btn-success w-100" style="cursor: default;">
                                     <i class="bi bi-check-circle me-2"></i>
                                     Current Plan
+                                </span>
+                            {% elif user_current_plan == 'sovereign' %}
+                                <span class="btn btn-outline-secondary w-100" style="cursor: default;">
+                                    <i class="bi bi-crown-fill me-2"></i>
+                                    Higher Plan Active
                                 </span>
                             {% else %}
                                 <button class="btn btn-primary w-100" onclick="subscribeToProfessional()">
@@ -343,11 +358,25 @@
                     </div>
 
                     <div class="mt-auto pt-4">
-                        {% if user_is_authenticated and user_is_premium %}
-                            <button class="btn btn-outline-secondary w-100" onclick="openBillingPortal()">
-                                <i class="bi bi-gear me-2"></i>
-                                Manage Subscription
-                            </button>
+                        {% if user_is_authenticated %}
+                            {% if user.is_superuser %}
+                                <span class="btn btn-outline-warning w-100" style="cursor: default;">
+                                    <i class="bi bi-shield-fill-check me-2"></i>
+                                    Administrator Account
+                                </span>
+                            {% elif user_current_plan == 'sovereign' %}
+                                <span class="btn btn-success w-100" style="cursor: default;">
+                                    <i class="bi bi-check-circle me-2"></i>
+                                    Current Plan
+                                </span>
+                            {% elif user_is_premium or user_current_plan == 'professional' %}
+                                <button class="btn btn-outline-secondary w-100" onclick="openBillingPortal()">
+                                    <i class="bi bi-gear me-2"></i>
+                                    Manage Subscription
+                                </button>
+                            {% else %}
+                                <a href="mailto:{{ sales_email }}" class="btn btn-outline-primary w-100">Contact Sales</a>
+                            {% endif %}
                         {% else %}
                             <a href="mailto:{{ sales_email }}" class="btn btn-outline-primary w-100">Contact Sales</a>
                         {% endif %}
