@@ -460,202 +460,228 @@ function showToast(message, type, title) {
 }
 </script>
 
-<!-- Chart.js for activity charts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Custom Minimalist Activity Chart -->
 <script>
-// Dual-axis Activity chart
+// Minimalist Activity Chart
 const chartElement = document.getElementById('activity-chart');
 const fallbackElement = document.getElementById('activity-chart-fallback');
 
 {% if user_stats.chart_data %}
 if (chartElement) {
     try {
-        const ctx = chartElement.getContext('2d');
         const rawData = {
             labels: JSON.parse('{{ user_stats.chart_data.labels|escapejs }}'),
             artifactData: JSON.parse('{{ user_stats.chart_data.artifact_data|escapejs }}'),
             viewData: JSON.parse('{{ user_stats.chart_data.view_data|escapejs }}')
         };
         
-        // Smooth data to show macro trends instead of daily fluctuations
-        function smoothData(data, windowSize = 3) {
-            if (data.length <= windowSize) return data;
+        // Aggressive smoothing for trend visualization
+        function smoothData(data, iterations = 3) {
+            if (data.length <= 2) return data;
             
-            const smoothed = [];
-            for (let i = 0; i < data.length; i++) {
-                const start = Math.max(0, i - Math.floor(windowSize / 2));
-                const end = Math.min(data.length, i + Math.floor(windowSize / 2) + 1);
-                const window = data.slice(start, end);
-                const avg = window.reduce((sum, val) => sum + val, 0) / window.length;
-                smoothed.push(Math.round(avg * 100) / 100); // Round to 2 decimals
+            let smoothed = [...data];
+            
+            // Apply multiple passes of smoothing
+            for (let iter = 0; iter < iterations; iter++) {
+                const newSmoothed = [];
+                for (let i = 0; i < smoothed.length; i++) {
+                    if (i === 0) {
+                        newSmoothed.push(smoothed.length > 1 ? (smoothed[0] + smoothed[1]) / 2 : smoothed[0]);
+                    } else if (i === smoothed.length - 1) {
+                        newSmoothed.push((smoothed[i-1] + smoothed[i]) / 2);
+                    } else {
+                        // Weighted average with emphasis on current point
+                        const weight = 0.4;
+                        const sideWeight = 0.3;
+                        newSmoothed.push(
+                            sideWeight * smoothed[i-1] + 
+                            weight * smoothed[i] + 
+                            sideWeight * smoothed[i+1]
+                        );
+                    }
+                }
+                smoothed = newSmoothed;
             }
+            
             return smoothed;
         }
         
-        // Apply smoothing to create trend lines
+        // Apply lighter smoothing to preserve data
         const chartData = {
-            labels: rawData.labels,
-            artifactData: smoothData(rawData.artifactData, 5),
-            viewData: smoothData(rawData.viewData, 5)
+            artifactData: smoothData(rawData.artifactData, 2),
+            viewData: smoothData(rawData.viewData, 2)
         };
         
         // Check if we have any data
-        const hasArtifactData = rawData.artifactData.reduce((a,b) => a+b, 0) > 0;
-        const hasViewData = rawData.viewData.reduce((a,b) => a+b, 0) > 0;
+        const hasArtifactData = rawData.artifactData && rawData.artifactData.length > 0 && rawData.artifactData.reduce((a,b) => a+b, 0) > 0;
+        const hasViewData = rawData.viewData && rawData.viewData.length > 0 && rawData.viewData.reduce((a,b) => a+b, 0) > 0;
         const hasData = hasArtifactData || hasViewData;
         
         if (!hasData) {
-            // Show fallback if no data
             chartElement.style.display = 'none';
             fallbackElement.style.display = 'flex';
         } else {
-            // Hide fallback and show chart
             fallbackElement.style.display = 'none';
             chartElement.style.display = 'block';
-
-const activityChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: chartData.labels,
-        datasets: [{
-            label: 'Artifacts',
-            data: chartData.artifactData,
-            borderColor: '#CCBB88',
-            backgroundColor: 'rgba(204, 187, 136, 0.1)',
-            tension: 0.6,
-            yAxisID: 'y',
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 2,
-            fill: true
-        }, {
-            label: 'Views',
-            data: chartData.viewData,
-            borderColor: '#4ECDC4',
-            backgroundColor: 'rgba(78, 205, 196, 0.1)',
-            tension: 0.6,
-            yAxisID: 'y1',
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            borderWidth: 2,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            intersect: false,
-        },
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#FFF5EB',
-                    usePointStyle: true,
-                    padding: 15,
-                    font: {
-                        size: 11
-                    }
-                }
-            },
-            tooltip: {
-                enabled: false
-            }
-        },
-        scales: {
-            x: {
-                ticks: {
-                    color: '#839496',
-                    font: {
-                        size: 10
-                    },
-                    maxTicksLimit: 8
-                },
-                grid: {
-                    display: false
-                },
-                border: {
-                    display: false
-                }
-            },
-            y: {
-                type: 'linear',
-                display: true,
-                position: 'left',
-                beginAtZero: true,
-                ticks: {
-                    color: '#839496',
-                    font: {
-                        size: 10
-                    },
-                    stepSize: 1,
-                    precision: 0
-                },
-                grid: {
-                    display: false
-                },
-                border: {
-                    display: false
-                },
-                title: {
-                    display: true,
-                    text: 'Artifacts',
-                    color: '#CCBB88',
-                    font: {
-                        size: 11,
-                        weight: 'bold'
-                    }
-                }
-            },
-            y1: {
-                type: 'linear',
-                display: true,
-                position: 'right',
-                beginAtZero: true,
-                ticks: {
-                    color: '#839496',
-                    font: {
-                        size: 10
-                    },
-                    stepSize: 1,
-                    precision: 0
-                },
-                grid: {
-                    display: false
-                },
-                border: {
-                    display: false
-                },
-                title: {
-                    display: true,
-                    text: 'Views',
-                    color: '#4ECDC4',
-                    font: {
-                        size: 11,
-                        weight: 'bold'
-                    }
-                }
-            }
+            
+            renderMinimalistChart(chartData, hasArtifactData, hasViewData);
         }
+        
+        function renderMinimalistChart(data, hasArtifacts, hasViews) {
+            const width = 280;
+            const height = 140;
+            const padding = { top: 10, right: 10, bottom: 10, left: 10 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            // Normalize data to 0-1 range for each dataset independently
+            const normalizeData = (dataset) => {
+                const max = Math.max(...dataset);
+                const min = Math.min(...dataset);
+                if (max === min) return dataset.map(() => 0.5);
+                return dataset.map(val => (val - min) / (max - min));
+            };
+            
+            const normalizedArtifacts = hasArtifacts ? normalizeData(data.artifactData) : [];
+            const normalizedViews = hasViews ? normalizeData(data.viewData) : [];
+            
+            // Create smooth curve paths
+            const createSmoothPath = (data, isArea = false) => {
+                if (!data || data.length === 0) return '';
+                
+                const points = data.map((val, i) => ({
+                    x: padding.left + (i / Math.max(1, data.length - 1)) * chartWidth,
+                    y: padding.top + (1 - val) * chartHeight
+                }));
+                
+                if (points.length === 1) {
+                    const x = points[0].x;
+                    const y = points[0].y;
+                    return isArea ? 
+                        `M${x},${height - padding.bottom} L${x},${y} L${x},${height - padding.bottom} Z` :
+                        `M${x-5},${y} L${x+5},${y}`;
+                }
+                
+                // Simple line path for robustness
+                let path = `M${points[0].x},${points[0].y}`;
+                
+                for (let i = 1; i < points.length; i++) {
+                    path += ` L${points[i].x},${points[i].y}`;
+                }
+                
+                if (isArea) {
+                    const lastPoint = points[points.length - 1];
+                    const firstPoint = points[0];
+                    path += ` L${lastPoint.x},${height - padding.bottom}`;
+                    path += ` L${firstPoint.x},${height - padding.bottom} Z`;
+                }
+                
+                return path;
+            };
+            
+            // Build SVG with proper structure
+            let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow: visible;">
+                <defs>
+                    <linearGradient id="artifactsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#CCBB88;stop-opacity:0.3"/>
+                        <stop offset="100%" style="stop-color:#CCBB88;stop-opacity:0"/>
+                    </linearGradient>
+                    <linearGradient id="viewsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4ECDC4;stop-opacity:0.3"/>
+                        <stop offset="100%" style="stop-color:#4ECDC4;stop-opacity:0"/>
+                    </linearGradient>
+                </defs>`;
+            
+            // Add subtle background
+            svg += `<rect width="${width}" height="${height}" fill="transparent"/>`;
+            
+            // Render area fills first (behind lines)
+            if (hasViews && normalizedViews.length > 0) {
+                const areaPath = createSmoothPath(normalizedViews, true);
+                if (areaPath) {
+                    svg += `<path d="${areaPath}" fill="url(#viewsGradient)" opacity="0.08"/>`;
+                }
+            }
+            
+            if (hasArtifacts && normalizedArtifacts.length > 0) {
+                const areaPath = createSmoothPath(normalizedArtifacts, true);
+                if (areaPath) {
+                    svg += `<path d="${areaPath}" fill="url(#artifactsGradient)" opacity="0.08"/>`;
+                }
+            }
+            
+            // Render trend lines
+            if (hasViews && normalizedViews.length > 0) {
+                const linePath = createSmoothPath(normalizedViews);
+                if (linePath) {
+                    svg += `<path d="${linePath}" fill="none" stroke="#4ECDC4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+                }
+            }
+            
+            if (hasArtifacts && normalizedArtifacts.length > 0) {
+                const linePath = createSmoothPath(normalizedArtifacts);
+                if (linePath) {
+                    svg += `<path d="${linePath}" fill="none" stroke="#CCBB88" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
+                }
+            }
+            
+            // Create legend
+            let legend = '<div style="display: flex; justify-content: center; gap: 20px; margin-top: 12px; font-size: 11px;">';
+            
+            if (hasArtifacts) {
+                legend += `
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 2.5px; background: #CCBB88; border-radius: 1px; opacity: 0.9;"></div>
+                        <span style="color: var(--text-dimmed);">Artifacts</span>
+                    </div>
+                `;
+            }
+            
+            if (hasViews) {
+                legend += `
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 12px; height: 2.5px; background: #4ECDC4; border-radius: 1px; opacity: 0.9;"></div>
+                        <span style="color: var(--text-dimmed);">Views</span>
+                    </div>
+                `;
+            }
+            
+            legend += '</div>';
+            
+            // Always show at least something
+            if (!hasArtifacts && !hasViews) {
+                // Fallback with demo curves
+                svg += `<path d="M20,80 Q70,40 120,60 Q170,30 220,50 Q250,40 260,45" fill="none" stroke="#CCBB88" stroke-width="2" opacity="0.3"/>`;
+                svg += `<path d="M20,90 Q70,70 120,85 Q170,60 220,75 Q250,65 260,70" fill="none" stroke="#4ECDC4" stroke-width="2" opacity="0.3"/>`;
+                svg += `<text x="${width/2}" y="${height/2}" text-anchor="middle" fill="var(--text-subtle)" font-size="11">No data yet</text>`;
+            }
+            
+            svg += '</svg>';
+            
+            chartElement.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                        ${svg}
+                    </div>
+                    ${legend}
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Chart rendering error:', error);
+        chartElement.style.display = 'none';
+        fallbackElement.style.display = 'flex';
     }
-});
-
-
-        }
-                        } catch (error) {
-                        console.error('Chart rendering error:', error);
-                        chartElement.style.display = 'none';
-                        fallbackElement.style.display = 'flex';
-                    }
-                }
-                {% else %}
-                // No chart data available, show fallback
-                if (fallbackElement) {
-                    fallbackElement.style.display = 'flex';
-                }
-                if (chartElement) {
-                    chartElement.style.display = 'none';
-                }
-                {% endif %}
+}
+{% else %}
+// No chart data available, show fallback
+if (fallbackElement) {
+    fallbackElement.style.display = 'flex';
+}
+if (chartElement) {
+    chartElement.style.display = 'none';
+}
+{% endif %}
 </script>
 {% endblock %} 
