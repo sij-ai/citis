@@ -167,13 +167,14 @@ def enforce_archive_size_limit(shortcode_obj) -> bool:
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def archive_url_task(self, shortcode_id, requester_ip=None):
+def archive_url_task(self, shortcode_id, requester_ip=None, cookies=None):
     """
     Archive a URL using the configured archive managers.
     
     Args:
         shortcode_id: ID of the Shortcode instance to archive
         requester_ip: IP address of the requester for proxy selection
+        cookies: Raw document.cookie string for bypassing cookie walls
     """
     try:
         shortcode = Shortcode.objects.get(pk=shortcode_id)
@@ -193,20 +194,18 @@ def archive_url_task(self, shortcode_id, requester_ip=None):
                 try:
                     # Run async archive method in sync task with proxy support
                     if hasattr(manager, 'archive_url'):
-                        # Check if the manager supports requester_ip parameter
+                        # Build kwargs for the manager
                         import inspect
                         sig = inspect.signature(manager.archive_url)
+                        archive_kwargs = {}
                         if 'requester_ip' in sig.parameters:
-                            result = asyncio.run(
-                                manager.archive_url(shortcode.url, timezone.now(), requester_ip=requester_ip)
-                            )
-                        else:
-                            # Fallback for managers that don't support proxy
-                            result = asyncio.run(
-                                manager.archive_url(shortcode.url, timezone.now())
-                            )
+                            archive_kwargs['requester_ip'] = requester_ip
+                        if 'cookies' in sig.parameters and cookies:
+                            archive_kwargs['cookies'] = cookies
+                        result = asyncio.run(
+                            manager.archive_url(shortcode.url, timezone.now(), **archive_kwargs)
+                        )
                     else:
-                        # Fallback for older manager interfaces
                         result = asyncio.run(
                             manager.archive_url(shortcode.url, timezone.now())
                         )
@@ -312,11 +311,15 @@ def archive_url_task(self, shortcode_id, requester_ip=None):
 
 
 @shared_task
-def extract_assets_task(shortcode_id):
+def extract_assets_task(shortcode_id, cookies=None):
     """
     Extract additional assets (favicon, screenshot, PDF) for an archive.
     
     This runs after the main archiving task to avoid blocking the user.
+    
+    Args:
+        shortcode_id: ID of the Shortcode instance
+        cookies: Raw document.cookie string for bypassing cookie walls
     """
     try:
         shortcode = Shortcode.objects.get(pk=shortcode_id)

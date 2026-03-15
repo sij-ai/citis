@@ -414,8 +414,38 @@ class SingleFileManager:
             timeout=settings.SINGLEFILE_TIMEOUT
         )
 
-    async def archive_url(self, url: str, timestamp: datetime, requester_ip: Optional[str] = None) -> Dict[str, Any]:
-        """Archive a URL using SingleFile CLI with optional proxy support"""
+    def _parse_cookie_string(self, raw_cookies: str, url: str) -> List[Dict[str, Any]]:
+        """
+        Convert a raw document.cookie string into the CDP cookie format
+        expected by SingleFile's --browser-cookies-file.
+        """
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+        # Strip port for cookie domain
+        if ':' in domain:
+            domain = domain.rsplit(':', 1)[0]
+
+        cookies = []
+        for pair in raw_cookies.split(';'):
+            pair = pair.strip()
+            if not pair or '=' not in pair:
+                continue
+            name, _, value = pair.partition('=')
+            cookies.append({
+                "name": name.strip(),
+                "value": value.strip(),
+                "domain": f".{domain}",
+                "path": "/",
+                "httpOnly": False,
+                "secure": parsed_url.scheme == 'https',
+                "sameSite": "Lax",
+            })
+        return cookies
+
+    async def archive_url(self, url: str, timestamp: datetime,
+                          requester_ip: Optional[str] = None,
+                          cookies: Optional[str] = None) -> Dict[str, Any]:
+        """Archive a URL using SingleFile CLI with optional proxy and cookie support"""
         archive_path = self._get_archive_path(url, timestamp)
         archive_path.mkdir(parents=True, exist_ok=True)
         
@@ -427,6 +457,22 @@ class SingleFileManager:
             url,
             str(singlefile_path)
         ]
+        
+        # Write a temporary cookies file for SingleFile if cookies were provided
+        cookies_tmpfile = None
+        if cookies:
+            try:
+                cookie_list = self._parse_cookie_string(cookies, url)
+                if cookie_list:
+                    cookies_tmpfile = tempfile.NamedTemporaryFile(
+                        mode='w', suffix='.json', delete=False
+                    )
+                    json.dump(cookie_list, cookies_tmpfile)
+                    cookies_tmpfile.close()
+                    cmd.extend(['--browser-cookies-file', cookies_tmpfile.name])
+                    logger.info(f"Using {len(cookie_list)} cookies for {url}")
+            except Exception as e:
+                logger.warning(f"Failed to prepare cookies file, continuing without cookies: {e}")
         
         # Add proxy configuration if enabled and configured
         proxy_config = None
@@ -559,6 +605,12 @@ class SingleFileManager:
             if archive_path.exists():
                 shutil.rmtree(archive_path)
             raise e
+        finally:
+            if cookies_tmpfile:
+                try:
+                    os.unlink(cookies_tmpfile.name)
+                except OSError:
+                    pass
 
 
 class ArchiveBoxManager:

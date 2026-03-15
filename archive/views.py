@@ -47,6 +47,7 @@ class AddArchiveView(APIView):
         url = serializer.validated_data['url']
         custom_shortcode = serializer.validated_data.get('shortcode')
         text_fragment = serializer.validated_data.get('text_fragment', '')
+        cookies = serializer.validated_data.get('cookies', '')
 
         # Get user from API key for quota checking
         api_key = getattr(request, 'api_key', None)
@@ -144,8 +145,10 @@ class AddArchiveView(APIView):
         try:
             from .tasks import archive_url_task
             
-            # Always run synchronously for immediate feedback
-            result = archive_url_task.apply(args=[shortcode_obj.shortcode], kwargs={'requester_ip': client_ip})
+            task_kwargs = {'requester_ip': client_ip}
+            if cookies:
+                task_kwargs['cookies'] = cookies
+            result = archive_url_task.apply(args=[shortcode_obj.shortcode], kwargs=task_kwargs)
             
             if result.successful() and result.result.get('success', False):
                 message = "Archive created successfully."

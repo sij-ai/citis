@@ -18,6 +18,10 @@ class AddRequestSerializer(serializers.Serializer):
     url = serializers.URLField(max_length=2048)
     shortcode = serializers.CharField(max_length=20, required=False, allow_blank=True)
     text_fragment = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    cookies = serializers.CharField(
+        max_length=8192, required=False, allow_blank=True,
+        help_text="Raw document.cookie string (e.g. 'name1=val1; name2=val2') to bypass cookie walls"
+    )
 
     def validate_shortcode(self, value):
         """Validate that shortcode meets all requirements"""
